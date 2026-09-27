@@ -490,3 +490,18 @@ a.g-node:hover{border-color:var(--blue)}.g-node.accent{background:var(--blue);bo
 .bc-m-label{margin:10px 0 2px!important;font-size:11px!important;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)!important}
 .bc-m-do{margin:12px 0!important;padding:9px 11px;border-radius:8px;background:var(--mint-soft);color:#14503f!important;font-weight:650}
 .bc-flow>div:last-child{background:var(--blue);border-color:var(--blue);color:#fff}.bc-flow>div:last-child em,.bc-flow>div:last-child span{color:#dbe3ff}
+/* v2.4 ownership tags: Growth PM / PMM / SEO lead */
+.own{display:inline-block;font:800 9.5px/1 var(--body);letter-spacing:.03em;border-radius:4px;padding:3px 4px;color:#fff;vertical-align:middle}
+.own-g{background:#e8710a}.own-p{background:#c2185b}.own-s{background:#1a73e8}
+.own.own-2{background:#fff;border:1px solid currentColor;padding:2px 3px}.own-g.own-2{color:#e8710a}.own-p.own-2{color:#c2185b}.own-s.own-2{color:#1a73e8}
+.own-tags{display:inline-flex;gap:3px;margin-left:auto;flex:0 0 auto;padding-left:6px}
+.sidenav-legend .own{margin-right:2px}.own-legend-title{margin-top:8px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em;font-size:11px}
+.own-legend-note{font-size:11px;color:var(--ink3);font-style:italic}
+.sn-group li a[aria-current="page"] .own.own-2{background:transparent}
+.own-badge{display:inline-flex;align-items:center;gap:6px;margin-left:10px;font-size:12px;font-weight:600;color:var(--ink2)}.own-badge .own{font-size:11px;padding:4px 7px}
+.own-badge{flex-wrap:wrap}.owner-consulted{font-size:10px;color:var(--ink3);font-weight:500}.owner-doer{font-size:11px;color:var(--ink2);padding-left:7px;border-left:1px solid var(--line)}
+.owner-rules-slot{display:block;width:100%;min-width:0;clear:both;margin:0 0 14px}
+.owner-rules{width:100%;box-sizing:border-box;margin:0;padding:12px 16px;border:1px solid #d7dfef;border-radius:10px;background:#fff;color:var(--ink2);font-size:14px;line-height:1.55}
+.owner-rules summary{cursor:pointer;font-weight:750;color:var(--ink);font-size:14px}.owner-rules-body{width:100%;max-width:none;box-sizing:border-box;padding:7px 2px 2px}.owner-rules-body p{margin:8px 0;max-width:80ch}.owner-work-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.owner-work-grid span{display:block;min-width:0;padding:12px 14px;border-radius:8px;background:#f3f6fb;overflow-wrap:anywhere}.owner-work-grid b{display:block;color:var(--ink);margin-bottom:5px}
+@media(max-width:700px){.owner-doer{border-left:0;padding-left:0}.owner-work-grid{grid-template-columns:1fr}.owner-rules{padding:11px 12px}}
+@media(max-width:640px){.own-badge{display:flex;margin:8px 0 0;flex-wrap:wrap}}
