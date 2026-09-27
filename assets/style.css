@@ -570,3 +570,14 @@ a.g-node:hover{border-color:var(--blue)}.g-node.accent{background:var(--blue);bo
 .mkt-two b{display:block;color:var(--ink);margin-bottom:3px}.mkt-two span{font-size:13px;color:var(--ink2)}
 @media(max-width:760px){.mkt-two{grid-template-columns:1fr}}
 .day1{display:flex;flex-direction:column;gap:3px;margin:14px 0 0;padding:11px 14px;border-radius:10px;background:#eef6ff;border:1px solid #cfe0f7;border-left:4px solid #2f6bff;font-size:14px;color:var(--ink2)}.day1>b{color:var(--ink)}
+
+/* v2.9 sidebar legend: always visible above the scrolling list */
+.sidenav{display:flex;flex-direction:column;max-height:calc(100vh - 64px);box-sizing:border-box;padding:18px 0 16px}
+.sidenav-legend{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;margin:0 6px 10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#f7f9fd;font-size:12px;color:var(--ink2)}
+.sidenav-legend .sl-row{display:flex;flex-wrap:wrap;gap:4px 12px}
+.sidenav-legend .sl-row>span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.sidenav-legend>span:first-child{all:unset}
+.sidenav-legend .own{margin:0}.sidenav-legend .wip-tag{margin:0}
+.sidenav-legend .sl-note{font-size:11px;color:var(--ink3);border-top:1px dashed var(--line);padding-top:6px}
+.sidenav-in{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto}
+@media(max-width:1100px){.sidenav{display:none;max-height:none;height:100vh;padding:16px 14px}html.sidenav-open .sidenav{display:flex}}

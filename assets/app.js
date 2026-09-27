@@ -20,11 +20,11 @@
   function sidebar(){
     var wrap=document.querySelector('.wrap');if(!wrap)return;
     var nav=document.createElement('aside');nav.className='sidenav';nav.id='sidenav';nav.setAttribute('aria-label','Plan sections');
-    var h='<div class="sidenav-in"><div class="sidenav-legend">'+T('Plan section → demo pages','Розділ плану → демо-сторінки')+
-      '<span><i class="k-c"></i>'+T('customer page','клієнтська')+'</span><span><i class="k-i"></i>'+T('internal','внутрішня')+'</span>'+
-      '<span class="own-legend-title">'+T('Who owns the work','Чия це робота')+'</span>'+
-      '<span><b class="own own-g">GPM</b>'+T('Growth PM','Growth PM')+'</span><span><b class="own own-p">PMM</b>'+T('Product marketing (partly)','продуктовий маркетинг (частково)')+'</span><span><b class="own own-s">SEO</b>'+T('SEO lead','SEO-лід')+'</span>'+
-      '<span><b class="wip-tag">✎</b>'+T('Draft — in progress, not fully checked','Чернетка — у роботі, ще не перевірено')+'</span>'+'<span class="own-legend-note">'+T('first tag = final decision owner · outlined tag = consulted','перша мітка — хто ухвалює фінальне рішення · контурна — кого консультують')+'</span></div>';
+    var h='<div class="sidenav-legend" aria-label="Legend">'+
+      '<div class="sl-row"><span><i class="k-c"></i>'+T('customer','клієнтська')+'</span><span><i class="k-i"></i>'+T('internal','внутрішня')+'</span><span><b class="wip-tag">✎</b>'+T('draft','чернетка')+'</span></div>'+
+      '<div class="sl-row"><span><b class="own own-g">GPM</b>Growth PM</span><span><b class="own own-p">PMM</b>'+T('marketing','маркетинг')+'</span><span><b class="own own-s">SEO</b>'+T('SEO lead','SEO-лід')+'</span></div>'+
+      '<div class="sl-note">'+T('Filled tag — decides · outlined — consulted','Зафарбована мітка — вирішує · контурна — консультує')+'</div></div>'+
+      '<div class="sidenav-in">';
     NAV.forEach(function(s){
       var mine=s.pages.some(function(p){return p[0]===here});
       var open=!s.collapsed||mine;
@@ -42,7 +42,7 @@
     var content=document.createElement('div');content.className='shell-main';
     while(wrap.firstChild)content.appendChild(wrap.firstChild);
     shell.appendChild(nav);shell.appendChild(content);wrap.appendChild(shell);
-    var a=nav.querySelector('[aria-current="page"]');if(a&&a.scrollIntoView&&window.innerWidth>1100){var box=nav.querySelector('.sidenav-in');if(box)box.scrollTop=Math.max(0,a.offsetTop-160)}
+    var a=nav.querySelector('[aria-current="page"]');if(a&&a.scrollIntoView&&window.innerWidth>1100){var box=nav.querySelector('.sidenav-in');if(box)box.scrollTop=Math.max(0,a.offsetTop-box.offsetTop-120)}
   }
 
   /* Previous / next through the whole demo, in plan order */
