@@ -120,6 +120,15 @@ h3{font:600 18px/1.35 var(--body);margin:0 0 6px}
 @media (max-width:640px){.top{position:static}}
 
 /* ===== v1.1: sidebar navigation, unknown markers, pager ===== */
+.public-top{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.public-top-in{max-width:1240px;margin:auto;min-height:66px;padding:10px 20px;display:flex;align-items:center;justify-content:space-between}
+.public-language{display:flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:9px;background:#fff}
+.public-language button{border:0;border-radius:6px;background:transparent;padding:7px 10px;color:var(--ink2);font:700 12px var(--body);cursor:pointer}
+.public-language button[aria-pressed="true"]{background:var(--blue-soft);color:var(--blue)}
+.public-wrap{max-width:1240px;padding-top:22px}
+.public-main{max-width:100%;padding-bottom:45px}
+.landing-preview-toolbar{margin:18px 0 12px;display:flex;align-items:center}
+.landing-preview-toolbar .btn{box-shadow:0 7px 18px rgba(36,70,224,.18)}
 .wrap{max-width:1500px}
 .top-in{max-width:1500px}
 .nav:empty{flex:1}
