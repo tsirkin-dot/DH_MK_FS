@@ -549,3 +549,24 @@ a.g-node:hover{border-color:var(--blue)}.g-node.accent{background:var(--blue);bo
 .vs-method{margin:16px 0 0;font-size:12px;color:var(--ink3)}
 @media(max-width:760px){.vs-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vs-two{grid-template-columns:1fr}.vs-head{flex-direction:column}.vs-chips{flex-wrap:wrap}.vs-real{padding:16px}}
 .vs-jump{margin:6px 0;padding:7px 10px;border-radius:8px;background:#eef3ff;font-size:13px}
+
+/* v2.8 decision brief simulation */
+.sim{margin-top:16px;padding:16px 18px;border:1px solid #dfe5f2;border-radius:12px;background:#f8faff}
+.sim h3{margin:0 0 10px;font-size:16px}
+.sim-in{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.sim-in label{min-width:0;display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--ink2)}
+.sim-in input,.sim-in select{font:inherit;font-size:14px;padding:7px 9px;border:1px solid #cfd8e8;border-radius:8px;background:#fff;min-width:0;width:100%;max-width:100%;box-sizing:border-box}
+.sim-out{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.sim-out>div{padding:10px 12px;border-radius:10px;background:#fff;border:1px solid #e3e9f3;min-width:0}
+.sim-out span{display:block;font-size:11px;color:var(--ink3)}.sim-out b{display:block;font-size:20px;color:var(--ink);margin-top:3px}
+.sim-note{margin:8px 0 0;font-size:12px;color:var(--ink3)}
+.bc-formula{margin:8px 0;padding:10px 14px;border-left:3px solid #2f6bff;background:#f4f7fc;border-radius:6px;font-size:14px}
+@media(max-width:760px){.sim-in{grid-template-columns:1fr}.sim-out{grid-template-columns:1fr 1fr}}
+.mkt-shift{margin:6px 0 14px;padding:14px 16px;border-radius:12px;background:#f4f7fc;border:1px solid #e1e7f2}
+.mkt-shift h3{margin:0 0 6px;font-size:15px}.mkt-shift p{margin:6px 0}
+.mkt-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 4px}
+.mkt-two>div{padding:10px 12px;border-radius:10px;background:#fff;border:1px solid #e3e9f3}
+.mkt-two>div:first-child{border-left:4px solid #9aa4b5}.mkt-two>div:last-child{border-left:4px solid #12a150}
+.mkt-two b{display:block;color:var(--ink);margin-bottom:3px}.mkt-two span{font-size:13px;color:var(--ink2)}
+@media(max-width:760px){.mkt-two{grid-template-columns:1fr}}
+.day1{display:flex;flex-direction:column;gap:3px;margin:14px 0 0;padding:11px 14px;border-radius:10px;background:#eef6ff;border:1px solid #cfe0f7;border-left:4px solid #2f6bff;font-size:14px;color:var(--ink2)}.day1>b{color:var(--ink)}

@@ -1,0 +1,8 @@
+{
+  "name": "dochub-growth-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DocHub growth plan demo — static pages behind a PIN gate (24h cookie)",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
