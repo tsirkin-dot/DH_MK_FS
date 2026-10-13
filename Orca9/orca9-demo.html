@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orca9 — маркетинговий оркестр (демо)</title>
-<script src="orca9-pin.js?v=20261013c"></script>
+<script src="orca9-pin.js?v=20261013d"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
@@ -344,7 +344,8 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
   .diff{grid-template-columns:1fr}
 }
 </style>
-<link rel="stylesheet" href="orca9-premium.css?v=20261013c">
+<link rel="stylesheet" href="orca9-premium.css?v=20261013d">
+<link rel="stylesheet" href="orca9-control.css?v=20261013d">
 </head>
 <body>
 <div class="app">
@@ -363,6 +364,10 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
     <button class="nav" data-screen="groups"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>Групи сторінок</button>
     <button class="nav" data-screen="hotfix"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v10M12 17v.5"/><circle cx="12" cy="12" r="9"/></svg>Швидкі виправлення</button>
     <button class="nav" data-screen="pm"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x='3' y='4' width='5' height='16' rx='1.2'/><rect x='10' y='4' width='5' height='10' rx='1.2'/><rect x='17' y='4' width='4' height='13' rx='1.2'/></svg>Менеджер проєкту</button>
+    <div class="navlab">Контроль</div>
+    <button class="nav" data-screen="facts"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h6M9 14h6M9 18h3"/><path d="M8 7h4"/></svg>Реєстр фактів<span class="count" id="cnt-fr"></span></button>
+    <button class="nav" data-screen="world"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></svg>Світ і події<span class="count" id="cnt-wd"></span></button>
+    <button class="nav" data-screen="agentqa"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Якість агентів<span class="count" id="cnt-aq"></span></button>
     <div class="navlab">Демо</div>
     <button class="nav" data-screen="events"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d='M13 3L5 14h6l-1 7 8-11h-6z'/></svg>Події</button>
     <button class="nav" data-screen="slackdemo"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d='M9 3L7 21M17 3l-2 18M4 8h17M3 16h17'/></svg>Slack</button>
@@ -390,9 +395,11 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
         <button class="hint" data-hint="Роль визначає, що ви бачите і що можете затверджувати. Спробуйте Editor: він не зможе затвердити зміну бюджету.">?</button>
       </div>
       <button class="btn ghost" data-action="toggle-hints" id="hints-btn">Сховати підказки</button>
+      <button class="btn ghost" data-action="in-gloss">Глосарій</button>
       <button class="btn" data-action="tour">Тур</button>
       <button class="btn primary" data-action="sim" id="sim-btn" data-tour="sim">Запустити симуляцію</button>
     </header>
+    <div id="world-strip" class="wstrip" hidden aria-label="Зовнішні події"></div>
     <div class="body">
       <main id="view" tabindex="-1"></main>
       <aside class="feed" data-tour="feed" aria-label="Стрічка подій">
@@ -410,10 +417,12 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
 <div id="modal" role="dialog" aria-modal="true"><div class="box" id="modal-box"></div></div>
 <div id="toast" role="status"></div>
 
-<script src="orca9-page-control.js?v=20261013c"></script>
-<script src="orca9-scale.js?v=20261013c"></script>
-<script src="orca9-viz.js?v=20261013c"></script>
-<script src="orca9-agents.js?v=20261013c"></script>
+<script src="orca9-page-control.js?v=20261013d"></script>
+<script src="orca9-scale.js?v=20261013d"></script>
+<script src="orca9-viz.js?v=20261013d"></script>
+<script src="orca9-agents.js?v=20261013d"></script>
+<script src="orca9-world.js?v=20261013d"></script>
+<script src="orca9-insight.js?v=20261013d"></script>
 <script>
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1155,11 +1164,11 @@ const VIEWS = {
 
   agents() {
     const q = S.agentQ.toLowerCase();
-    return `<div class="panel" style="margin-bottom:16px"><div class="field" style="margin:0"><label for="ag-q">Пошук агента ${hint('План: 85 агентів (78 із репозиторію shalintripathi/saas-marketing-agents + 7 нових для аналітики й AI Visibility) і 6 ролей координації — разом 91. Жоден агент не змінює сторінку сам: лише через погодження каналів канальних оркестраторів і тест-гейт. Агент бачить інструмент, але не токен. Натисніть на агента, щоб побачити паспорт: куди ходить, що збирає, як працює, що видає і приклад запуску. У демо показано ${S.pods.reduce((t, p) => t + p[1].length, 0)} ролей із 91 запланованої.')}</label><input id="ag-q" type="text" placeholder="Назва або що робить: Budget, цитування, Jira" value="${esc(S.agentQ)}"></div></div>
+    return `<div class="panel" style="margin-bottom:16px"><div class="field" style="margin:0"><label for="ag-q">Пошук агента ${hint('План: 87 агентів (78 із репозиторію shalintripathi/saas-marketing-agents + 7 нових для аналітики й AI Visibility + 2 для контролю якості агентів) і 6 ролей координації — разом 93. Жоден агент не змінює сторінку сам: лише через погодження каналів канальних оркестраторів і тест-гейт. Агент бачить інструмент, але не токен. Натисніть на агента, щоб побачити паспорт: куди ходить, що збирає, як працює, що видає і приклад запуску. У демо показано ${S.pods.reduce((t, p) => t + p[1].length, 0)} ролей із 91 запланованої.')}</label><input id="ag-q" type="text" placeholder="Назва або що робить: Budget, цитування, Jira" value="${esc(S.agentQ)}"></div></div>
       <div class="grid g2">${S.pods.map(([pod, list]) => {
         const f = list.filter(n => (typeof agSearchText === 'function' ? agSearchText(n) : n.toLowerCase()).includes(q));
         if (!f.length) return '';
-        return `<div class="pod"><h3>${pod} <span class="chip">${list.length} агентів</span></h3><ul>${f.map(n => `<li class="ag-li"><button class="ag-btn" data-action="ag-open" data-id="${esc(n)}"><span>${esc(n)}${typeof AG_SPEC !== 'undefined' && AG_SPEC[n] ? `<span class="ag-p">${esc(AG_SPEC[n].p.split(/[.:]/)[0])}</span>` : ''}</span><span class="chip ${n.includes('новий') ? 'o' : ''}">${pod === 'Аналітика' ? 'лише читання' : pod === 'AI Visibility' ? 'лише рекомендації' : pod === 'Координація' ? 'координує, не пише' : pod === 'PPC' ? 'R3 + погодження каналів' : pod === 'SEO' || pod === 'SMM' || pod === 'Контент' ? 'R2 + погодження каналів' : 'R1–R2 + погодження каналів'}</span></button></li>`).join('')}</ul></div>`;
+        return `<div class="pod"><h3>${pod} <span class="chip">${list.length} агентів</span></h3><ul>${f.map(n => `<li class="ag-li"><button class="ag-btn" data-action="ag-open" data-id="${esc(n)}"><span>${esc(n)}${typeof AG_SPEC !== 'undefined' && AG_SPEC[n] ? `<span class="ag-p">${esc(AG_SPEC[n].p.split(/[.:]/)[0])}</span>` : ''}</span><span class="chip ${n.includes('новий') ? 'o' : ''}">${pod === 'Аналітика' ? 'лише читання' : pod === 'AI Visibility' ? 'лише рекомендації' : pod === 'Координація' ? 'координує, не пише' : pod === 'Контроль якості' ? 'перевіряє агентів, не пише' : pod === 'PPC' ? 'R3 + погодження каналів' : pod === 'SEO' || pod === 'SMM' || pod === 'Контент' ? 'R2 + погодження каналів' : 'R1–R2 + погодження каналів'}</span></button></li>`).join('')}</ul></div>`;
       }).join('') || `<p class="empty">Агентів за запитом «${esc(S.agentQ)}» не знайдено. Спробуйте іншу назву.</p>`}</div>`;
   },
 
@@ -1837,6 +1846,10 @@ const TOUR = [
   { screen: 'crons', sel: '[data-tour=kill]', h: 'Пауза ≠ аварійна зупинка', p: 'Пауза крона лише не ставить нові задачі. Аварійний вимикач блокує будь-який запис у gateway, навіть у задачах, що вже йдуть; після увімкнення відкладене продовжується.' },
   { screen: 'slackdemo', sel: '[data-tour=sl-demo]', h: 'Slack — той самий контур', p: 'Кнопки в Slack мають ті самі права, версії пакетів і ліміти. Старий апрув не підходить до зміненого варіанта.' },
   { screen: 'roles', sel: '[data-tour=role-table]', h: 'Безпека поза моделлю', p: 'У production права, поля, бюджет і незмінність пакета перевіряє незалежний серверний policy engine. Демо показує процес, а не доводить захист інфраструктури.' },
+  { screen: 'recs', pre: () => { S.inTab.recs = 'states'; }, sel: '[data-tour=in-recs]', h: 'Уся картина пакетів', p: 'Чотири погляди: пріоритети «вплив × впевненість», завантаження сторінок по тижнях, як тест-гейт ухвалює рішення з інтервалами, і всі стани пакета з переходами.' },
+  { screen: 'facts', sel: '[data-tour=fr-layers]', h: 'Реєстр фактів', p: 'Ціни, дати й цифри мають одне джерело. Факт правильний, коли збігаються джерело, реєстр, сайт і відповіді AI. Розбіжність не застосовується сама — вирішує власник факту.' },
+  { screen: 'world', sel: '[data-tour=world-tl]', h: 'Світ і події', p: 'Апдейти Google, нові моделі в AI-системах, свята в країнах із великою часткою трафіку. Тест-гейт не зараховує зачеплений тиждень і подовжує вікно. Подію видно під шапкою на кожному екрані.' },
+  { screen: 'agentqa', sel: '[data-tour=aq-rel]', h: 'Агент не оцінює сам себе', p: 'Кожну зміну промпту чи моделі перевіряє Регресійний контролер на еталонних кейсах. Аудитор відповідей щодня ловить дрейф. Запустіть RL-7: дешевша модель не пройде.' },
   { screen: 'recs', sel: '#rec-REC-3', h: 'Спробуйте повний сценарій', p: 'REC-3: узгодити → конфлікт → компроміс → дозволити тест → три тижні → розгорнути. Далі «Кампанії», «Групи сторінок» і «Швидкі виправлення». Архітектура зі схемами — посилання внизу меню.' }
 ];
 let TI = -1;
@@ -1969,6 +1982,8 @@ document.addEventListener('scroll', hideTip, true);
 addEventListener('resize', () => { if (TI >= 0) tour(TI); });
 
 scaleInit();
+worldInit();
+insightInit();
 seedPipelinePackets();
 render(); renderFeed();
 setTimeout(() => tour(0), 700);

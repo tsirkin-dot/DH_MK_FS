@@ -9,6 +9,8 @@ const controller = fs.readFileSync(path.join(root, 'orca9-page-control.js'), 'ut
 const scale = fs.readFileSync(path.join(root, 'orca9-scale.js'), 'utf8');
 const viz = fs.readFileSync(path.join(root, 'orca9-viz.js'), 'utf8');
 const agents = fs.readFileSync(path.join(root, 'orca9-agents.js'), 'utf8');
+const world = fs.readFileSync(path.join(root, 'orca9-world.js'), 'utf8');
+const insight = fs.readFileSync(path.join(root, 'orca9-insight.js'), 'utf8');
 new vm.Script(script); new vm.Script(controller); new vm.Script(scale);
 function session(role = 'lead') {
   const c = vm.createContext({ setTimeout: fn => { queueMicrotask(fn); return 0; }, clearTimeout() {}, console });
@@ -16,9 +18,11 @@ function session(role = 'lead') {
   vm.runInContext(scale, c);
   vm.runInContext(viz, c);
   vm.runInContext(agents, c);
+  vm.runInContext(world, c);
+  vm.runInContext(insight, c);
   vm.runInContext(script.slice(0, script.indexOf('/* ---------- tour ---------- */')), c);
   vm.runInContext('ev = () => {}; slack = () => {}; render = () => {}; toast = () => {}; go = () => {};', c);
-  vm.runInContext(`scaleInit(); seedPipelinePackets(); S.role = '${role}';`, c);
+  vm.runInContext(`scaleInit(); worldInit(); insightInit(); seedPipelinePackets(); S.role = '${role}';`, c);
   return c;
 }
 const R = (c, s) => vm.runInContext(s, c);
@@ -145,15 +149,29 @@ const ok = msg => checks.push(msg);
     const sum = R(s, `VZ_ROWS.filter(r => r.w === 11).reduce((t, r) => t + r.signups, 0)`); assert.ok(sum > 400 && sum < 1200);
     ok('Six pipeline views render; traffic analytics has no NaN/undefined for every channel filter.'); }
   { const s = session(); R(s, 'S.anTab = "anom"');
-    for (const v of ['hud', 'brief', 'analytics', 'approvals', 'seo', 'ppc', 'aiv', 'cmps', 'recs', 'groups', 'hotfix', 'pm', 'events', 'slackdemo', 'agents', 'crons', 'roles', 'audit']) {
+    for (const v of ['hud', 'brief', 'analytics', 'approvals', 'seo', 'ppc', 'aiv', 'cmps', 'recs', 'groups', 'hotfix', 'pm', 'events', 'slackdemo', 'agents', 'crons', 'roles', 'audit', 'facts', 'world', 'agentqa']) {
       const html = R(s, `VIEWS['${v}']()`); assert.ok(html.length > 300, v); assert.ok(!/NaN|>undefined<|\$undefined|Infinity/.test(html), v + ' has NaN/undefined'); }
-    ok('All 18 screens render without NaN or undefined values.'); }
+    ok('All 21 screens render without NaN or undefined values.'); }
   { const s = session(); const names = R(s, 'S.pods.flatMap(p => p[1])');
     for (const n of names) { const sp = R(s, `AG_SPEC[${JSON.stringify(n)}]`); assert.ok(sp, 'no spec: ' + n);
       for (const k of ['p', 'tr', 'src', 'col', 'how', 'out', 'sample', 'to', 'kpi', 'ex']) assert.ok(String(sp[k] || '').trim(), n + ' missing ' + k);
       const h = R(s, `agentDetailHTML(${JSON.stringify(n)})`); assert.ok(!/undefined|NaN/.test(h), n + ' renders undefined'); }
     assert.ok(R(s, `S.agentQ = 'цитування'; VIEWS.agents()`).includes('AI Visibility Tracker'));
     ok('Every agent (' + names.length + ') has a full passport: trigger, sources, data, steps, output, example run.'); }
+  { const s = session('owner'); const r = rec(s, 'REC-2'); await s.reviewRec(r); await flush();
+    if (r.status !== 'test') { s.recApprove(r); }
+    assert.equal(r.status, 'test'); s.wdSim('search'); assert.equal(r.extWeeks, 1);
+    s.recWeek(r); assert.equal(r.week, 0); assert.equal(r.extWeeks, 0); s.recWeek(r); assert.equal(r.week, 1);
+    assert.ok(R(s, `wdImpactsFor('REC-2')`).some(h => h.e.id === 'E15'));
+    ok('External event during a test: the affected week is not counted and the window is extended.'); }
+  { const s = session('editor'); s.frSyncRun(); assert.equal(R(s, 'S.frTrial'), 'conflict'); assert.equal(R(s, `frStatus(frFind('trial.days'))`), 'conflict');
+    await s.frApproveTrial(); assert.equal(R(s, 'S.frTrial'), 'conflict');
+    R(s, `S.role = 'owner'`); await s.frApproveTrial(); await flush(); assert.equal(R(s, `S.facts.find(f => f[0] === 'trial.days')[1]`), 'Пробний період 21 день');
+    assert.equal(R(s, `frStatus(frFind('sla.uptime'))`), 'expired');
+    ok('Fact registry: a source mismatch is never applied automatically; only the fact owner confirms; expired facts are flagged.'); }
+  { const s = session(); await s.aqRun('RL-7'); await flush(); await s.aqRun('RL-8'); await flush();
+    assert.equal(R(s, `S.aq.rel.find(r => r.id === 'RL-7').status`), 'blocked'); assert.equal(R(s, `S.aq.rel.find(r => r.id === 'RL-8').status`), 'live');
+    ok('Agent release with a regression is blocked; a clean release goes through shadow and canary.'); }
   { assert.equal(R(c, `gateEvaluate([{ name: 'A', value: 3 }, { name: 'B', value: NaN }, { name: 'C', value: 1 }]).verdict`), 'inconclusive');
     assert.equal(R(c, `fmtGate('AI Visibility тест', 8)`), '+8 п.');
     ok('One evaluator for pages, groups and pipelines; AI Visibility shown in points, not %.'); }

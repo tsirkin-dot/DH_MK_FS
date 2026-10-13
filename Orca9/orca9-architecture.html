@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orca9 — архітектура і пайплайн</title>
-<script src="orca9-pin.js?v=20261013c"></script>
+<script src="orca9-pin.js?v=20261013d"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
@@ -83,7 +83,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
 .thesis div{border-left:3px solid var(--brass);background:var(--brass-soft);border-radius:6px;padding:10px 12px;font-size:14px}
 .thesis b{display:block;margin-bottom:2px}
 </style>
-<link rel="stylesheet" href="orca9-premium.css?v=20261013c">
+<link rel="stylesheet" href="orca9-premium.css?v=20261013d">
 </head>
 <body>
 <div class="wrap">
@@ -108,6 +108,13 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
   <a href="#tracking"><span class="n">16</span>Події і відстеження</a>
   <a href="#states"><span class="n">17</span>Стани і модель даних</a>
   <a href="#security"><span class="n">18</span>Безпека</a>
+  <a href="#facts"><span class="n">19</span>Реєстр фактів</a>
+  <a href="#world"><span class="n">20</span>Зовнішні події</a>
+  <a href="#agentqa"><span class="n">21</span>Контроль якості агентів</a>
+  <a href="#packet-sm"><span class="n">22</span>Стани пакета</a>
+  <a href="#seq"><span class="n">23</span>Конфлікт: послідовність</a>
+  <a href="#lineage"><span class="n">24</span>Походження даних</a>
+  <a href="#viz"><span class="n">25</span>Що де видно в демо</a>
 </nav>
 <main>
   <h1>Orca9: як це працює</h1>
@@ -240,6 +247,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
         <tr><td>Tech SEO audit</td><td><code>0 3 1 * *</code></td><td>Повний краул, задачі в Jira</td><td>R1</td><td>#seo, Jira</td></tr>
       </tbody>
     </table></div>
+    <div class="rule"><b>Залежності, а не лише час.</b> Ранги, аномалії, моніторинг тестів і тест-гейт читають дані збору 05:00. Якщо збір запізнився, запуск «за часом» працює на вчорашніх даних. Тому в production крон задає найраніший час, а старт — після успіху залежностей: <code>seo ← data</code>, <code>anomaly ← data, seo</code>, <code>testmon ← data</code>, <code>gate ← testmon, aiv</code>. Якщо залежність упала, ланцюжок не стартує і приходить алерт. У демо це видно на екрані «Розклад» → «Добова шкала».</div>
   </section>
 
   <section id="review">
@@ -331,6 +339,11 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
       <div class="card"><h4>AI Visibility тест · AI Visibility Tracker</h4><ul><li>Промпти, які ведуть на тестові сторінки</li><li>Кожен промпт × 6 AI-систем × 3 прогони</li><li>Метрика: цитування і точність фактів</li></ul></div>
     </div>
     <p class="small muted" style="margin-top:12px">Аварійний запобіжник: якщо будь-яка метрика тесту гірша за контроль на 10% п’ять днів поспіль, O3 відкочує зміну, не чекаючи кінця тесту.</p>
+    <div class="thesis">
+      <div><b>Мала сторінка</b>Якщо за 6 тижнів вибірка не набирається (оцінка потужності: 80%, α 5%), тест-гейт перевіряє лише «без шкоди», або зміну тестують на групі сторінок.</div>
+      <div><b>Зовнішня подія у вікні</b>Апдейт пошуку, нова модель в AI-системі, свято в країні ≥ 10% трафіку: тиждень не зараховується, вікно подовжується (розділ 20).</div>
+      <div><b>Інтервал, а не точка</b>Рішення бере довірчий інтервал. Якщо він перетинає нуль, різниця може бути шумом — «немає висновку».</div>
+    </div>
   </section>
 
   <section id="anomaly">
@@ -435,7 +448,13 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
         <tr><td><b>PageGroup</b></td><td>id, template, pattern, members[], traffic_share</td></tr>
         <tr><td><b>GroupPacket</b></td><td>group_id, field, rule, sample[], exceptions[], test_set[], control_set[], wave, version</td></tr>
         <tr><td><b>Lock</b></td><td>resource_key, holder_id, since, ttl_hours, queue[]</td></tr>
-        <tr><td><b>Fact</b></td><td>key, value, source, verified_at, owner</td></tr>
+        <tr><td><b>Fact</b></td><td>key, value, source_system, source_value, owner, verified_at, ttl_days, version, history[], pages[]</td></tr>
+        <tr><td><b>ExternalEvent</b></td><td>id, kind (search | ai | data | holiday | season | competitor), region, starts_at, ends_at, channels[], test_kinds[], rule, source</td></tr>
+        <tr><td><b>TestWindowAdjustment</b></td><td>test_id, event_id, action (skip_week | extend | rebaseline), days</td></tr>
+        <tr><td><b>AgentVersion</b></td><td>agent, prompt_version, model, tools[], parser_version, status (shadow | canary | live | retired)</td></tr>
+        <tr><td><b>AgentRelease</b></td><td>id, agent, from_version, to_version, eval_run_id, decision (blocked | shadow | canary | live), metrics[]</td></tr>
+        <tr><td><b>EvalCase</b></td><td>agent, input, expected, kind (typical | hard | fact_trap | injection | incident), source_incident</td></tr>
+        <tr><td><b>QualitySample</b></td><td>agent, date, sample_size, score, threshold, suspect_event_id</td></tr>
         <tr><td><b>Hotfix</b></td><td>fact_key, field, pages[], preempted[], approved_by, log[]</td></tr>
         <tr><td><b>Policy</b></td><td>budget_limits, role_limits, triage_rules, allowed_actions per identity/resource/field, forbidden_actions, kill_switch</td></tr>
       </tbody>
@@ -460,6 +479,125 @@ Slack: /orchestra brief | status | approve | why | pause | resume | report</pre>
     </div>
     <p class="small muted">Демо не містить production backend, Vault чи справжнього policy engine. Агентам заборонено змінювати дозволи, політики й аудит; kill switch перевіряється перед кожним записом у цільовій реалізації.</p>
   </section>
+
+  <section id="facts">
+    <h2><span class="n">19</span>Реєстр фактів</h2>
+    <p>Ціни, дати, назви, цифри й твердження про продукт мають одне джерело правди. Агенти лише читають реєстр. Змінює значення тільки власник факту. Факт правильний, коли збігаються чотири шари: система-джерело, реєстр, сайт і відповіді AI-систем. Розбіжність ніколи не застосовується автоматично — інакше швидка смуга за хвилини рознесе помилку на всі сторінки.</p>
+    <div class="dia"><svg id="d-facts" role="img" aria-label="Реєстр фактів"></svg></div>
+    <div class="thesis">
+      <div><b>Власник, а не агент</b>Finance, Product, RevOps, Legal, Engineering. Агенти мають лише читання.</div>
+      <div><b>Строк дії</b>Кожен факт має ttl. Прострочений факт O2 не пропускає в нові тексти, доки власник не перевірить.</div>
+      <div><b>Версія і історія</b>Зміна = нова версія з датою, причиною і автором. Видно, хто і коли змінив ціну.</div>
+      <div><b>Після зміни</b>Сканер знаходить сторінки зі старим значенням → швидка смуга; Citation Analyst перевіряє AI через 7 і 14 днів.</div>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Подія</th><th>Що відбувається</th><th>Хто вирішує</th></tr></thead>
+      <tbody>
+        <tr><td>Джерело ≠ реєстр</td><td>сигнал, O2 блокує нові тексти з фактом</td><td>власник факту</td></tr>
+        <tr><td>Реєстр ≠ сайт</td><td>швидка смуга: одне поле, значення з реєстру, read-back</td><td>Owner або Marketing lead</td></tr>
+        <tr><td>Реєстр ≠ відповідь AI</td><td>рекомендація з наративом і датою факту</td><td>звичайний контур і тест-гейт</td></tr>
+        <tr><td>Строк дії вийшов</td><td>факт позначено, нові тексти з ним повертаються</td><td>власник факту</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="world">
+    <h2><span class="n">20</span>Зовнішні події і країни</h2>
+    <p>Тест порівнює тестову і контрольну групи, але апдейт пошуку, нова модель в AI-системі, свято в країні з великою часткою трафіку чи збій даних можуть зсунути групи по-різному. News & Algorithm Watcher збирає такі події в календар із регіоном, датами, каналами і правилом. Тест-гейт застосовує правило автоматично і пише в журнал, чому тиждень не зараховано. Подію бачать усі: стрічка «Зараз у світі» під шапкою, блок «Зовнішній контекст» на каналах, позначки на тестах, мітки на графіках, Slack.</p>
+    <div class="dia"><svg id="d-world" role="img" aria-label="Зовнішні події"></svg></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Тип події</th><th>A/B тест</th><th>SEO-тест</th><th>AI Visibility тест</th><th>Інші канали</th></tr></thead>
+      <tbody>
+        <tr><td>Апдейт пошуку</td><td>—</td><td>тиждень не зараховується, +7 днів після завершення</td><td>позначка</td><td>Детектор: гіпотеза «апдейт»</td></tr>
+        <tr><td>Нова модель в AI-системі</td><td>—</td><td>—</td><td>нова базова лінія для цієї системи</td><td>Аудитор відповідей: перевірка дрейфу</td></tr>
+        <tr><td>Збій або затримка даних</td><td>дні не рахуються</td><td>дні не рахуються</td><td>дні не рахуються</td><td>Детектор дивиться на T−3</td></tr>
+        <tr><td>Свято в країні ≥ 10% трафіку</td><td>день виключається</td><td>позначка</td><td>—</td><td>PPC pacing ↓, листи не йдуть</td></tr>
+        <tr><td>Сезон ICP (закриття місяця, Black Friday)</td><td>новий тест не стартує, запущений +1 тиждень</td><td>+1 тиждень</td><td>—</td><td>це не аномалія; O3 знижує крок ставки</td></tr>
+        <tr><td>Дія конкурента</td><td>—</td><td>—</td><td>—</td><td>гіпотеза для Детектора</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small muted">Країна з часткою трафіку нижче 10% отримує лише позначку на графіках. Розсилки й публікації плануються за локальним часом країни.</p>
+  </section>
+
+  <section id="agentqa">
+    <h2><span class="n">21</span>Контроль якості агентів</h2>
+    <p>Зміна промпту, моделі, інструмента чи парсера може тихо погіршити агента. Агент ніколи не оцінює сам себе. Регресійний контролер проганяє стару і нову версію на еталонних кейсах і блокує реліз із регресією. Аудитор відповідей щодня бере 5% реальних результатів кожного агента і ловить дрейф — падіння якості без змін із нашого боку, наприклад після нової моделі в ChatGPT. Обидва працюють на іншій моделі, ніж агенти, яких перевіряють.</p>
+    <div class="dia"><svg id="d-aqa" role="img" aria-label="Контроль якості агентів"></svg></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Метрика</th><th>Як рахуємо</th><th>Допуск релізу</th></tr></thead>
+      <tbody>
+        <tr><td>Точність</td><td>збіг з очікуваним рішенням на еталонах</td><td>не гірше −2 п.</td></tr>
+        <tr><td>Факти з джерелом</td><td>частка цифр із посиланням на реєстр або дані</td><td>не гірше −1 п.</td></tr>
+        <tr><td>Формат і схема</td><td>валідний JSON, обов’язкові поля</td><td>100%</td></tr>
+        <tr><td>Політики</td><td>порушення O3-правил</td><td>0</td></tr>
+        <tr><td>Стійкість до ін’єкцій</td><td>кейси з командами в даних</td><td>100%</td></tr>
+        <tr><td>Стабільність</td><td>збіг рішень у 3 прогонах</td><td>не гірше −3 п.</td></tr>
+        <tr><td>Вартість і затримка</td><td>$ і секунди на 100 задач</td><td>не дорожче +20%</td></tr>
+      </tbody>
+    </table></div>
+    <div class="thesis">
+      <div><b>Версія в кожній дії</b>Журнал аудиту зберігає версію промпту, моделі й парсера для кожного рішення.</div>
+      <div><b>Інцидент → кейс</b>Кожен інцидент у роботі стає новим еталонним кейсом, щоб не повторився.</div>
+      <div><b>Дрейф → людина</b>Дві доби нижче порогу — людина перевіряє 100% результатів агента, доки причину не усунуто.</div>
+      <div><b>R3 суворіше</b>Зміна моделі для агентів, що рухають гроші, додатково потребує апруву Owner.</div>
+    </div>
+  </section>
+
+  <section id="packet-sm">
+    <h2><span class="n">22</span>Стани пакета і переходи</h2>
+    <p>Одна діаграма для всіх пакетів змін сторінки або групи. Хто ініціює перехід: канальні оркестратори (погодження), Координатор (тріаж, черга, компроміс), людина (дозвіл, відхилення), тест-гейт (рішення), Gateway (запис). Аварійний вимикач зупиняє будь-який перехід, що пише назовні: пакет чекає у своєму стані.</p>
+    <div class="dia"><svg id="d-sm" role="img" aria-label="Стани пакета"></svg></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Перехід</th><th>Умова</th><th>Хто</th></tr></thead>
+      <tbody>
+        <tr><td>погодження → конфлікт</td><td>хоч один канал проти</td><td>канальний оркестратор</td></tr>
+        <tr><td>конфлікт → погодження</td><td>компроміс v2; не більше 2 версій, далі — людина</td><td>Координатор</td></tr>
+        <tr><td>тріаж → авто-дозвіл</td><td>низький вплив, усі канали ok, впевненість ≥ 70%</td><td>Координатор + O3</td></tr>
+        <tr><td>тріаж → черга</td><td>ресурс утримує інший пакет; TTL 48 год</td><td>Координатор</td></tr>
+        <tr><td>тест → пауза</td><td>швидка смуга на тих самих сторінках або зовнішня подія</td><td>Координатор, тест-гейт</td></tr>
+        <tr><td>тест → відкат / немає висновку / виграв</td><td>шкода &lt; −2 · жодного виграшу ≥ +2 · інакше</td><td>тест-гейт</td></tr>
+        <tr><td>виграв → розгорнуто</td><td>людина для високого впливу, авто для низького</td><td>людина або O3 → Gateway</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="seq">
+    <h2><span class="n">23</span>Конфлікт SEO проти PPC: послідовність</h2>
+    <p>Що відбувається в часі, коли PPC хоче змінити H1 під оголошення, а SEO й AI Visibility проти. Учасники зверху, час іде вниз. Відбиток пакета змінюється з кожною версією, тому старі голоси не переносяться на нову.</p>
+    <div class="dia"><svg id="d-seq" role="img" aria-label="Послідовність конфлікту"></svg></div>
+  </section>
+
+  <section id="lineage">
+    <h2><span class="n">24</span>Походження даних</h2>
+    <p>Кожне рішення можна простежити до даних: з якого джерела, наскільки повні, яка версія агента їх обробила. Тест-гейт і Детектор аномалій працюють лише на повних даних: сховище позначає дату, до якої дані повні (зазвичай T−3 для GSC).</p>
+    <div class="dia"><svg id="d-lineage" role="img" aria-label="Походження даних"></svg></div>
+  </section>
+
+  <section id="viz">
+    <h2><span class="n">25</span>Що де видно в демо</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>Екран</th><th>Візуалізація</th><th>На яке питання відповідає</th></tr></thead>
+      <tbody>
+        <tr><td>HUD</td><td>потік пакетів, «Застрягло», 8 принципів</td><td>де накопичується робота і що чекає людину</td></tr>
+        <tr><td>Апруви</td><td>SLA по кожному запиту, вік черги, пакетне погодження R2</td><td>чи не стали люди вузьким місцем</td></tr>
+        <tr><td>Рекомендації</td><td>вплив × впевненість, завантаження сторінок, шкала тест-гейту з інтервалами, калькулятор тижнів, стани пакета</td><td>що робити першим, де черга, чому «немає висновку»</td></tr>
+        <tr><td>Кампанії</td><td>календар пакетів і критичний шлях проти дедлайну</td><td>чи встигаємо і що блокує запуск</td></tr>
+        <tr><td>Групи сторінок</td><td>запобіжник по хвилях, найгірші сторінки групи</td><td>чи не ховає середнє шкоду на окремих сторінках</td></tr>
+        <tr><td>Швидкі виправлення</td><td>діаграма послідовності</td><td>хто кому що передає за 33 хвилини</td></tr>
+        <tr><td>SEO</td><td>розподіл позицій, карта канібалізації, зовнішній контекст</td><td>де дешевий приріст і які сторінки конкурують</td></tr>
+        <tr><td>PPC</td><td>pacing місяця з прогнозом, ліміти R3 по ролях</td><td>чи вкладемося в бюджет і хто скільки може</td></tr>
+        <tr><td>AI Visibility</td><td>етапи × AI-системи, тренд зі смугою шуму, частка голосу</td><td>де нас не цитують і чи зміна справжня</td></tr>
+        <tr><td>Агенти</td><td>паспорт агента, граф передач, поди × системи</td><td>хто куди ходить і де сходяться потоки</td></tr>
+        <tr><td>Розклад</td><td>добова шкала з залежностями, режими «за часом» і «після успіху»</td><td>чи не працюють крони на неповних даних</td></tr>
+        <tr><td>Ролі</td><td>матриця відповідальності людей, ескалація</td><td>хто має останнє слово в кожному рішенні</td></tr>
+        <tr><td>Журнал</td><td>хронологія одного пакета</td><td>усе про REC-3 в одному місці</td></tr>
+        <tr><td>Реєстр фактів</td><td>чотири шари правди, свіжість фактів</td><td>де розбіжність і хто її закриває</td></tr>
+        <tr><td>Світ і події</td><td>календар подій по країнах із вікнами тестів</td><td>які тести зачепить подія і що з ними буде</td></tr>
+        <tr><td>Якість агентів</td><td>релізи з метриками, дрейф по днях, перевірка по агентах</td><td>чи не погіршився агент після зміни</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
 </main>
 </div>
 
@@ -777,6 +915,127 @@ draw('d-events', { w: 1000, h: 280, nodes: [
 ], edges: [
   { f: 'a1', fs: 'r', t: 'bus', ts: 'l', to: -24, mx: 280 }, { f: 'a2', fs: 'r', t: 'bus', ts: 'l', to: -8, mx: 280 }, { f: 'a3', fs: 'r', t: 'bus', ts: 'l', to: 8, mx: 280 }, { f: 'a4', fs: 'r', t: 'bus', ts: 'l', to: 24, mx: 280 },
   { f: 'bus', fs: 'r', t: 's1', ts: 'l', mx: 620 }, { f: 'bus', fs: 'r', t: 's2', ts: 'l', mx: 620 }, { f: 'bus', fs: 'r', t: 's3', ts: 'l', mx: 620, label: 'фільтр', lx: 640, ly: 152 }, { f: 'bus', fs: 'r', t: 's4', ts: 'l', mx: 620 }, { f: 'bus', fs: 'r', t: 's5', ts: 'l', mx: 620 }
+] });
+
+/* 19 facts */
+draw('d-facts', { w: 1000, h: 300, nodes: [
+  { id: 'src', x: 10, y: 110, w: 180, h: 74, k: 'ext', label: 'Системи-джерела', sub: 'білінг · changelog · CRM\nstatus page · Legal' },
+  { id: 'sync', x: 225, y: 112, w: 160, h: 70, label: '05:30 · Звірка', sub: 'значення джерела\nпроти реєстру' },
+  { id: 'dia', x: 420, y: 107, w: 120, h: 80, k: 'gate', shape: 'dia', label: 'Збіг?' },
+  { id: 'own', x: 400, y: 228, w: 160, h: 58, k: 'human', label: 'Власник факту', sub: 'Finance · Product · RevOps' },
+  { id: 'reg', x: 590, y: 110, w: 190, h: 74, k: 'store', label: 'Реєстр фактів', sub: 'value · source · owner\nverified_at · ttl · версія' },
+  { id: 'c1', x: 820, y: 8, w: 170, h: 48, k: 'orch', label: 'O2 Verifier', sub: 'кожна цифра в тексті' },
+  { id: 'c2', x: 820, y: 64, w: 170, h: 48, k: 'gate', label: 'Швидка смуга', sub: 'значення лише звідси' },
+  { id: 'c3', x: 820, y: 120, w: 170, h: 48, k: 'agent', label: 'Агенти контенту', sub: 'лише читання' },
+  { id: 'c4', x: 820, y: 176, w: 170, h: 48, label: 'Сканер сайту', sub: 'сторінки зі старим' },
+  { id: 'c5', x: 820, y: 232, w: 170, h: 48, k: 'agent', label: 'Citation Analyst', sub: 'AI через 7 і 14 днів' }
+], edges: [
+  { f: 'src', fs: 'r', t: 'sync', ts: 'l' }, { f: 'sync', fs: 'r', t: 'dia', ts: 'l' },
+  { f: 'dia', fs: 'r', t: 'reg', ts: 'l', label: 'так' }, { f: 'dia', fs: 'b', t: 'own', ts: 't', label: 'ні', k: 'warn' },
+  { f: 'own', fs: 'r', t: 'reg', ts: 'b', label: 'нова версія', lx: 640, ly: 257 },
+  ...['c1', 'c2', 'c3', 'c4', 'c5'].map(c => ({ f: 'reg', fs: 'r', t: c, ts: 'l', mx: 800 }))
+] });
+
+/* 20 world */
+draw('d-world', { w: 1000, h: 280, nodes: [
+  { id: 's1', x: 10, y: 10, w: 200, h: 42, k: 'ext', label: 'Search Status Dashboard' },
+  { id: 's2', x: 10, y: 62, w: 200, h: 42, k: 'ext', label: 'Release notes AI-систем' },
+  { id: 's3', x: 10, y: 114, w: 200, h: 42, k: 'ext', label: 'Календарі свят 8 країн' },
+  { id: 's4', x: 10, y: 166, w: 200, h: 42, k: 'ext', label: 'Аналізатор сезонності' },
+  { id: 's5', x: 10, y: 218, w: 200, h: 42, k: 'ext', label: 'Стан конекторів' },
+  { id: 'w', x: 255, y: 100, w: 180, h: 72, k: 'agent', label: 'News & Algorithm Watcher', sub: 'тип, регіон, дати,\nканали, правило' },
+  { id: 'cal', x: 470, y: 100, w: 170, h: 72, k: 'store', label: 'Календар подій', sub: 'event · region · w0–w1\ntest_kinds · rule' },
+  { id: 'c1', x: 680, y: 8, w: 310, h: 44, k: 'gate', label: 'Тест-гейт', sub: 'не зарахувати тиждень · +вікно · нова база' },
+  { id: 'c2', x: 680, y: 60, w: 310, h: 44, k: 'agent', label: 'Детектор аномалій', sub: 'гіпотеза «апдейт» або «сезон»' },
+  { id: 'c3', x: 680, y: 112, w: 310, h: 44, k: 'orch', label: 'PPC pacing і Email', sub: 'свята: pacing ↓, розсилки не йдуть' },
+  { id: 'c4', x: 680, y: 164, w: 310, h: 44, k: 'human', label: 'HUD і Slack', sub: 'стрічка «Зараз у світі», алерти каналу' },
+  { id: 'c5', x: 680, y: 216, w: 310, h: 44, k: 'agent', label: 'Аудитор відповідей', sub: 'перевірка дрейфу після нових моделей' }
+], edges: [
+  ...['s1', 's2', 's3', 's4', 's5'].map(x => ({ f: x, fs: 'r', t: 'w', ts: 'l', mx: 232 })),
+  { f: 'w', fs: 'r', t: 'cal', ts: 'l' },
+  ...['c1', 'c2', 'c3', 'c4', 'c5'].map(x => ({ f: 'cal', fs: 'r', t: x, ts: 'l', mx: 660 }))
+] });
+
+/* 21 agent QA */
+draw('d-aqa', { w: 1000, h: 350, nodes: [
+  { id: 'ch', x: 10, y: 34, w: 170, h: 66, k: 'human', label: 'Зміна агента', sub: 'промпт · модель\nінструмент · парсер' },
+  { id: 'rc', x: 215, y: 34, w: 190, h: 66, k: 'orch', label: 'Регресійний контролер', sub: 'стара vs нова версія\nна еталонах × 3 прогони' },
+  { id: 'gs', x: 215, y: 150, w: 190, h: 56, k: 'store', label: 'Еталонні кейси', sub: '~25 на агента' },
+  { id: 'd1', x: 440, y: 27, w: 120, h: 80, k: 'gate', shape: 'dia', label: 'Регресія?' },
+  { id: 'bl', x: 420, y: 150, w: 160, h: 56, k: 'bad', label: 'Реліз заблоковано', sub: 'агент на старій версії' },
+  { id: 'sh', x: 595, y: 40, w: 130, h: 54, label: 'Тіньовий режим', sub: '48 год паралельно' },
+  { id: 'cn', x: 745, y: 40, w: 100, h: 54, label: 'Канарка', sub: '10% задач' },
+  { id: 'lv', x: 865, y: 40, w: 125, h: 54, k: 'agent', label: 'У роботі', sub: 'відкат 1 кнопкою' },
+  { id: 'au', x: 600, y: 200, w: 180, h: 60, k: 'orch', label: 'Аудитор відповідей', sub: 'щодня 5%, інша модель' },
+  { id: 'd2', x: 820, y: 195, w: 120, h: 70, k: 'gate', shape: 'dia', label: 'Дрейф?' },
+  { id: 'al', x: 690, y: 296, w: 300, h: 44, k: 'bad', label: 'Алерт: людина перевіряє 100%', sub: '' }
+], edges: [
+  { f: 'ch', fs: 'r', t: 'rc', ts: 'l' }, { f: 'gs', fs: 't', t: 'rc', ts: 'b' }, { f: 'rc', fs: 'r', t: 'd1', ts: 'l' },
+  { f: 'd1', fs: 'b', t: 'bl', ts: 't', label: 'так', k: 'bad' }, { f: 'd1', fs: 'r', t: 'sh', ts: 'l', label: 'ні' },
+  { f: 'sh', fs: 'r', t: 'cn', ts: 'l' }, { f: 'cn', fs: 'r', t: 'lv', ts: 'l' },
+  { f: 'lv', fs: 'b', t: 'au', ts: 't', via: [[927, 150], [690, 150]], label: 'щоденна вибірка', lx: 810, ly: 150 },
+  { f: 'au', fs: 'r', t: 'd2', ts: 'l' }, { f: 'd2', fs: 'b', t: 'al', ts: 't', label: 'так', k: 'bad', to: 40 },
+  { f: 'al', fs: 'l', t: 'gs', ts: 'b', dash: 1, label: 'причина → нові кейси і фікс', lx: 470, ly: 318 }
+] });
+
+/* 22 packet state machine */
+draw('d-sm', { w: 1000, h: 330, nodes: [
+  { id: 'n', x: 6, y: 40, w: 120, h: 52, label: 'Нова', sub: 'автор подав' },
+  { id: 'rv', x: 160, y: 40, w: 136, h: 52, k: 'orch', label: 'Погодження', sub: 'SEO · PPC · AIV' },
+  { id: 'cf', x: 160, y: 180, w: 136, h: 52, k: 'bad', label: 'Конфлікт', sub: 'компроміс ≤ 2 версії' },
+  { id: 'tr', x: 330, y: 40, w: 136, h: 52, k: 'orch', label: 'Тріаж', sub: 'O2 · O3' },
+  { id: 'q', x: 330, y: 180, w: 136, h: 52, label: 'Черга ресурсу', sub: 'TTL 48 год' },
+  { id: 'au', x: 500, y: 6, w: 130, h: 46, k: 'agent', label: 'Авто-дозвіл', sub: 'низький вплив' },
+  { id: 'hu', x: 500, y: 80, w: 130, h: 52, k: 'human', label: 'Людина', sub: 'високий вплив' },
+  { id: 'rj', x: 500, y: 180, w: 130, h: 52, k: 'bad', label: 'Відхилено', sub: 'людина або TTL' },
+  { id: 'ts', x: 665, y: 40, w: 120, h: 52, k: 'gate', label: 'Тест-гейт', sub: 'A/B · SEO · AIV' },
+  { id: 'ps', x: 665, y: 180, w: 120, h: 52, label: 'Пауза тесту', sub: 'швидка смуга, подія' },
+  { id: 'wn', x: 820, y: 6, w: 170, h: 44, k: 'agent', label: 'Виграв' },
+  { id: 'ic', x: 820, y: 66, w: 170, h: 44, label: 'Немає висновку', sub: 'без змін' },
+  { id: 'rb', x: 820, y: 126, w: 170, h: 44, k: 'bad', label: 'Відкат', sub: 'шкода < −2' },
+  { id: 'dp', x: 820, y: 270, w: 170, h: 48, k: 'agent', label: 'Розгорнуто', sub: 'Gateway · read-back' }
+], edges: [
+  { f: 'n', fs: 'r', t: 'rv', ts: 'l' }, { f: 'rv', fs: 'b', t: 'cf', ts: 't', fo: -30, to: -30, label: 'проти' }, { f: 'cf', fs: 't', t: 'rv', ts: 'b', fo: 30, to: 30, label: 'v2' },
+  { f: 'rv', fs: 'r', t: 'tr', ts: 'l' }, { f: 'tr', fs: 'r', t: 'au', ts: 'l', mx: 483 }, { f: 'tr', fs: 'r', t: 'hu', ts: 'l', mx: 483 },
+  { f: 'tr', fs: 'b', t: 'q', ts: 't', fo: -30, to: -30, label: 'зайнято' }, { f: 'q', fs: 't', t: 'tr', ts: 'b', fo: 30, to: 30, label: 'вільно' },
+  { f: 'au', fs: 'r', t: 'ts', ts: 'l', mx: 648 }, { f: 'hu', fs: 'r', t: 'ts', ts: 'l', mx: 648 }, { f: 'hu', fs: 'b', t: 'rj', ts: 't', k: 'bad' },
+  { f: 'ts', fs: 'b', t: 'ps', ts: 't', fo: -25, to: -25 }, { f: 'ps', fs: 't', t: 'ts', ts: 'b', fo: 25, to: 25, label: '+вікно' },
+  { f: 'ts', fs: 'r', t: 'wn', ts: 'l', mx: 803 }, { f: 'ts', fs: 'r', t: 'ic', ts: 'l', mx: 803 }, { f: 'ts', fs: 'r', t: 'rb', ts: 'l', mx: 803, k: 'bad' },
+  { f: 'wn', fs: 'r', t: 'dp', ts: 'r', mx: 996, label: 'людина\nабо авто', lx: 960, ly: 220 }
+] });
+
+/* 23 sequence */
+(function seq(id, lanes, msgs) {
+  const svg = document.getElementById(id); const W = 1000, L = 8, cw = (W - 2 * L) / lanes.length, T = 54, rh = 30, H = T + msgs.length * rh + 16;
+  const cx = i => L + cw * i + cw / 2;
+  let o = `<defs><marker id="${id}-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#55607A"/></marker></defs>`;
+  lanes.forEach((l, i) => { const [fill, stroke] = C[l[1]]; o += `<rect x="${cx(i) - cw / 2 + 4}" y="6" width="${cw - 8}" height="40" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="1.4"/><text x="${cx(i)}" y="${l[0].includes('\n') ? 22 : 30}" text-anchor="middle" font-size="11.5" font-weight="600" fill="#182033">${l[0].split('\n').map((t, k) => `<tspan x="${cx(i)}" dy="${k ? 13 : 0}">${esc(t)}</tspan>`).join('')}</text><line x1="${cx(i)}" x2="${cx(i)}" y1="46" y2="${H - 4}" stroke="#C3CAD8" stroke-dasharray="4 4"/>`; });
+  msgs.forEach(([a, b, t, k], j) => { const y = T + j * rh + 14, col = k === 'bad' ? '#B9382A' : k === 'ok' ? '#1E8A6E' : '#55607A';
+    if (a === b) { o += `<path d="M${cx(a)} ${y - 6} h34 v12 h-30" fill="none" stroke="${col}" stroke-width="1.5" marker-end="url(#${id}-a)"/><text x="${cx(a) + 40}" y="${y + 4}" font-size="11.5" fill="${col}">${esc(t)}</text>`; return; }
+    const x1 = cx(a), x2 = cx(b) + (b > a ? -4 : 4);
+    o += `<line x1="${x1}" x2="${x2}" y1="${y}" y2="${y}" stroke="${col}" stroke-width="1.5" marker-end="url(#${id}-a)"/><rect x="${(x1 + x2) / 2 - t.length * 3.2 - 4}" y="${y - 17}" width="${t.length * 6.4 + 8}" height="14" rx="3" fill="#FBFCFE" opacity=".9"/><text x="${(x1 + x2) / 2}" y="${y - 6}" text-anchor="middle" font-size="11.5" fill="${col}">${esc(t)}</text>`; });
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = o; svg.style.fontFamily = "'Onest', system-ui, sans-serif";
+})('d-seq', [['PPC Strategist', 'agent'], ['Координатор\nсторінки', 'orch'], ['SEO-\nоркестратор', 'orch'], ['AIV-\nоркестратор', 'orch'], ['PPC-\nоркестратор', 'orch'], ['O2 / O3', 'gate'], ['Людина', 'human'], ['Тест-гейт', 'gate'], ['Gateway', 'sys']], [
+  [0, 1, 'REC-3 v1: H1 як в оголошенні'], [1, 2, 'погодити v1 (відбиток a91f)'], [1, 3, 'погодити v1'], [1, 4, 'погодити v1'],
+  [2, 1, 'ні: ключ зникає з H1', 'bad'], [3, 1, 'ні: зникає визначення', 'bad'], [4, 1, 'ok', 'ok'],
+  [1, 1, 'компроміс v2 (c27e), голоси v1 скинуто'], [1, 4, 'погодити v2 — усім трьом'], [4, 1, 'ok × 3 на ту саму версію', 'ok'],
+  [1, 5, 'докази й політики v2'], [5, 1, 'ok', 'ok'], [1, 6, 'високий вплив → дозвіл на тест'], [6, 7, 'тест v2 на тестовій групі'],
+  [7, 8, 'записати лише тестову версію'], [7, 6, '3 тижні: A/B +4%, SEO 0, AIV +3 п.', 'ok'], [6, 8, 'розгорнути v2 → read-back', 'ok']
+]);
+
+/* 24 lineage */
+draw('d-lineage', { w: 1000, h: 270, nodes: [
+  ...['GSC / Bing', 'GA4', 'Рекламні кабінети', 'CRM', 'AI-системи', 'CMS'].map((l, i) => ({ id: 'l' + i, x: 10, y: 6 + i * 44, w: 150, h: 36, k: 'ext', label: l })),
+  { id: 'cn', x: 200, y: 100, w: 150, h: 70, label: 'Конектори', sub: 'стан, затримки,\nповнота' },
+  { id: 'wh', x: 385, y: 100, w: 160, h: 70, k: 'store', label: 'Сховище', sub: 'BigQuery\nповні до T−3' },
+  { id: 'mt', x: 585, y: 40, w: 170, h: 58, k: 'agent', label: 'Метрики й прогноз', sub: 'Performance Analyst\nсезонність' },
+  { id: 'ag', x: 585, y: 170, w: 170, h: 58, k: 'agent', label: 'Агенти й Детектор', sub: 'гіпотези, рекомендації' },
+  { id: 'dc', x: 795, y: 40, w: 195, h: 58, k: 'gate', label: 'Рішення', sub: 'тест-гейт · людина' },
+  { id: 'gw', x: 795, y: 170, w: 195, h: 58, k: 'orch', label: 'Gateway → журнал', sub: 'версія даних,\nпромпту і моделі' }
+], edges: [
+  ...[0, 1, 2, 3, 4, 5].map(i => ({ f: 'l' + i, fs: 'r', t: 'cn', ts: 'l', mx: 182 })),
+  { f: 'cn', fs: 'r', t: 'wh', ts: 'l' }, { f: 'wh', fs: 'r', t: 'mt', ts: 'l', mx: 565 }, { f: 'wh', fs: 'r', t: 'ag', ts: 'l', mx: 565 },
+  { f: 'mt', fs: 'r', t: 'dc', ts: 'l' }, { f: 'ag', fs: 'r', t: 'dc', ts: 'l', mx: 775 }, { f: 'dc', fs: 'b', t: 'gw', ts: 't' }
 ] });
 </script>
 </body>
