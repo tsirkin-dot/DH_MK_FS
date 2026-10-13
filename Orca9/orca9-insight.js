@@ -68,12 +68,12 @@ const IN_PRINCIPLES = [
   ['Агент не оцінює сам себе', 'Кожну зміну агента перевіряє контролер на еталонних кейсах.']
 ];
 function inPrinciples() {
-  return `<div class="panel sec-gap"><h2>Принципи Orca9 ${hint('Вісім правил, на яких тримається вся система. Кожне має своє місце в інтерфейсі.')}<span class="sp"><button class="btn small" data-action="in-gloss">Глосарій</button></span></h2>
+  return `<div class="panel sec-gap" data-tour="principles"><h2>Принципи Orca9 ${hint('Вісім правил, на яких тримається вся система. Кожне має своє місце в інтерфейсі.')}<span class="sp"><button class="btn small" data-action="in-gloss">Глосарій</button></span></h2>
     <ol class="in-pr">${IN_PRINCIPLES.map(p => `<li><b>${p[0]}</b><span>${p[1]}</span></li>`).join('')}</ol></div>`;
 }
 function inHud(html) {
   const add = `<div class="grid g2 sec-gap">
-      <div class="panel"><h2>Потік пакетів ${hint('Усі пакети змін: конвеєри, рекомендації, групи сторінок і пакети кампаній. Показує, де зараз накопичується робота.')}<span class="sp small muted">${inPackets().length} пакетів</span></h2>${inFunnel()}${inFunnelNote()}</div>
+      <div class="panel" data-tour="hud-flow"><h2>Потік пакетів ${hint('Усі пакети змін: конвеєри, рекомендації, групи сторінок і пакети кампаній. Показує, де зараз накопичується робота.')}<span class="sp small muted">${inPackets().length} пакетів</span></h2>${inFunnel()}${inFunnelNote()}</div>
       <div class="panel"><h2>Застрягло ${hint('П’ять речей, які найдовше чекають або блокують інших: прострочені апруви, черги ресурсів, тести без висновку, розбіжності фактів, дрейф агентів.')}</h2>${inStuck()}</div>
     </div>`;
   const anchor = '<div class="panel sec-gap" data-tour="score">';
@@ -423,8 +423,8 @@ function inSources() {
 function inAgents(html) {
   const tab = inTab('agents', 'list');
   const head = inSeg('agents', [['list', 'Список і паспорти'], ['graph', 'Хто кому передає'], ['src', 'Куди ходять']], 'list', 'Погляд');
-  if (tab === 'list') return head + html;
-  return head + `<div class="panel">${tab === 'graph' ? `<h2>Хто кому передає результат</h2>${inGraph()}` : `<h2>Поди × системи</h2>${inSources()}`}</div>`;
+  if (tab === 'list') return head + '<div data-tour="agents-list">' + html + '</div>';
+  return head + `<div class="panel" data-tour="agents-view">${tab === 'graph' ? `<h2>Хто кому передає результат</h2>${inGraph()}` : `<h2>Поди × системи</h2>${inSources()}`}</div>`;
 }
 
 /* ---------- Розклад: добова шкала і залежності ---------- */

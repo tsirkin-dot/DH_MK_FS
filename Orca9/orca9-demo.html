@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orca9 — маркетинговий оркестр (демо)</title>
-<script src="orca9-pin.js?v=20261013d"></script>
+<script src="orca9-pin.js?v=20261013e"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
@@ -344,13 +344,13 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
   .diff{grid-template-columns:1fr}
 }
 </style>
-<link rel="stylesheet" href="orca9-premium.css?v=20261013d">
-<link rel="stylesheet" href="orca9-control.css?v=20261013d">
+<link rel="stylesheet" href="orca9-premium.css?v=20261013e">
+<link rel="stylesheet" href="orca9-control.css?v=20261013e">
 </head>
 <body>
 <div class="app">
   <aside class="rail" aria-label="Навігація">
-    <div class="logo">Orca9<small>маркетинговий оркестр</small></div>
+    <div class="logo">Orca9<small>маркетинговий оркестр</small><span class="build" title="Версія збірки і час останнього оновлення демо">v1.7 · збірка 20261013e<br>оновлено 13.10.2026, 18:35 (UTC+2)</span></div>
     <button class="nav" data-screen="hud" data-tour="nav-hud"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>HUD</button>
     <button class="nav" data-screen="brief" data-tour="nav-brief"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M5 12h14"/></svg>Новий бриф</button>
     <button class="nav" data-screen="analytics" data-tour="nav-analytics"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Аналітика<span class="count" id="cnt-an"></span></button>
@@ -417,12 +417,12 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
 <div id="modal" role="dialog" aria-modal="true"><div class="box" id="modal-box"></div></div>
 <div id="toast" role="status"></div>
 
-<script src="orca9-page-control.js?v=20261013d"></script>
-<script src="orca9-scale.js?v=20261013d"></script>
-<script src="orca9-viz.js?v=20261013d"></script>
-<script src="orca9-agents.js?v=20261013d"></script>
-<script src="orca9-world.js?v=20261013d"></script>
-<script src="orca9-insight.js?v=20261013d"></script>
+<script src="orca9-page-control.js?v=20261013e"></script>
+<script src="orca9-scale.js?v=20261013e"></script>
+<script src="orca9-viz.js?v=20261013e"></script>
+<script src="orca9-agents.js?v=20261013e"></script>
+<script src="orca9-world.js?v=20261013e"></script>
+<script src="orca9-insight.js?v=20261013e"></script>
 <script>
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1164,7 +1164,7 @@ const VIEWS = {
 
   agents() {
     const q = S.agentQ.toLowerCase();
-    return `<div class="panel" style="margin-bottom:16px"><div class="field" style="margin:0"><label for="ag-q">Пошук агента ${hint('План: 87 агентів (78 із репозиторію shalintripathi/saas-marketing-agents + 7 нових для аналітики й AI Visibility + 2 для контролю якості агентів) і 6 ролей координації — разом 93. Жоден агент не змінює сторінку сам: лише через погодження каналів канальних оркестраторів і тест-гейт. Агент бачить інструмент, але не токен. Натисніть на агента, щоб побачити паспорт: куди ходить, що збирає, як працює, що видає і приклад запуску. У демо показано ${S.pods.reduce((t, p) => t + p[1].length, 0)} ролей із 91 запланованої.')}</label><input id="ag-q" type="text" placeholder="Назва або що робить: Budget, цитування, Jira" value="${esc(S.agentQ)}"></div></div>
+    return `<div class="panel" style="margin-bottom:16px"><div class="field" style="margin:0"><label for="ag-q">Пошук агента ${hint('План: 87 агентів (78 із репозиторію shalintripathi/saas-marketing-agents + 7 нових для аналітики й AI Visibility + 2 для контролю якості агентів) і 6 ролей координації — разом 93. Жоден агент не змінює сторінку сам: лише через погодження каналів канальних оркестраторів і тест-гейт. Агент бачить інструмент, але не токен. Натисніть на агента, щоб побачити паспорт: куди ходить, що збирає, як працює, що видає і приклад запуску. У демо показано ${S.pods.reduce((t, p) => t + p[1].length, 0)} ролей із 93 запланованих.')}</label><input id="ag-q" type="text" placeholder="Назва або що робить: Budget, цитування, Jira" value="${esc(S.agentQ)}"></div></div>
       <div class="grid g2">${S.pods.map(([pod, list]) => {
         const f = list.filter(n => (typeof agSearchText === 'function' ? agSearchText(n) : n.toLowerCase()).includes(q));
         if (!f.length) return '';
@@ -1831,6 +1831,9 @@ const TOUR = [
   { screen: 'hud', sel: null, h: 'Orca9: як влаштовано', p: 'Агенти пропонують. Канальні оркестратори SEO, PPC і AI Visibility погоджують. Координатор збирає один пакет на ресурс, O2 перевіряє докази, O3 — політики, людина вирішує важливе, а записує лише gateway. Це симуляція без реальних підключень.' },
   { screen: 'hud', sel: '[data-tour=role]', h: 'Ролі і права', p: 'Роль визначає, що ви затверджуєте: свої канали, бюджет у межах тижневого ліміту, розгортання. Спробуйте Editor або Channel manager на екрані «Апруви».' },
   { screen: 'hud', sel: '[data-tour=score]', h: 'Один пайплайн', p: 'План → агенти → канали → O2 → Координатор і O3 → людина → тест-гейт → gateway. Перемикач над схемою показує ті самі задачі як партитуру, картки або колонки етапів.' },
+  { screen: 'hud', sel: '[data-tour=hud-flow]', h: 'Що таке пакет', p: 'Пакет — одна узгоджена зміна одного ресурсу: що було, що стане, докази й тести. Його погоджують канали, перевіряють O2 і O3, а записує Gateway. Смуга показує, де зараз усі пакети: погодження, людина, черга, тест, розгорнуто. Праворуч «Застрягло» — п’ять речей, що найдовше чекають.' },
+  { screen: 'hud', sel: '#world-strip', h: 'Зараз у світі', p: 'Стрічка під шапкою на кожному екрані: апдейти Google, нові моделі в AI-системах, збої даних, дії конкурентів. Такі події зсувають результати тестів, тому тест-гейт застосовує до них правила. Натисніть подію — відкриється календар «Світ і події».' },
+  { screen: 'hud', sel: '[data-tour=principles]', h: 'Вісім принципів і глосарій', p: 'Правила, на яких тримається система: агенти пропонують, одна сторінка — одна версія, будь-яка зміна через тест, цифри лише з реєстру, світ враховано, агент не оцінює сам себе. Кнопка «Глосарій» пояснює терміни: пакет, відбиток, ресурс, тест-гейт, R0–R3, rebase, дрейф.' },
   { screen: 'cmps', sel: '[data-tour=cmp-dag]', h: 'Кампанія розкладається на пакети', p: 'Оркестратор кампаній ділить бриф на лендинг, статті, рекламу, листи, пости і зміну наявної сторінки. Кожен пакет блокує лише свій ресурс і йде своїм контуром; граф показує залежності.' },
   { screen: 'recs', sel: '[data-tour=page-control]', h: 'Один ресурс — один активний пакет', p: 'Сторінки, групи, рекламні кампанії й сегменти розсилок мають своє блокування і чергу. Блокування без рішення живе 48 годин — «Перемотати 48 год» покаже, як черга рушає.' },
   { screen: 'recs', sel: '#rec-REC-3', h: 'Конфлікт PPC, SEO та AI', p: 'PPC хоче коротший перший екран. SEO захищає тему H1, AI Visibility — визначення. Після туру натисніть «Узгодити єдиний пакет»: кожен канал пояснить свій вердикт.' },
@@ -1847,9 +1850,13 @@ const TOUR = [
   { screen: 'slackdemo', sel: '[data-tour=sl-demo]', h: 'Slack — той самий контур', p: 'Кнопки в Slack мають ті самі права, версії пакетів і ліміти. Старий апрув не підходить до зміненого варіанта.' },
   { screen: 'roles', sel: '[data-tour=role-table]', h: 'Безпека поза моделлю', p: 'У production права, поля, бюджет і незмінність пакета перевіряє незалежний серверний policy engine. Демо показує процес, а не доводить захист інфраструктури.' },
   { screen: 'recs', pre: () => { S.inTab.recs = 'states'; }, sel: '[data-tour=in-recs]', h: 'Уся картина пакетів', p: 'Чотири погляди: пріоритети «вплив × впевненість», завантаження сторінок по тижнях, як тест-гейт ухвалює рішення з інтервалами, і всі стани пакета з переходами.' },
-  { screen: 'facts', sel: '[data-tour=fr-layers]', h: 'Реєстр фактів', p: 'Ціни, дати й цифри мають одне джерело. Факт правильний, коли збігаються джерело, реєстр, сайт і відповіді AI. Розбіжність не застосовується сама — вирішує власник факту.' },
-  { screen: 'world', sel: '[data-tour=world-tl]', h: 'Світ і події', p: 'Апдейти Google, нові моделі в AI-системах, свята в країнах із великою часткою трафіку. Тест-гейт не зараховує зачеплений тиждень і подовжує вікно. Подію видно під шапкою на кожному екрані.' },
+  { screen: 'agents', pre: () => { S.inTab.agents = 'list'; }, sel: '[data-tour=agents-list]', h: 'Агенти і як їх рахуємо', p: 'План — 87 агентів: 78 з бібліотеки маркетингових агентів, 7 нових для аналітики й AI Visibility, 2 для контролю якості. Плюс 6 ролей координації (оркестратори й координатори) — разом 93. Агенти згруповані в поди за каналом. Під назвою — що агент робить, праворуч — його рівень ризику.' },
+  { screen: 'agents', pre: () => { S.inTab.agents = 'list'; }, sel: '[data-tour=agents-list] .pod li', h: 'Паспорт агента', p: 'Натисніть на будь-якого агента — відкриється паспорт: коли запускається, куди ходить і з якими правами, що збирає, як працює по кроках, що видає (приклад JSON), кому передає, ворота, чого не робить і як міряємо його якість. Внизу — приклад запуску з кнопкою «Програти».' },
+  { screen: 'agents', pre: () => { S.inTab.agents = 'graph'; }, sel: '[data-tour=agents-view]', h: 'Хто кому передає', p: 'Граф побудовано з паспортів: товщина лінії — скільки агентів пода передають результат цьому адресату. Видно, що потоки сходяться на канальних оркестраторах і Координаторі. Вкладка «Куди ходять» показує, які системи под читає, де пише чернетки, а де пише лише через Gateway.' },
+  { screen: 'facts', sel: '[data-tour=fr-layers]', h: 'Реєстр фактів', p: 'Ціни, дати й цифри мають одне джерело. Факт правильний, коли збігаються джерело, реєстр, сайт і відповіді AI. Розбіжність не застосовується сама — вирішує власник факту. Кожен факт має строк дії: прострочений O2 не пропускає в нові тексти. Спробуйте «Звірити з джерелами зараз».' },
+  { screen: 'world', sel: '[data-tour=world-tl]', h: 'Світ і події', p: 'Апдейти Google, нові моделі в AI-системах, свята в країнах із великою часткою трафіку. Тест-гейт не зараховує зачеплений тиждень і подовжує вікно. Червона точка на вікні тесту — подія з правилом для цього тесту. Кнопка «Симулювати апдейт Google» під час тесту покаже, як тиждень не зараховується.' },
   { screen: 'agentqa', sel: '[data-tour=aq-rel]', h: 'Агент не оцінює сам себе', p: 'Кожну зміну промпту чи моделі перевіряє Регресійний контролер на еталонних кейсах. Аудитор відповідей щодня ловить дрейф. Запустіть RL-7: дешевша модель не пройде.' },
+  { screen: 'agentqa', sel: '[data-tour=aq-drift]', h: 'Дрейф: якість падає без наших змін', p: 'Аудитор відповідей щодня оцінює 5% реальних результатів кожного агента іншою моделлю. Після нової моделі ChatGPT Citation Analyst просів до 86 при порозі 90 — тепер людина перевіряє 100% його висновків. «Розібрати дрейф» покаже причину і фікс. Нижче — остання перевірка кожного агента за 7 метриками.' },
   { screen: 'recs', sel: '#rec-REC-3', h: 'Спробуйте повний сценарій', p: 'REC-3: узгодити → конфлікт → компроміс → дозволити тест → три тижні → розгорнути. Далі «Кампанії», «Групи сторінок» і «Швидкі виправлення». Архітектура зі схемами — посилання внизу меню.' }
 ];
 let TI = -1;

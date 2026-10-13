@@ -426,7 +426,7 @@ function aqView() {
       ['Щодня', 'Вибірка 5% відповідей: дрейф нижче порогу — алерт і нагляд людини']
     ])}
     <div class="panel sec-gap" data-tour="aq-rel"><h2>Релізи агентів ${hint('Запустіть обидва: RL-7 зупиниться на регресії, RL-8 пройде всі кроки.')}</h2><div class="grid g2">${S.aq.rel.map(relCard).join('')}</div></div>
-      <div class="panel sec-gap"><h2>Дрейф у роботі ${hint('Аудитор відповідей щодня оцінює 5% реальних результатів кожного агента. Нижче порогу — алерт, агент переходить під нагляд людини.')}
+      <div class="panel sec-gap" data-tour="aq-drift"><h2>Дрейф у роботі ${hint('Аудитор відповідей щодня оцінює 5% реальних результатів кожного агента. Нижче порогу — алерт, агент переходить під нагляд людини.')}
         ${S.aq.drift === 'alert' ? '<span class="sp"><button class="btn small primary" data-action="aq-drift">Розібрати дрейф Citation Analyst</button></span>' : '<span class="sp chip ok">дрейф усунено</span>'}</h2>
         ${aqDriftSvg()}
         <p class="small muted" style="margin:8px 0 0">${S.aq.drift === 'alert' ? 'Після оновлення моделі ChatGPT (зовнішня подія E2) якість Citation Analyst впала до 86. Поки причину не усунено, людина перевіряє 100% його висновків.' : 'Причина: новий формат відповідей ChatGPT. Парсер v3.2 пройшов еталони, нагляд людини знято. Кейси зі списками додано до еталонів.'}</p></div>
