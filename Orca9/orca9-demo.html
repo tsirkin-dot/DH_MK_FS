@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orca9 — маркетинговий оркестр (демо)</title>
-<script src="orca9-pin.js"></script>
+<script src="orca9-pin.js?v=20261013c"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
@@ -344,7 +344,7 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
   .diff{grid-template-columns:1fr}
 }
 </style>
-<link rel="stylesheet" href="orca9-premium.css">
+<link rel="stylesheet" href="orca9-premium.css?v=20261013c">
 </head>
 <body>
 <div class="app">
@@ -410,9 +410,9 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
 <div id="modal" role="dialog" aria-modal="true"><div class="box" id="modal-box"></div></div>
 <div id="toast" role="status"></div>
 
-<script src="orca9-page-control.js"></script>
-<script src="orca9-scale.js"></script>
-<script src="orca9-viz.js"></script>
+<script src="orca9-page-control.js?v=20261013c"></script>
+<script src="orca9-scale.js?v=20261013c"></script>
+<script src="orca9-viz.js?v=20261013c"></script>
 <script>
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -662,12 +662,32 @@ function counts() {
 /* ---------- screens ---------- */
 const TITLES = { hud: 'HUD', brief: 'Новий бриф', analytics: 'Аналітика', approvals: 'Апруви', seo: 'SEO', ppc: 'PPC', aiv: 'AI Visibility', recs: 'Рекомендації', cmps: 'Кампанії', groups: 'Групи сторінок', hotfix: 'Швидкі виправлення', pm: 'Менеджер проєкту', events: 'Демо подій', slackdemo: 'Демо Slack', agents: 'Агенти', crons: 'Розклад', roles: 'Ролі та доступи', audit: 'Журнал аудиту' };
 function go(screen) { S.screen = screen; render(); $('#view').scrollTop = 0; }
+/* Render only when the screen's HTML really changed, keep the scroll position, and never swap the DOM
+   under a pressed mouse button: background work (pipelines, campaigns, groups) calls render() often,
+   and replacing buttons mid-click used to swallow clicks and make screens flicker. */
+let LAST_VIEW = { screen: null, html: '' }, PTR_DOWN = false, RENDER_PENDING = false;
+if (typeof document !== 'undefined' && document.addEventListener) {
+document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#view')) PTR_DOWN = true; }, true);
+document.addEventListener('pointerup', () => { PTR_DOWN = false; if (RENDER_PENDING) setTimeout(render, 0); }, true);
+document.addEventListener('pointercancel', () => { PTR_DOWN = false; if (RENDER_PENDING) setTimeout(render, 0); }, true);
+}
 function render() {
   if (typeof cmpSync === 'function') cmpSync();
   $('#title').textContent = TITLES[S.screen] + (S.writesOff ? ' · записи вимкнено' : '');
   $$('.nav').forEach(b => b.setAttribute('aria-current', b.dataset.screen === S.screen ? 'page' : 'false'));
+  let html;
+  try { html = VIEWS[S.screen](); }
+  catch (err) {
+    console.error('Orca9 render', S.screen, err);
+    html = `<div class="panel"><h2>Екран «${esc(TITLES[S.screen] || S.screen)}» не вдалося показати</h2><p class="small muted">${esc(err.message)}</p><p class="small">Найчастіше це старі файли в кеші браузера після оновлення сайту. Перезавантажте сторінку з очищенням кешу: Ctrl+F5 або Cmd+Shift+R.</p></div>`;
+  }
+  const sameScreen = LAST_VIEW.screen === S.screen;
+  if (sameScreen && LAST_VIEW.html === html) { RENDER_PENDING = false; counts(); return; }
+  if (sameScreen && PTR_DOWN) { RENDER_PENDING = true; counts(); return; }
+  const v = $('#view'), top = v.scrollTop;
   const wasIn = document.activeElement && document.activeElement.id === 'sl-in';
-  $('#view').innerHTML = VIEWS[S.screen]();
+  v.innerHTML = html; LAST_VIEW = { screen: S.screen, html }; RENDER_PENDING = false;
+  if (sameScreen) v.scrollTop = top;
   counts();
   if (S.screen === 'analytics') drawCharts();
   if (S.screen === 'slackdemo') {
@@ -831,7 +851,7 @@ const VIEWS = {
     const sev = { high: '<span class="chip bad">високий</span>', med: '<span class="chip warn">середній</span>', low: '<span class="chip">низький</span>' };
     return `${intro(`<b>SEO-напрям.</b> 7 агентів стежать за позиціями в Google і Bing, технічним станом сайту і видимістю в AI-відповідях. Ресерч і аудит ідуть без людини. Будь-яка зміна на сайті — рівень R2: її перевіряють O2 і O3, а затверджує Channel manager або Editor.`)}
     <div class="grid g4">
-      <div class="metric"><div class="lbl">Кліки, 7 днів ${hint('Google Search Console плюс Bing Webmaster Tools. Оновлюється щодня о 05:00.')}</div><div class="val">${vzN(vzSeoWeek().clicks)}</div><div class="sub">${vzSeoWeek().dClicks} до минулого тижня · W41</div></div>
+      <div class="metric"><div class="lbl">Кліки, 7 днів ${hint('Google Search Console плюс Bing Webmaster Tools. Оновлюється щодня о 05:00.')}</div><div class="val">${vzN(vzSeoWeek().clicks)}</div><div class="sub">${vzSeoWeek().dClicks}: W41 проти W36–W39</div></div>
       <div class="metric"><div class="lbl">Покази, 7 днів</div><div class="val">${vzSeoWeek().impr} тис.</div><div class="sub">${vzSeoWeek().dImpr}, найбільше на /pricing-analytics</div></div>
       <div class="metric"><div class="lbl">Сер. позиція ${hint('Середнє по відстежуваних запитах. Розбіжність між Google і Bing — перша підказка, де шукати причину.')}</div><div class="val">${avg('g')} <span class="small muted">Google</span></div><div class="sub">${avg('b')} у Bing</div></div>
       <div class="metric"><div class="lbl">Проіндексовано</div><div class="val">1 186</div><div class="sub">з 1 240 сторінок</div><div class="bar"><i style="width:96%"></i></div></div>
@@ -1709,7 +1729,7 @@ const EX = {
   'aiv-rec': () => { openRec('REC-1'); reviewRec(S.recs.find(r => r.id === 'REC-1')); },
   'aiv-fact': () => { openRec('REC-4'); reviewRec(S.recs.find(r => r.id === 'REC-4')); },
   'aiv-conflict': () => { openRec('REC-3'); reviewRec(S.recs.find(r => r.id === 'REC-3')); },
-  'rec-all': () => { const n = S.recs.filter(r => r.status === 'new'); if (!n.length) { toast('Нових рекомендацій немає.'); return; } n.forEach((r, i) => setTimeout(() => reviewRec(r), i * 300)); toast(`Погодження каналів запущено для ${n.length} рекомендацій.`); },
+  'rec-all': () => { const n = S.recs.filter(r => r.status === 'new'); if (!n.length) { toast('Нових рекомендацій немає.'); return; } n.forEach((r, i) => setTimeout(() => reviewRec(r), i * 300)); toast(`Погодження каналів запущено. Нових рекомендацій: ${n.length}.`); },
   'rec-fast': () => { const t = S.recs.filter(r => r.status === 'test'); if (!t.length) { toast('Немає рекомендацій у тест-гейті.'); return; } t.forEach(r => { while (r.status === 'test') recWeek(r); }); },
   'ppc-land': () => {
     const n = S.recs.filter(r => r.id.startsWith('REC-')).length + 1;
@@ -1857,7 +1877,7 @@ function endTour() { $('#tour').classList.remove('on'); TI = -1; }
 
 /* ---------- events ---------- */
 document.addEventListener('click', e => {
-  const nav = e.target.closest('.nav'); if (nav) { go(nav.dataset.screen); return; }
+  const nav = e.target.closest('.nav'); if (nav) { if (TI >= 0) endTour(); go(nav.dataset.screen); return; }
   const b = e.target.closest('[data-action]'); if (!b) return;
   const id = b.dataset.id, A = b.dataset.action;
   const map = {

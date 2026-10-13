@@ -5,7 +5,7 @@
 const VZ_CH = [
   { k: 'og', name: 'Органіка Google', grp: 'SEO', col: '#2a78d6', base: 19000, cr: 2.1, act: 38, pay: 24, arpa: 118 },
   { k: 'ob', name: 'Органіка Bing', grp: 'SEO', col: '#eb6834', base: 2400, cr: 2.6, act: 40, pay: 24, arpa: 112 },
-  { k: 'ga', name: 'Google Ads', grp: 'PPC', col: '#1baf7a', base: 2600, cr: 3.4, act: 31, pay: 22, arpa: 104, spend: 2350 },
+  { k: 'ga', name: 'Google Ads', grp: 'PPC', col: '#1baf7a', base: 2600, cr: 2.4, act: 31, pay: 22, arpa: 104, spend: 2350 },
   { k: 'li', name: 'LinkedIn Ads', grp: 'PPC', col: '#eda100', base: 900, cr: 4.3, act: 44, pay: 30, arpa: 160, spend: 1480 },
   { k: 'me', name: 'Meta Ads', grp: 'PPC', col: '#e87ba4', base: 1100, cr: 2.1, act: 22, pay: 15, arpa: 85, spend: 520 },
   { k: 'em', name: 'Email', grp: 'Email', col: '#008300', base: 1300, cr: 4.8, act: 52, pay: 28, arpa: 125 },
@@ -41,6 +41,14 @@ const vzN = n => Math.round(n).toLocaleString('uk');
 const vzM = n => '$' + Math.round(n).toLocaleString('uk');
 const vzP = (n, d = 1) => (Math.round(n * Math.pow(10, d)) / Math.pow(10, d)).toString().replace('.', ',') + '%';
 
+/* Last full week for the SEO screen tiles: clicks ≈ organic sessions, impressions from CTR. */
+function vzBase(chs, key) { return vzSum(chs, VZ_LAST - 5, VZ_LAST - 2, key) / 4; }
+function vzSeoWeek() {
+  const seo = VZ_CH.filter(c => c.grp === 'SEO'), c1 = vzSum(seo, VZ_LAST, VZ_LAST, 'sessions'), c0 = vzBase(seo, 'sessions');
+  const i1 = c1 / 0.039, i0 = c0 / 0.043, pc = (a, b) => (a >= b ? '+' : '−') + vzP(Math.abs(a - b) / b * 100, 0);
+  return { clicks: c1, dClicks: pc(c1, c0), impr: vzN(i1 / 1000), dImpr: pc(i1, i0) };
+}
+function vzOgDrop() { const og = VZ_CH.filter(c => c.k === 'og'); return Math.round((1 - vzSum(og, VZ_LAST, VZ_LAST, 'sessions') / vzBase(og, 'sessions')) * 100); }
 function vzState() { if (!S.vz) S.vz = { weeks: 8, grp: 'all', table: false }; return S.vz; }
 function vzChannels() { const v = vzState(); return VZ_CH.filter(c => v.grp === 'all' || c.grp === v.grp); }
 function vzSum(chs, from, to, key) { return VZ_ROWS.filter(r => chs.some(c => c.k === r.ch) && r.w >= from && r.w <= to).reduce((t, r) => t + r[key], 0); }
@@ -162,7 +170,7 @@ function trafficView() {
     ])}
   </div>`;
   const ins = `<div class="panel sec-gap"><h2>Що бачить Marketing Performance Analyst ${hint('Висновки зібрані з тих самих даних; кожен веде до задачі, яку вже веде оркестр.')}</h2>
-    <div class="row"><span class="grow"><b>Органіка Google −14% у W41.</b> Позиція 6,0 → 6,8, CTR 4,3% → 3,9%. Збігається з core update і аномалією /pricing-analytics.</span><button class="btn small" data-action="vz-anom">Аномалії</button></div>
+    <div class="row"><span class="grow"><b>Органіка Google −${vzOgDrop()}% у W41</b> проти середнього W36–W39. Позиція 6,0 → 6,8, CTR 4,3% → 3,9%. Збігається з core update і аномалією /pricing-analytics.</span><button class="btn small" data-action="vz-anom">Аномалії</button></div>
     <div class="row"><span class="grow"><b>Google Ads: CPA зріс у W40–W41.</b> Витрати +16%, конверсія −18%: перевитрата Brand UA.</span><button class="btn small" data-action="nav-to" data-screen="ppc">PPC</button></div>
     <div class="row"><span class="grow"><b>AI-реферали ростуть найшвидше і конвертують найкраще.</b> Підсилюють REC-1 і груповий пакет GP-2.</span><button class="btn small" data-action="nav-to" data-screen="aiv">AI Visibility</button></div>
     <div class="row"><span class="grow"><b>Meta Ads дає найдорожчого клієнта.</b> CAC вище цілі; data-driven показує, що канал допомагає на ранніх дотиках — не вимикати, а переглянути ставки.</span><button class="btn small" data-action="nav-to" data-screen="ppc">PPC</button></div></div>`;

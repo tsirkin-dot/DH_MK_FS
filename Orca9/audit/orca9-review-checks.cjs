@@ -142,6 +142,10 @@ const ok = msg => checks.push(msg);
     R(s, `S.anTab = 'traffic'`); for (const g of ['all', 'SEO', 'PPC', 'Email', 'AI']) { R(s, `S.vz = { weeks: 8, grp: '${g}', table: false }`); assert.ok(!/NaN|Infinity|undefined/.test(R(s, 'trafficView()')), g); }
     const sum = R(s, `VZ_ROWS.filter(r => r.w === 11).reduce((t, r) => t + r.signups, 0)`); assert.ok(sum > 400 && sum < 1200);
     ok('Six pipeline views render; traffic analytics has no NaN/undefined for every channel filter.'); }
+  { const s = session(); R(s, 'S.anTab = "anom"');
+    for (const v of ['hud', 'brief', 'analytics', 'approvals', 'seo', 'ppc', 'aiv', 'cmps', 'recs', 'groups', 'hotfix', 'pm', 'events', 'slackdemo', 'agents', 'crons', 'roles', 'audit']) {
+      const html = R(s, `VIEWS['${v}']()`); assert.ok(html.length > 300, v); assert.ok(!/NaN|>undefined<|\$undefined|Infinity/.test(html), v + ' has NaN/undefined'); }
+    ok('All 18 screens render without NaN or undefined values.'); }
   { assert.equal(R(c, `gateEvaluate([{ name: 'A', value: 3 }, { name: 'B', value: NaN }, { name: 'C', value: 1 }]).verdict`), 'inconclusive');
     assert.equal(R(c, `fmtGate('AI Visibility тест', 8)`), '+8 п.');
     ok('One evaluator for pages, groups and pipelines; AI Visibility shown in points, not %.'); }
