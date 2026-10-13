@@ -103,12 +103,12 @@ function frLayer(f, layer) {
   return f.ai === 'ok' ? ['ok', 'правильно'] : f.ai === 'none' ? ['', 'не знає'] : f.ai === 'stale' ? ['warn', 'застаріло'] : ['bad', 'помилка'];
 }
 function frFresh() {
-  const rows = S.factReg, W = 640, rowH = 26, L = 190, H = rows.length * rowH + 34, max = 120;
+  const rows = S.factReg, W = typeof inFit === 'function' ? inFit(640) : 640, rowH = 26, L = 190, H = rows.length * rowH + 34, max = 120;
   const x = d => L + Math.min(d, max) / max * (W - L - 20);
-  return `<div class="ins-scroll"><svg class="ins-svg" viewBox="0 0 ${W} ${H}" style="min-width:520px" role="img" aria-label="Свіжість фактів: днів від перевірки проти строку дії">
+  return `<div class="ins-scroll"><svg class="ins-svg hlz" viewBox="0 0 ${W} ${H}" style="min-width:520px" role="img" aria-label="Свіжість фактів: днів від перевірки проти строку дії">
     ${[0, 30, 60, 90, 120].map(d => `<line x1="${x(d)}" x2="${x(d)}" y1="8" y2="${H - 22}" style="stroke:var(--line)"/><text x="${x(d)}" y="${H - 6}" text-anchor="middle" class="ins-t">${d}${d === 120 ? '+' : ''} дн.</text>`).join('')}
     ${rows.map((f, i) => { const y = 12 + i * rowH, age = wdDays(f.ver), st = frStatus(f), col = st === 'ok' ? 'var(--pass)' : st === 'soon' ? 'var(--hold)' : 'var(--veto)';
-      return `<g data-hint="${esc(f.key)}: перевірено ${age} дн. тому, строк дії ${f.ttl} дн.">
+      return `<g class="hl" data-action="fr-open" data-id="${f.key}" data-hint="${esc(f.key)}: перевірено ${age} дн. тому, строк дії ${f.ttl} дн.\nнатисніть — деталі факту">
         <text x="${L - 8}" y="${y + 13}" text-anchor="end" class="ins-t">${esc(f.key)}</text>
         <rect x="${L}" y="${y + 3}" width="${Math.max(2, x(age) - L)}" height="14" rx="3" style="fill:${col};opacity:.85"/>
         <line x1="${x(f.ttl)}" x2="${x(f.ttl)}" y1="${y}" y2="${y + 20}" style="stroke:var(--ink);stroke-width:2"/></g>`; }).join('')}
@@ -236,11 +236,11 @@ function wdTimeline() {
   const lanes = [['search', 'Пошук'], ['ai', 'AI-системи'], ['data', 'Дані'], ['competitor', 'Конкуренти'], ['US', 'США'], ['CA', 'Канада'], ['UK', 'Велика Британія'], ['DE', 'Німеччина'], ['UA', 'Україна'], ['PL', 'Польща'], ['ICP', 'Сезон ICP']];
   const laneOf = e => ['search', 'ai', 'data', 'competitor'].includes(e.kind) ? e.kind : e.region === 'Global' ? 'ICP' : e.region;
   const tests = wdTestItems();
-  const L = 150, W = 900, cw = (W - L - 10) / WD_WEEKS.length, rh = 24, top = 26;
+  const L = 150, W = typeof inFit === 'function' ? inFit(900) : 900, cw = (W - L - 10) / WD_WEEKS.length, rh = 24, top = 26;
   const H = top + lanes.length * rh + 18 + tests.length * 22 + 14;
   const x = w => L + (w - WD_WEEKS[0]) * cw;
   const ev2 = wdEvents();
-  let s = `<div class="ins-scroll"><svg class="ins-svg" viewBox="0 0 ${W} ${H}" style="min-width:760px" role="img" aria-label="Зовнішні події по тижнях і країнах, нижче — вікна тестів">`;
+  let s = `<div class="ins-scroll"><svg class="ins-svg hlz" viewBox="0 0 ${W} ${H}" style="min-width:760px" role="img" aria-label="Зовнішні події по тижнях і країнах, нижче — вікна тестів">`;
   WD_WEEKS.forEach(w => { s += `<text x="${x(w) + cw / 2}" y="16" text-anchor="middle" class="ins-t${w === WD_NOW_W ? ' b' : ''}">W${w}</text><line x1="${x(w)}" x2="${x(w)}" y1="22" y2="${H - 6}" style="stroke:var(--line)"/>`; });
   s += `<rect x="${x(WD_NOW_W)}" y="22" width="${cw}" height="${H - 28}" style="fill:var(--act);opacity:.06"/><text x="${x(WD_NOW_W) + cw / 2}" y="${H - 2}" text-anchor="middle" class="ins-t b">зараз</text>`;
   lanes.forEach(([k, label], i) => {
@@ -248,7 +248,7 @@ function wdTimeline() {
     s += `<text x="${L - 8}" y="${y + 15}" text-anchor="end" class="ins-t">${label}${WD_C.find(c => c[0] === k) ? ` · ${wdShare(k)}%` : ''}</text><line x1="${L}" x2="${W - 10}" y1="${y + rh}" y2="${y + rh}" style="stroke:var(--line);opacity:.5"/>`;
     ev2.filter(e => laneOf(e) === k || e.also === k).forEach(e => {
       const c = WD_KIND[e.kind][1], st = wdSt(e);
-      s += `<g data-hint="${esc(e.title)} (${e.dates})\n${esc(e.rule)}"><rect x="${x(e.w0) + 3}" y="${y + 4}" width="${(e.w1 - e.w0 + 1) * cw - 6}" height="${rh - 8}" rx="4" style="fill:${c};opacity:${st === 'past' ? .35 : .9}"/>
+      s += `<g class="hl" data-action="in-open" data-id="${e.id}" data-hint="${esc(e.title)} (${e.dates})\n${esc(e.rule)}\nнатисніть — деталі й зачеплені тести"><rect x="${x(e.w0) + 3}" y="${y + 4}" width="${(e.w1 - e.w0 + 1) * cw - 6}" height="${rh - 8}" rx="4" style="fill:${c};opacity:${st === 'past' ? .35 : .9}"/>
         <text x="${x(e.w0) + 7}" y="${y + 15.5}" class="ins-t w xs">${esc((() => { const mx = Math.floor(((e.w1 - e.w0 + 1) * cw - 14) / 6.1); const t = e.w1 > e.w0 && e.title.length <= mx ? e.title : (e.short || e.title); return t.length > mx ? t.slice(0, mx - 1) + '…' : t; })())}</text></g>`;
     });
   });
@@ -257,7 +257,7 @@ function wdTimeline() {
   tests.forEach((t, i) => {
     const y = ty + 6 + i * 22, hits = wdTestImpacts(t);
     const w1 = t.w1 + (t.ext || 0);
-    s += `<g data-hint="${t.id} · ${esc(t.page)}\n${t.live ? 'тест іде' : 'план: старт після погоджень'}${hits.length ? '\n' + hits.map(h => '• ' + h.e.title + ': ' + h.e.rule).join('\n') : '\nзовнішніх подій у вікні немає'}">
+    s += `<g class="hl" data-action="in-open" data-id="${t.id}" data-hint="${t.id} · ${esc(t.page)}\n${t.live ? 'тест іде' : 'план: старт після погоджень'}${hits.length ? '\n' + hits.map(h => '• ' + h.e.title + ': ' + h.e.rule).join('\n') : '\nзовнішніх подій у вікні немає'}">
       <text x="${L - 8}" y="${y + 13}" text-anchor="end" class="ins-t">${t.id}</text>
       <rect x="${x(t.w0) + 3}" y="${y + 2}" width="${(w1 - t.w0 + 1) * cw - 6}" height="15" rx="7" style="fill:${t.live ? 'var(--act)' : 'var(--paper)'};stroke:var(--act);stroke-dasharray:${t.live ? '0' : '4 3'};opacity:.9"/>
       ${hits.map(h => `<circle cx="${x(Math.max(h.e.w0, t.w0)) + cw / 2}" cy="${y + 9.5}" r="5" style="fill:var(--veto);stroke:#fff;stroke-width:1.5"/>`).join('')}</g>`;
@@ -280,17 +280,27 @@ function wdSim(kind) {
   toast(`Подію додано. ${live.length ? 'Зачеплено тестів: ' + live.length : 'Запущених тестів немає'}.`);
   render();
 }
+function wdEventModal(id) {
+  const e = wdEvents().find(x => x.id === id); if (!e) return;
+  const ts = wdTestItems().filter(t => wdTestImpacts(t).some(h => h.e.id === id));
+  $('#modal-box').innerHTML = `<h2>${esc(e.title)}</h2><p class="small muted">${WD_KIND[e.kind][0]} · ${e.region === 'Global' ? 'усі ринки' : (WD_C.find(c => c[0] === e.region) || [0, e.region])[1] + ` (${wdShare(e.region)}% трафіку)`} · ${e.dates} · джерело: ${esc(e.src)}</p>
+    <div class="in-verdict ${wdSt(e) === 'active' ? 'inconclusive' : 'pass'}"><b>${wdSt(e) === 'active' ? 'Діє зараз' : wdSt(e) === 'next' ? 'Попереду' : 'Минула'}</b> ${esc(e.rule)}</div>
+    <dl class="kv sec-gap"><dt>Канали</dt><dd>${e.ch.join(', ')}</dd><dt>Типи тестів</dt><dd>${e.tests.length ? e.tests.map(t => ({ AB: 'A/B', SEO: 'SEO-тест', AIV: 'AI Visibility', PPC: 'тести ставок' }[t])).join(', ') : 'не впливає на вікна тестів'}</dd></dl>
+    <h3 class="sub-h">Зачеплені тести (${ts.length})</h3>${ts.length ? ts.map(t => `<div class="row small"><span class="grow"><b>${t.id}</b> ${esc(t.page)} · ${t.live ? 'тест іде' : 'у плані'} · W${t.w0}–W${t.w1 + (t.ext || 0)}</span><button class="btn small" data-action="in-open" data-id="${t.id}">Відкрити</button></div>`).join('') : '<p class="empty">Жоден тест не зачеплено.</p>'}
+    <div class="acts sec-gap"><button class="btn primary" data-action="close-modal">Закрити</button></div>`;
+  openModal();
+}
 function wdContext(chs) {
   const list = wdEvents().filter(e => wdSt(e) !== 'past' && e.ch.some(c => chs.includes(c)) && e.w0 <= WD_NOW_W + 2);
   if (!list.length) return '';
-  return `<div class="wd-ctx"><b>Зовнішній контекст</b>${list.map(e => `<span class="wd-pill" data-hint="${esc(e.rule)}"><i style="background:${WD_KIND[e.kind][1]}"></i>${esc(e.title)} <span class="muted">· ${e.dates}${wdSt(e) === 'next' ? ' · скоро' : ''}</span></span>`).join('')}<button class="btn small" data-action="nav-to" data-screen="world">Календар</button></div>`;
+  return `<div class="wd-ctx"><b>Зовнішній контекст</b>${list.map(e => `<span class="wd-pill" role="button" tabindex="0" data-action="in-open" data-id="${e.id}" data-hint="${esc(e.rule)}"><i style="background:${WD_KIND[e.kind][1]}"></i>${esc(e.title)} <span class="muted">· ${e.dates}${wdSt(e) === 'next' ? ' · скоро' : ''}</span></span>`).join('')}<button class="btn small" data-action="nav-to" data-screen="world">Календар</button></div>`;
 }
 function wdStrip() {
   if (typeof document === 'undefined') return;
   const el = document.getElementById('world-strip'); if (!el) return;
   const act = wdEvents().filter(e => wdSt(e) === 'active' && e.kind !== 'holiday');
   const next = wdEvents().filter(e => wdSt(e) === 'next' && e.w0 <= WD_NOW_W + 2);
-  const html = act.length ? `<span class="ws-l">Зараз у світі</span>${act.map(e => `<button class="ws-i" data-action="nav-to" data-screen="world" data-hint="${esc(e.rule)}"><i style="background:${WD_KIND[e.kind][1]}"></i>${esc(e.title)}</button>`).join('')}${next.length ? `<span class="ws-n">+${next.length} найближчим часом</span>` : ''}` : '';
+  const html = act.length ? `<span class="ws-l">Зараз у світі</span>${act.map(e => `<button class="ws-i" data-action="in-open" data-id="${e.id}" data-hint="${esc(e.rule)}"><i style="background:${WD_KIND[e.kind][1]}"></i>${esc(e.title)}</button>`).join('')}${next.length ? `<span class="ws-n">+${next.length} найближчим часом</span>` : ''}` : '';
   if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; el.hidden = !html; }
 }
 function wdView() {
@@ -389,7 +399,8 @@ function aqDriftFix() {
   render();
 }
 function aqDriftSvg() {
-  const list = S.aq.agents.slice(0, 4), W = 900, H = 240, L = 34, R = 12, T = 14, B = 26;
+  const off = (S.inTab && S.inTab.driftOff || '').split(',').filter(Boolean);
+  const list = S.aq.agents.slice(0, 4), W = typeof inFit === 'function' ? inFit(900) : 900, H = 240, L = 34, R = 12, T = 14, B = 26;
   const n = Math.max(...list.map(a => a.drift.length)), lo = 80, hi = 100;
   const x = i => L + i * (W - L - R) / (n - 1), y = v => T + (hi - v) / (hi - lo) * (H - T - B);
   const cols = ['#3442A8', '#B9382A', '#1E8A6E', '#B86E00'];
@@ -399,8 +410,8 @@ function aqDriftSvg() {
     <line x1="${L}" x2="${W - R}" y1="${y(90)}" y2="${y(90)}" style="stroke:var(--veto);stroke-dasharray:5 4"/><text x="${W - R}" y="${y(90) - 5}" text-anchor="end" class="ins-t" style="fill:var(--veto)">поріг 90</text>
     <line x1="${x(9.5)}" x2="${x(9.5)}" y1="${T}" y2="${H - B}" style="stroke:#7B3FA0;stroke-dasharray:3 3"/><text x="${x(9.5) + 4}" y="${T + 10}" class="ins-t" style="fill:#7B3FA0">09.10 нова модель ChatGPT</text>
     ${days.map((d, i) => i % 2 === 0 ? `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" class="ins-t">${d}</text>` : '').join('')}
-    ${list.map((a, k) => `<polyline points="${a.drift.map((v, i) => `${x(i)},${y(v)}`).join(' ')}" style="fill:none;stroke:${cols[k]};stroke-width:2.2"/>${a.drift.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="3" style="fill:${cols[k]}" data-hint="${esc(a.n.replace(' (новий)', ''))}, ${days[i]}: ${v}"/>`).join('')}`).join('')}
-  </svg></div><div class="legend">${list.map((a, k) => `<span><i class="lg" style="background:${cols[k]}"></i>${esc(a.n.replace(' (новий)', ''))}</span>`).join('')}</div>`;
+    ${list.map((a, k) => off.includes(String(k)) ? '' : `<polyline points="${a.drift.map((v, i) => `${x(i)},${y(v)}`).join(' ')}" style="fill:none;stroke:${cols[k]};stroke-width:2.2"/>${a.drift.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="3" style="fill:${cols[k]}" data-hint="${esc(a.n.replace(' (новий)', ''))}, ${days[i]}: ${v}"/>`).join('')}`).join('')}
+  </svg></div><div class="legend">${list.map((a, k) => `<button class="lg-btn${off.includes(String(k)) ? ' off' : ''}" data-action="aq-line" data-id="${k}"><i class="lg" style="background:${cols[k]}"></i>${esc(a.n.replace(' (новий)', ''))}</button>`).join('')}<span class="small muted">натисніть, щоб сховати або показати лінію</span></div>`;
 }
 function aqView() {
   const A = S.aq.agents, cell = { ok: ['ok', '✓'], warn: ['warn', '!'], bad: ['bad', '✕'] };
@@ -537,7 +548,9 @@ function worldInit() {
   Object.assign(VIEWS, { facts: frView, world: wdView, agentqa: aqView });
   Object.assign(SCALE_ACTIONS, {
     'fr-sync': frSyncRun, 'fr-approve': () => frApproveTrial(), 'fr-reverify': id => frReverify(id), 'fr-open': id => frDetail(id),
-    'wd-sim': id => wdSim(id), 'aq-run': id => aqRun(id), 'aq-drift': aqDriftFix
+    'wd-sim': id => wdSim(id), 'aq-run': id => aqRun(id), 'aq-drift': aqDriftFix,
+    'vz-hide': id => { const v = vzState(); v.hide = (v.hide || []).includes(id) ? v.hide.filter(x => x !== id) : [...(v.hide || []), id]; render(); },
+    'aq-line': id => { S.inTab = S.inTab || {}; const off = (S.inTab.driftOff || '').split(',').filter(Boolean); S.inTab.driftOff = (off.includes(id) ? off.filter(x => x !== id) : [...off, id]).join(','); render(); }
   });
   /* зовнішня подія під час тесту: тиждень не зараховується */
   const wrapWeek = (orig, label) => function (x) {

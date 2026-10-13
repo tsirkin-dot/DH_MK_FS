@@ -7,7 +7,22 @@ function inSeg(k, opts, d, label) {
   const v = inTab(k, d);
   return `<div class="seg" role="tablist"${label ? ` aria-label="${label}"` : ''}>${label ? `<span class="seg-l">${label}:</span>` : ''}${opts.map(([id, l]) => `<button role="tab" aria-selected="${id === v}" data-action="in-tab" data-id="${k}:${id}">${l}</button>`).join('')}</div>`;
 }
-const inSvg = (W, H, label, body, min) => `<div class="ins-scroll"><svg class="ins-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}"${min ? ` style="min-width:${min}px"` : ''}>${body}</svg></div>`;
+const inSvg = (W, H, label, body, min) => `<div class="ins-scroll"><svg class="ins-svg hlz" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}"${min ? ` style="min-width:${min}px"` : ''}>${body}</svg></div>`;
+/* Ширина графіка під реальну ширину панелі: на широкому екрані графік стає ширшим, а не більшим */
+function inViewW() { const v = typeof document !== 'undefined' && document.getElementById('view'); return v && v.clientWidth ? Math.min(v.clientWidth, 1480) : 0; }
+function inFit(def, frac = 1) { const vw = inViewW(); if (!vw) return def; const t = Math.round((vw - 64) * frac - 44); return Math.max(def, Math.min(t, Math.round(def * 1.8))); }
+function inOpen(id) {
+  if (!id) return;
+  if (/^REC-/.test(id)) { closeModal(); openRec(id); return; }
+  if (/^GP-/.test(id)) { closeModal(); go('groups'); setTimeout(() => { const el = $('#gp-' + id); el && el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 60); return; }
+  if (/^CMP-/.test(id)) { closeModal(); go('cmps'); return; }
+  if (/^HF-/.test(id)) { closeModal(); go('hotfix'); return; }
+  if (/^AP-/.test(id)) { closeModal(); go('approvals'); return; }
+  if (/^MKT-/.test(id)) { const p = S.pipelines.find(x => x.id === id); if (p) openPipeline(p); return; }
+  if (/^E\d+/.test(id) && typeof wdEventModal === 'function') { wdEventModal(id); return; }
+  if (typeof frFind === 'function' && frFind(id)) { frDetail(id); return; }
+}
+function inSel(k, v) { S.inTab[k] = S.inTab[k] === v ? '' : v; render(); }
 const inT = (x, y, t, cls = '', anchor = 'start', extra = '') => `<text x="${x}" y="${y}" text-anchor="${anchor}" class="ins-t ${cls}"${extra}>${t}</text>`;
 const inArrowDefs = id => `<defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-2)"/></marker></defs>`;
 const inHash = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
@@ -38,8 +53,11 @@ function inFunnel() {
   const P = inPackets(), n = P.length || 1;
   const cnt = IN_BUCKET.map(b => [b, P.filter(p => b[2].includes(p.st)).length]);
   let x = 0;
-  const bar = cnt.filter(c => c[1]).map(([b, c]) => { const w = c / n * 100; const s = `<span class="in-seg" style="left:${x}%;width:${w}%;background:${b[3]}" data-hint="${b[1]}: ${c}"></span>`; x += w; return s; }).join('');
-  return `<div class="in-stack">${bar}</div><div class="in-bk">${cnt.map(([b, c]) => `<div><i style="background:${b[3]}"></i><b>${c}</b><span>${b[1]}</span></div>`).join('')}</div>`;
+  const bar = cnt.filter(c => c[1]).map(([b, c]) => { const w = c / n * 100; const s = `<span class="in-seg" style="left:${x}%;width:${w}%;background:${b[3]}" data-hint="${b[1]}: ${c}" data-action="in-sel" data-id="fb:${b[0]}"></span>`; x += w; return s; }).join('');
+  const sel = inTab('fb', '');
+  const list = sel ? P.filter(p => (IN_BUCKET.find(b => b[0] === sel) || [0, 0, []])[2].includes(p.st)) : [];
+  return `<div class="in-stack">${bar}</div><div class="in-bk">${cnt.map(([b, c]) => `<button class="in-bkb${sel === b[0] ? ' on' : ''}" data-action="in-sel" data-id="fb:${b[0]}" ${c ? '' : 'disabled'}><i style="background:${b[3]}"></i><b>${c}</b><span>${b[1]}</span></button>`).join('')}</div>
+    ${sel ? `<div class="in-pick">${list.map(p => `<button class="chip act" data-action="in-open" data-id="${p.id}" data-hint="${esc(p.kind)} · ${esc(p.res || '')}${p.why ? '\n' + esc(p.why) : ''}">${p.id}</button>`).join(' ')}</div>` : '<p class="small muted" style="margin:8px 0 0">Натисніть на стан, щоб побачити пакети в ньому.</p>'}`;
 }
 function inFunnelNote() {
   const P = inPackets(), c = IN_BUCKET.slice(1, 5).map(b => [b, P.filter(p => b[2].includes(p.st)).length]).sort((a, b) => b[1] - a[1])[0];
@@ -109,7 +127,7 @@ function inApprovals(html) {
 const POD_COL = { SEO: '#3442A8', PPC: '#B86E00', 'AI Visibility': '#7B3FA0' };
 function inScatter() {
   const items = [...S.recs.map(r => ({ id: r.id, pod: r.pod, conf: r.conf ?? 75, imp: r.imp, st: r.status, t: r.title })), ...(S.gps || []).map(g => ({ id: g.id, pod: g.pod, conf: g.conf ?? 75, imp: g.imp, st: g.status, t: g.title }))];
-  const W = 640, H = 300, L = 46, R = 16, T = 16, B = 40;
+  const W = inFit(640), H = 300, L = 46, R = 16, T = 16, B = 40;
   const x = c => L + (c - 50) / 50 * (W - L - R);
   const y = (imp, id) => { const base = imp === 'high' ? 0.25 : 0.75; const j = ((inHash(id) % 100) / 100 - 0.5) * 0.3; return T + (base + j) * (H - T - B); };
   const midX = x(75), midY = T + 0.5 * (H - T - B);
@@ -121,8 +139,8 @@ function inScatter() {
   s += inT((W + L) / 2, H - 4, 'Впевненість автора (O2 перевіряє докази)', '', 'middle');
   s += inT(14, (T + H - B) / 2, 'Вплив', '', 'middle', ` transform="rotate(-90 14 ${(T + H - B) / 2})"`);
   items.forEach(it => { const cx = x(it.conf), cy = y(it.imp, it.id), done = ['deployed', 'rolledback', 'rejected'].includes(it.st);
-    s += `<g data-hint="${it.id} · ${esc(it.t)}\n${it.pod} · впевненість ${it.conf}% · вплив ${it.imp === 'high' ? 'високий' : 'низький'}\nстатус: ${esc((REC_ST[it.st] || GP_ST[it.st] || [it.st])[0])}"><circle cx="${cx}" cy="${cy}" r="${it.id.startsWith('GP') ? 11 : 8}" style="fill:${POD_COL[it.pod] || 'var(--ink-2)'};opacity:${done ? .35 : .9};stroke:#fff;stroke-width:2"/>${inT(cx + 13, cy + 4, it.id, 'b')}</g>`; });
-  return inSvg(W, H, 'Рекомендації: впевненість проти впливу', s, 560) + `<div class="legend">${Object.entries(POD_COL).map(([k, c]) => `<span><i class="lg" style="background:${c};border-radius:50%"></i>${k}</span>`).join('')}<span>великі кола — групи сторінок, бліді — завершені</span></div>`;
+    s += `<g class="hl" data-action="in-open" data-id="${it.id}" data-hint="${it.id} · ${esc(it.t)}\n${it.pod} · впевненість ${it.conf}% · вплив ${it.imp === 'high' ? 'високий' : 'низький'}\nстатус: ${esc((REC_ST[it.st] || GP_ST[it.st] || [it.st])[0])}\nнатисніть, щоб відкрити"><circle cx="${cx}" cy="${cy}" r="${it.id.startsWith('GP') ? 11 : 8}" style="fill:${POD_COL[it.pod] || 'var(--ink-2)'};opacity:${done ? .35 : .9};stroke:#fff;stroke-width:2"/>${inT(cx + 13, cy + 4, it.id, 'b')}</g>`; });
+  return inSvg(W, H, 'Рекомендації: впевненість проти впливу', s, 560) + `<div class="legend">${Object.entries(POD_COL).map(([k, c]) => `<span><i class="lg" style="background:${c};border-radius:50%"></i>${k}</span>`).join('')}<span>великі кола — групи сторінок, бліді — завершені · натисніть на коло, щоб відкрити пакет</span></div>`;
 }
 function inLoad() {
   const weeks = [41, 42, 43, 44, 45, 46, 47, 48];
@@ -143,7 +161,7 @@ function inLoad() {
     });
     return [res, bars];
   });
-  const L = 170, W = 860, cw = (W - L - 10) / weeks.length, rh = 30, T = 24, H = T + lanes.length * rh + 30;
+  const L = 170, W = inFit(860), cw = (W - L - 10) / weeks.length, rh = 30, T = 24, H = T + lanes.length * rh + 30;
   const x = w => L + (w - weeks[0]) * cw;
   let s = weeks.map(w => inT(x(w) + cw / 2, 15, 'W' + w, w === 42 ? 'b' : '', 'middle') + `<line x1="${x(w)}" x2="${x(w)}" y1="20" y2="${H - 24}" style="stroke:var(--line)"/>`).join('');
   s += `<rect x="${x(42)}" y="20" width="${cw}" height="${H - 44}" style="fill:var(--act);opacity:.06"/>`;
@@ -153,7 +171,7 @@ function inLoad() {
     bars.forEach(b => {
       if (b.fin) { s += `<g data-hint="${b.id}: ${esc((REC_ST[b.st] || GP_ST[b.st] || [b.st])[0])}"><path d="M${x(42) + 8} ${y + 8} l6 6 l-6 6 l-6 -6 z" style="fill:${b.st === 'deployed' || b.st === 'done' ? 'var(--pass)' : 'var(--veto)'}"/></g>`; return; }
       const col = b.live ? 'var(--act)' : b.st === 'queued' || b.st === 'wait' ? '#7B3FA0' : 'var(--ink-3)';
-      s += `<g data-hint="${b.id} · W${b.w0}–W${b.w1}${b.ext ? ` (+${b.ext} тиж. через зовнішню подію)` : ''}\n${b.live ? 'тест іде' : b.st === 'queued' ? 'у черзі: стартує після звільнення сторінки' : 'план: після погоджень'}">
+      s += `<g class="hl" data-action="in-open" data-id="${b.id.replace(/\/U$/, '')}" data-hint="${b.id} · W${b.w0}–W${b.w1}${b.ext ? ` (+${b.ext} тиж. через зовнішню подію)` : ''}\n${b.live ? 'тест іде' : b.st === 'queued' ? 'у черзі: стартує після звільнення сторінки' : 'план: після погоджень'}">
         <rect x="${x(b.w0) + 3}" y="${y + 6}" width="${(b.w1 - b.w0 + 1) * cw - 6}" height="18" rx="5" style="fill:${b.live ? col : 'var(--paper)'};stroke:${col};stroke-width:1.5;stroke-dasharray:${b.live ? 0 : '4 3'}"/>
         ${inT(x(b.w0) + 9, y + 19, b.id, b.live ? 'w' : '')}</g>`;
     });
@@ -170,7 +188,7 @@ function inGate() {
   const tests = recTests(r) || r.tests;
   const vals = tests.map((t, i) => { const v = live ? recVal(t, r.week || 0) : t[1]; const ci = [2.2, 3.2, 4.5][i] * Math.sqrt(3 / wk); return { n: t[0], v, ci, m: t[2] }; });
   const res = gateEvaluate(vals.map(v => ({ name: v.n, value: v.v })));
-  const W = 680, L = 190, R = 20, rh = 46, T = 30, H = T + vals.length * rh + 30, lo = -16, hi = 16;
+  const W = inFit(680), L = 190, R = 20, rh = 46, T = 30, H = T + vals.length * rh + 30, lo = -16, hi = 16;
   const x = v => L + (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (W - L - R);
   let s = `<rect x="${x(lo)}" y="${T - 8}" width="${x(GATE.harm) - x(lo)}" height="${vals.length * rh}" style="fill:var(--veto-soft)"/>
     <rect x="${x(GATE.harm)}" y="${T - 8}" width="${x(GATE.win) - x(GATE.harm)}" height="${vals.length * rh}" style="fill:var(--mist)"/>
@@ -242,14 +260,14 @@ function inAivHeat() {
   const stages = ['BOFU', 'MOFU', 'TOFU', 'Бренд'];
   const cell = (st, e) => { const ps = S.prompts.filter(p => p.st === st); if (!ps.length) return null; const c = ps.filter(p => p.m[e] === 'c').length / ps.length, m = ps.filter(p => p.m[e] !== '-').length / ps.length; return [Math.round(c * 100), Math.round(m * 100), ps.length]; };
   return `<div class="tbl-wrap"><table class="in-heat"><thead><tr><th>Етап воронки</th>${ENG.map(e => `<th>${e}</th>`).join('')}</tr></thead><tbody>
-    ${stages.map(st => `<tr><td><b>${st}</b><br><span class="small muted">${S.prompts.filter(p => p.st === st).length} промпт(и) у вибірці</span></td>${ENG.map((e, i) => { const v = cell(st, i); if (!v) return '<td>—</td>'; const a = 0.08 + v[0] / 100 * 0.85; return `<td style="background:rgba(30,138,110,${a.toFixed(2)});color:${v[0] > 55 ? '#fff' : 'var(--ink)'}" data-hint="${st} · ${e}\nцитують: ${v[0]}% промптів\nзгадують: ${v[1]}%"><b>${v[0]}%</b><br><span class="small">згадки ${v[1]}%</span></td>`; }).join('')}</tr>`).join('')}
-    </tbody></table></div><p class="small muted" style="margin:8px 0 0">Колір — частка промптів, де AI-система цитує наш сайт (вибірка — 8 показаних промптів, у продукті — 120). Найслабше місце — BOFU у ${(() => { const z = ENG.filter((e, i) => (cell('BOFU', i) || [100])[0] === 0); return z.length ? z.join(', ') : '—'; })()}: там нас не цитують зовсім, а саме там рішення про покупку.</p>`;
+    ${stages.map(st => `<tr><td><b>${st}</b><br><span class="small muted">${S.prompts.filter(p => p.st === st).length} промпт(и) у вибірці</span></td>${ENG.map((e, i) => { const v = cell(st, i); if (!v) return '<td>—</td>'; const a = 0.08 + v[0] / 100 * 0.85; return `<td class="in-cell${inTab('heat', '') === st + '|' + i ? ' on' : ''}" data-action="in-sel" data-id="heat:${st}|${i}" style="background:rgba(30,138,110,${a.toFixed(2)});color:${v[0] > 55 ? '#fff' : 'var(--ink)'}" data-hint="${st} · ${e}\nцитують: ${v[0]}% промптів\nзгадують: ${v[1]}%"><b>${v[0]}%</b><br><span class="small">згадки ${v[1]}%</span></td>`; }).join('')}</tr>`).join('')}
+    </tbody></table></div>${(() => { const h = inTab('heat', ''); if (!h) return '<p class="small muted" style="margin:8px 0 0">Натисніть на клітинку — побачите промпти і що робить AI-система.</p>'; const [st, i] = h.split('|'); const ps = S.prompts.filter(p => p.st === st); const lab = { c: ['цитує наш сайт', 'ok'], m: ['згадує без посилання', 'warn'], '-': ['не згадує', 'bad'] }; return `<div class="in-det"><b>${st} · ${ENG[i]}</b>${ps.map(p => `<div class="row small"><span class="grow">${esc(p.p)}<br><span class="muted">${p.page} · замість нас: ${esc(p.comp)}</span></span><span class="chip ${lab[p.m[i]][1]}">${lab[p.m[i]][0]}</span>${p.rec ? `<button class="btn small" data-action="in-open" data-id="${p.rec}">${p.rec}</button>` : ''}</div>`).join('')}</div>`; })()}<p class="small muted" style="margin:8px 0 0">Колір — частка промптів, де AI-система цитує наш сайт (вибірка — 8 показаних промптів, у продукті — 120). Найслабше місце — BOFU у ${(() => { const z = ENG.filter((e, i) => (cell('BOFU', i) || [100])[0] === 0); return z.length ? z.join(', ') : '—'; })()}: там нас не цитують зовсім, а саме там рішення про покупку.</p>`;
 }
 function inAivTrend() {
   const wk = Array.from({ length: 12 }, (_, i) => 30 + i);
   const v = [13.8, 14.4, 14.1, 15.0, 14.6, 15.3, 15.9, 15.2, 16.1, 16.8, 17.4, 18.0];
   const comp = [29, 29.5, 30, 30.4, 30.1, 30.6, 31, 31.2, 31.1, 31.4, 31.2, 31.0];
-  const W = 640, H = 230, L = 36, R = 14, T = 16, B = 28, lo = 8, hi = 36;
+  const W = inFit(640), H = 230, L = 36, R = 14, T = 16, B = 28, lo = 8, hi = 36;
   const x = i => L + i * (W - L - R) / (wk.length - 1), y = val => T + (hi - val) / (hi - lo) * (H - T - B);
   const band = v.map((val, i) => `${x(i)},${y(val + 2)}`).join(' ') + ' ' + v.map((val, i) => `${x(v.length - 1 - i)},${y(v[v.length - 1 - i] - 2)}`).join(' ');
   let s = [10, 15, 20, 25, 30, 35].map(t => `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" style="stroke:var(--line)"/>` + inT(L - 6, y(t) + 4, t + '%', '', 'end')).join('');
@@ -288,7 +306,7 @@ function inCannibal() {
   const yl = i => 18 + i * rh * (pages.length / C.length) + 6, yr = i => 18 + i * rh;
   let s = '';
   C.forEach((c, i) => { const bad = c[1].length > 1; c[1].forEach(p => { const j = pages.indexOf(p); s += `<path d="M${xl} ${yl(i)} C${(xl + xr) / 2} ${yl(i)} ${(xl + xr) / 2} ${yr(j)} ${xr} ${yr(j)}" style="fill:none;stroke:${bad ? 'var(--veto)' : 'var(--pass)'};stroke-width:${bad ? 2.4 : 1.6};opacity:.8"/>`; });
-    s += `<g data-hint="${esc(c[0])}: ${c[1].length > 1 ? 'конкурують ' + c[1].length + ' сторінки — Keyword Researcher призначає одну цільову' : 'одна цільова сторінка'}"><circle cx="${xl}" cy="${yl(i)}" r="5" style="fill:${bad ? 'var(--veto)' : 'var(--pass)'}"/>${inT(xl - 10, yl(i) + 4, esc(c[0]), bad ? 'b' : '', 'end')}</g>`; });
+    s += `<g class="hl" data-hint="${esc(c[0])}: ${c[1].length > 1 ? 'конкурують ' + c[1].length + ' сторінки — Keyword Researcher призначає одну цільову' : 'одна цільова сторінка'}"><circle cx="${xl}" cy="${yl(i)}" r="5" style="fill:${bad ? 'var(--veto)' : 'var(--pass)'}"/>${inT(xl - 10, yl(i) + 4, esc(c[0]), bad ? 'b' : '', 'end')}</g>`; });
   pages.forEach((p, j) => { s += `<circle cx="${xr}" cy="${yr(j)}" r="4" style="fill:var(--ink-2)"/>` + inT(xr + 10, yr(j) + 4, esc(p)); });
   return inSvg(W, H, 'Кластери запитів і сторінки, що за них конкурують', s) + `<div class="legend"><span><i class="lg" style="background:var(--pass)"></i>одна цільова сторінка</span><span><i class="lg" style="background:var(--veto)"></i>канібалізація: дві сторінки на один кластер</span></div>`;
 }
@@ -339,7 +357,7 @@ function inCmpTimeline(c) {
   const total = Math.max(...P.map(k => end[k.id]));
   const crit = new Set(); let cur = P.find(k => end[k.id] === total); while (cur) { crit.add(cur.id); cur = P.find(k => k.id === prev[cur.id]); }
   const proj = (S.projects || []).find(p => p.id === c.epic), due = proj ? Math.round((new Date(proj.due + 'T12:00:00Z') - WD_TODAY) / 864e5) : null;
-  const span = Math.max(total, due || 0) + 2, L = 210, W = 860, rh = 30, T = 26, H = T + P.length * rh + 26;
+  const span = Math.max(total, due || 0) + 2, L = 210, W = inFit(860), rh = 30, T = 26, H = T + P.length * rh + 26;
   const x = d => L + d / span * (W - L - 14);
   let s = '';
   for (let d = 0; d <= span; d += 3) s += `<line x1="${x(d)}" x2="${x(d)}" y1="20" y2="${H - 22}" style="stroke:var(--line)"/>` + inT(x(d), 14, d === 0 ? 'сьогодні' : '+' + d + ' дн.', d === 0 ? 'b' : '', 'middle');
@@ -348,13 +366,15 @@ function inCmpTimeline(c) {
     const y = T + i * rh, isC = crit.has(k.id), st = (CK_ST[k.status] || [k.status])[0];
     const col = doneSt.includes(k.status) ? 'var(--pass)' : ['queued', 'return', 'rejected'].includes(k.status) ? 'var(--veto)' : k.status === 'human' ? 'var(--hold)' : 'var(--act)';
     s += inT(L - 8, y + 18, esc(CK[k.kind].label.split(' (')[0]), isC ? 'b' : '', 'end');
-    s += `<g data-hint="${k.id}: ${esc(k.title)}\n${st}${k.note ? ' — ' + esc(k.note) : ''}\nдні ${start[k.id]}–${end[k.id]}${isC ? '\nкритичний шлях' : ''}${k.deps.length ? '\nчекає: ' + k.deps.join(', ') : ''}">
+    s += `<g class="hl" data-action="in-sel" data-id="cmpSel:${k.id}" data-hint="${k.id}: ${esc(k.title)}\n${st}${k.note ? ' — ' + esc(k.note) : ''}\nдні ${start[k.id]}–${end[k.id]}${isC ? '\nкритичний шлях' : ''}${k.deps.length ? '\nчекає: ' + k.deps.join(', ') : ''}">
       <rect x="${x(start[k.id]) + 2}" y="${y + 6}" width="${Math.max(6, x(end[k.id]) - x(start[k.id]) - 4)}" height="18" rx="5" style="fill:${col};opacity:${k.status === 'plan' || k.status === 'wait' ? .55 : .95};stroke:${isC ? 'var(--ink)' : 'none'};stroke-width:2"/>
       ${inT(x(end[k.id]) + 6, y + 19, esc(st) + (k.note ? ' · ' + esc(k.note.slice(0, 40)) : ''), 'xs')}</g>`;
     k.deps.forEach(d => { const j = P.findIndex(z => z.id === d); if (j >= 0) s += `<path d="M${x(end[d]) - 4} ${T + j * rh + 24} V${y + 15} H${x(start[k.id]) + 2}" style="fill:none;stroke:${crit.has(k.id) && crit.has(d) ? 'var(--ink)' : 'var(--ink-3)'};stroke-width:1.2;stroke-dasharray:${crit.has(k.id) && crit.has(d) ? 0 : '3 2'}"/>`; });
   });
   const late = due != null && total > due;
-  return inSvg(W, H, 'Календар пакетів кампанії і критичний шлях', s, 720) + `<div class="in-verdict ${late ? 'harm' : 'pass'}"><b>${late ? 'Дедлайн під ризиком' : 'Встигаємо'}</b> Критичний шлях: ${[...crit].reverse().map(id => P.find(k => k.id === id).title).join(' → ')} — ${total} дн.${due != null ? ` Дедлайн через ${due} дн.` : ''}${late ? ` Варіанти: позначити ${P.some(k => k.kind === 'update' && crit.has(k.id)) ? 'зміну наявної сторінки (вона йде через тест-гейт, ~3 тижні) як необов’язкову для запуску, ' : ''}писати статті паралельно на чернетці лендингу, зарезервувати сторінку наперед або перенести дедлайн.` : ''}</div>
+  const sk = P.find(k => k.id === inTab('cmpSel', ''));
+  const det = sk ? `<div class="in-det"><b>${sk.id} · ${esc(sk.title)}</b> <span class="chip">${esc((CK_ST[sk.status] || [sk.status])[0])}</span>${crit.has(sk.id) ? ' <span class="chip warn">критичний шлях</span>' : ''}<br><span class="small">Хто робить: ${esc(CK[sk.kind].who)} · погоджують: ${CK[sk.kind].review.join(', ')} · затверджує: ${esc(CK[sk.kind].approver)}</span><br><span class="small muted">Ресурс ${esc(sk.res)} · дні ${start[sk.id]}–${end[sk.id]}${sk.deps.length ? ' · чекає ' + sk.deps.join(', ') : ''} · ${esc(CK[sk.kind].launch)}</span>${sk.note ? `<br><span class="small" style="color:var(--veto)">${esc(sk.note)}</span>` : ''}</div>` : '<p class="small muted" style="margin:8px 0 0">Натисніть на смугу пакета — тут з’явиться, хто його робить, хто погоджує і що він чекає.</p>';
+  return inSvg(W, H, 'Календар пакетів кампанії і критичний шлях', s, 720) + det + `<div class="in-verdict ${late ? 'harm' : 'pass'}"><b>${late ? 'Дедлайн під ризиком' : 'Встигаємо'}</b> Критичний шлях: ${[...crit].reverse().map(id => P.find(k => k.id === id).title).join(' → ')} — ${total} дн.${due != null ? ` Дедлайн через ${due} дн.` : ''}${late ? ` Варіанти: позначити ${P.some(k => k.kind === 'update' && crit.has(k.id)) ? 'зміну наявної сторінки (вона йде через тест-гейт, ~3 тижні) як необов’язкову для запуску, ' : ''}писати статті паралельно на чернетці лендингу, зарезервувати сторінку наперед або перенести дедлайн.` : ''}</div>
     <div class="legend"><span><i class="lg" style="border:2px solid var(--ink)"></i>критичний шлях</span><span><i class="lg" style="background:var(--act)"></i>у плані або в роботі</span><span><i class="lg" style="background:var(--hold)"></i>чекає людину</span><span><i class="lg" style="background:var(--veto)"></i>заблоковано</span><span><i class="lg" style="background:var(--pass)"></i>готово</span></div>`;
 }
 function inCmps(html) {
@@ -381,7 +401,7 @@ function inGroups(html) {
 function inHfSeq() {
   const lanes = ['Сканер + Citation', 'O2 + реєстр', 'O3', 'Координатор', 'Канали', 'Людина', 'Gateway', 'Тест REC-3'];
   const msgs = [[0, 1, 'ціна $49 ≠ ?', '00'], [1, 0, 'реєстр: $79 (Finance)', '03'], [1, 2, 'diff: 3 сторінки × price', '06'], [2, 3, 'лише поле з реєстру', '09'], [3, 7, 'пауза тесту', '10'], [3, 4, 'швидке погодження', '12'], [4, 3, 'ok × 3', '14'], [3, 5, 'одне рішення, SLA 1 год', '15'], [5, 6, 'застосувати', '27'], [6, 3, 'read-back ✓', '30'], [3, 7, 'rebase + нове вікно', '33']];
-  const W = 900, L = 20, cw = (W - 2 * L) / lanes.length, T = 40, rh = 26, H = T + msgs.length * rh + 20;
+  const W = inFit(900), L = 20, cw = (W - 2 * L) / lanes.length, T = 40, rh = 26, H = T + msgs.length * rh + 20;
   const cx = i => L + cw * i + cw / 2;
   let s = inArrowDefs('in-sq') + lanes.map((l, i) => `<rect x="${cx(i) - cw / 2 + 4}" y="4" width="${cw - 8}" height="26" rx="6" style="fill:var(--act-soft)"/>` + inT(cx(i), 21, l, 'xs b', 'middle') + `<line x1="${cx(i)}" x2="${cx(i)}" y1="30" y2="${H - 6}" style="stroke:var(--line-2);stroke-dasharray:3 3"/>`).join('');
   msgs.forEach(([a, b, t, m], k) => { const y = T + k * rh + 8; s += `<line x1="${cx(a)}" x2="${cx(b) + (b > a ? -4 : 4)}" y1="${y}" y2="${y}" style="stroke:${b === 7 ? 'var(--hold)' : a === 5 ? 'var(--hold)' : 'var(--ink-2)'};stroke-width:1.5" marker-end="url(#in-sq)"/>` + inT((cx(a) + cx(b)) / 2, y - 4, t, 'xs', 'middle') + inT(6, y + 4, '+' + m, 'xs'); });
@@ -406,10 +426,10 @@ function inGraph() {
   const pc = ['#3442A8', '#B86E00', '#1E8A6E', '#7B3FA0', '#2F7FC1', '#55607A', '#B9382A', '#8A6D1F', '#4A8F3A'];
   let s = '';
   [...edges.entries()].forEach(([k, v]) => { const [p, t] = k.split('→'); const i = pods.indexOf(p), j = tg.indexOf(t); if (i < 0 || j < 0) return;
-    s += `<path d="M${xl} ${yl(i)} C${(xl + xr) / 2} ${yl(i)} ${(xl + xr) / 2} ${yr(j)} ${xr} ${yr(j)}" style="fill:none;stroke:${pc[i % pc.length]};stroke-width:${1 + v * 1.4};opacity:.45" data-hint="${esc(p)} → ${esc(t)}: ${v} агент(ів)"/>`; });
-  pods.forEach((p, i) => { const n = S.pods[i][1].length; s += `<g><rect x="${xl - 190}" y="${yl(i) - 14}" width="180" height="28" rx="7" style="fill:${pc[i % pc.length]}"/>${inT(xl - 182, yl(i) + 5, esc(p) + ' · ' + n, 'w b')}</g><circle cx="${xl}" cy="${yl(i)}" r="4" style="fill:${pc[i % pc.length]}"/>`; });
+    const gp = inTab('gPod', ''); s += `<path d="M${xl} ${yl(i)} C${(xl + xr) / 2} ${yl(i)} ${(xl + xr) / 2} ${yr(j)} ${xr} ${yr(j)}" style="fill:none;stroke:${pc[i % pc.length]};stroke-width:${1 + v * 1.4};opacity:${gp ? (gp === p ? .9 : .06) : .45}" data-hint="${esc(p)} → ${esc(t)}: ${v} агент(ів)"/>`; });
+  pods.forEach((p, i) => { const n = S.pods[i][1].length; s += `<g class="hl" data-action="in-sel" data-id="gPod:${esc(p)}" data-hint="${esc(p)}: натисніть, щоб показати лише його потоки"><rect x="${xl - 190}" y="${yl(i) - 14}" width="180" height="28" rx="7" style="fill:${pc[i % pc.length]}"/>${inT(xl - 182, yl(i) + 5, esc(p) + ' · ' + n, 'w b')}</g><circle cx="${xl}" cy="${yl(i)}" r="4" style="fill:${pc[i % pc.length]}"/>`; });
   tg.forEach((t, j) => { const n = [...edges.entries()].filter(([k]) => k.endsWith('→' + t)).reduce((a, [, v]) => a + v, 0); s += `<circle cx="${xr}" cy="${yr(j)}" r="4" style="fill:var(--ink)"/><g><rect x="${xr + 10}" y="${yr(j) - 12}" width="220" height="24" rx="6" style="fill:var(--paper);stroke:var(--line-2)"/>${inT(xr + 18, yr(j) + 4, esc(t) + ` · ${n}`, 'b')}</g>`; });
-  return inSvg(W, H, 'Кому агенти передають результат', s, 760) + `<p class="small muted" style="margin:8px 0 0">Побудовано з поля «Кому передає» паспортів агентів. Товщина лінії — кількість агентів. Видно, що більшість потоків сходиться на канальних оркестраторах і Координаторі: це місця, які треба масштабувати першими.</p>`;
+  return inSvg(W, H, 'Кому агенти передають результат', s, 760) + `<p class="small muted" style="margin:8px 0 0">Побудовано з поля «Кому передає» паспортів агентів. Товщина лінії — кількість агентів. Натисніть на под ліворуч, щоб залишити лише його потоки. Видно, що більшість потоків сходиться на канальних оркестраторах і Координаторі: це місця, які треба масштабувати першими.</p>`;
 }
 const IN_SYS = [['GSC / Bing', /Search Console|GSC|Bing/], ['GA4 / BigQuery', /GA4|BigQuery|Amplitude|Hotjar/], ['Рекламні кабінети', /Google Ads|Microsoft Ads|LinkedIn|Meta|DSP|кабінет/], ['CMS', /CMS|Webflow|WordPress/], ['CRM', /CRM|HubSpot|Gong/], ['ESP', /ESP|HubSpot workflows|Postmaster/], ['AI-системи', /ChatGPT|Perplexity|AI-систем/], ['Jira', /Jira/], ['Реєстр фактів', /[Рр]еєстр фактів/], ['Docs / Gmail', /Google Docs|Gmail|Docs/], ['Реєстр ресурсів', /[Рр]еєстр ресурсів|[Рр]еєстр груп|Пакети змін|блокування/]];
 function inSources() {
@@ -428,27 +448,31 @@ function inAgents(html) {
 }
 
 /* ---------- Розклад: добова шкала і залежності ---------- */
+function inCronChain(id, J) { const up = new Set([id]); let ch = true; while (ch) { ch = false; J.forEach(j => { if (up.has(j[0])) j[4].forEach(d => { if (!up.has(d)) { up.add(d); ch = true; } }); if (j[4].some(d => up.has(d)) && !up.has(j[0]) && j[0] !== id && inCronDown(id, J).includes(j[0])) { up.add(j[0]); ch = true; } }); } return [...up]; }
+function inCronDown(id, J) { const out = new Set(); let ch = true; const seed = new Set([id]); while (ch) { ch = false; J.forEach(j => { if (!out.has(j[0]) && j[4].some(d => seed.has(d) || out.has(d))) { out.add(j[0]); ch = true; } }); } return [...out]; }
 function inCronDay() {
   const mode = inTab('cron', 'time');
   const J = [['aiv', 'AI Visibility run', 4, 45, []], ['data', 'Збір даних', 5, 85, []], ['seo', 'SEO rank tracking', 6, 20, ['data']], ['anomaly', 'Пошук аномалій', 6.5, 15, ['data', 'seo']], ['news', 'News watch', 7, 10, []], ['testmon', 'Моніторинг тестів', 8, 15, ['data']], ['gate', 'Тест-гейт', 9, 20, ['testmon', 'aiv']]];
   const st = {}, en = {};
   J.forEach(([id, , h, dur, deps]) => { let s0 = h * 60; if (mode === 'deps') deps.forEach(d => { s0 = Math.max(s0, en[d] + 1); }); st[id] = s0; en[id] = s0 + dur; });
   const stale = id => mode === 'time' && J.find(j => j[0] === id)[4].some(d => st[id] < en[d]);
-  const W = 900, L = 170, R = 14, T = 26, rh = 30, H = T + J.length * rh + 52, h0 = 3, h1 = 12;
+  const W = inFit(900), L = 170, R = 14, T = 26, rh = 30, H = T + J.length * rh + 52, h0 = 3, h1 = 12;
   const x = m => L + (m / 60 - h0) / (h1 - h0) * (W - L - R);
   let s = inArrowDefs('in-cr');
   for (let h = h0; h <= h1; h++) s += `<line x1="${x(h * 60)}" x2="${x(h * 60)}" y1="20" y2="${T + J.length * rh}" style="stroke:var(--line)"/>` + inT(x(h * 60), 14, String(h).padStart(2, '0') + ':00', '', 'middle');
   J.forEach(([id, name, , dur, deps], i) => { const y = T + i * rh, bad = stale(id);
     s += inT(L - 8, y + 18, name, bad ? 'b' : '', 'end', bad ? ' style="fill:var(--veto)"' : '');
-    s += `<g data-hint="${name}: ${String(Math.floor(st[id] / 60)).padStart(2, '0')}:${String(st[id] % 60).padStart(2, '0')}–${String(Math.floor(en[id] / 60)).padStart(2, '0')}:${String(en[id] % 60).padStart(2, '0')}${deps.length ? '\nпотребує: ' + deps.join(', ') : ''}${bad ? '\nстартував раніше, ніж закінчилась залежність: працює на вчорашніх даних' : ''}"><rect x="${x(st[id])}" y="${y + 6}" width="${Math.max(4, x(en[id]) - x(st[id]))}" height="18" rx="4" style="fill:${bad ? 'var(--veto)' : id === 'data' ? 'var(--hold)' : 'var(--act)'}"/></g>`;
+    s += `<g class="hl${inTab('cronSel', '') && !inCronChain(inTab('cronSel', ''), J).includes(id) ? ' dim' : ''}" data-action="in-sel" data-id="cronSel:${id}" data-hint="${name}: ${String(Math.floor(st[id] / 60)).padStart(2, '0')}:${String(st[id] % 60).padStart(2, '0')}–${String(Math.floor(en[id] / 60)).padStart(2, '0')}:${String(en[id] % 60).padStart(2, '0')}${deps.length ? '\nпотребує: ' + deps.join(', ') : ''}${bad ? '\nстартував раніше, ніж закінчилась залежність: працює на вчорашніх даних' : ''}"><rect x="${x(st[id])}" y="${y + 6}" width="${Math.max(4, x(en[id]) - x(st[id]))}" height="18" rx="4" style="fill:${bad ? 'var(--veto)' : id === 'data' ? 'var(--hold)' : 'var(--act)'}"/></g>`;
     deps.forEach(d => { const j = J.findIndex(z => z[0] === d); s += `<path d="M${x(en[d])} ${T + j * rh + 15} C${x(en[d]) + 20} ${T + j * rh + 15} ${x(st[id]) - 20} ${y + 15} ${x(st[id]) - 2} ${y + 15}" style="fill:none;stroke:${stale(id) ? 'var(--veto)' : 'var(--ink-3)'};stroke-width:1.3" marker-end="url(#in-cr)"/>`; });
   });
   const y2 = T + J.length * rh + 16;
   s += inT(L - 8, y2 + 4, 'Щогодини: PPC pacing', '', 'end') + Array.from({ length: 10 }, (_, k) => `<rect x="${x((h0 + k) * 60)}" y="${y2 - 6}" width="5" height="14" rx="1" style="fill:#B86E00"/>`).join('');
   s += inT(L - 8, y2 + 26, 'Не щодня', '', 'end') + inT(L, y2 + 26, 'пн 09:00 SMM calendar · пн 10:00 Content engine · пт 16:00 Тижневий звіт · 1-ше 03:00 Tech SEO audit', 'xs');
   const bads = J.filter(j => stale(j[0])).map(j => j[1]);
+  const cs = inTab('cronSel', ''), cj = J.find(j => j[0] === cs), cr = cs && S.crons.find(c => c.id === cs);
+  const cdet = cj ? `<div class="in-det"><b>${cj[1]}</b> ${cr ? `<span class="chip">${cr.human}</span> <span class="chip">${cr.risk}</span>` : ''}<br><span class="small">${cr ? esc(cr.what) : ''}</span><br><span class="small muted">Потребує: ${cj[4].length ? cj[4].map(d => J.find(z => z[0] === d)[1]).join(', ') : 'нічого, стартує першим'} · від нього залежать: ${inCronDown(cs, J).map(d => J.find(z => z[0] === d)[1]).join(', ') || 'ніхто'}</span></div>` : '<p class="small muted" style="margin:8px 0 0">Натисніть на задачу — підсвітиться її ланцюжок залежностей.</p>';
   return `${inSeg('cron', [['time', 'Запуск за часом (зараз)'], ['deps', 'Запуск після успіху залежностей']], 'time', 'Режим')}
-    ${inSvg(W, H, 'Добовий розклад кронів і залежності', s, 760)}
+    ${inSvg(W, H, 'Добовий розклад кронів і залежності', s, 760)}${cdet}
     <div class="in-verdict ${bads.length ? 'harm' : 'pass'}"><b>${bads.length ? 'Ризик гонки' : 'Ланцюжок узгоджений'}</b> ${bads.length ? `Сьогодні збір даних тривав 85 хв замість 50. ${bads.join(', ')} ${bads.length > 1 ? 'стартували' : 'стартував'} за розкладом, ще до кінця збору, і ${bads.length > 1 ? 'працювали' : 'працював'} на вчорашніх даних. Перемкніть режим, щоб побачити запуск після успіху.` : 'Кожен крок стартує лише після успіху попереднього. Якщо збір даних запізнився, весь ланцюжок зсувається, а якщо впав — наступні кроки не стартують і приходить алерт.'}</div>`;
 }
 function inCrons(html) { return html + `<div class="panel sec-gap"><h2>Добова шкала ${hint('Фактична тривалість задач сьогодні. Стрілки — залежності: що чиї дані використовує.')}</h2>${inCronDay()}</div>`; }
@@ -544,7 +568,14 @@ function insightInit() {
   Object.assign(SCALE_ACTIONS, {
     'in-tab': id => { const i = id.indexOf(':'); S.inTab[id.slice(0, i)] = id.slice(i + 1); render(); },
     'in-gloss': inGlossary,
+    'in-open': id => inOpen(id), 'in-sel': id => { const i = id.indexOf(':'); inSel(id.slice(0, i), id.slice(i + 1)); },
     'in-batch': () => { const list = pending().filter(a => canApprove(a) && a.risk === 'R2' && !a.land && !a.cmp); if (!list.length) { toast('Немає запитів для пакетного погодження у вашій ролі.'); return; } list.forEach(a => approve(a.id)); toast(`Погоджено пакетом: ${list.length}.`); }
   });
   if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('input', e => { if (e.target.id && e.target.id.startsWith('calc-')) inCalcUpdate(); });
+  if (typeof window !== 'undefined' && window.addEventListener) { let t = 0; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => render(), 180); }); }
+  if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined') {
+    /* ніколи не збільшувати графік більше ніж на 20% від його розміру: текст лишається читабельним на широких екранах */
+    const fit = root => root.querySelectorAll('svg[viewBox]:not(.ico)').forEach(sv => { if (sv.dataset.fit) return; sv.dataset.fit = 1; const vb = sv.viewBox.baseVal; if (vb && vb.width > 60) { sv.style.maxWidth = Math.round(vb.width * 1.2) + 'px'; sv.style.marginLeft = 'auto'; sv.style.marginRight = 'auto'; } });
+    ['view', 'modal-box'].forEach(id => { const el = document.getElementById(id); if (el) { fit(el); new MutationObserver(() => fit(el)).observe(el, { childList: true, subtree: true }); } });
+  }
 }

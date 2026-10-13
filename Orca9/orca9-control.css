@@ -106,3 +106,28 @@
 .grid.g2>.ap{margin:0}
 .logo .build{display:block;margin-top:8px;font-family:var(--ui);font-size:11px;font-weight:400;line-height:1.45;color:var(--rail-ink);opacity:.8;letter-spacing:0}
 @media (max-width:760px){.logo .build{display:none}}
+/* interactivity */
+#view>*{max-width:1480px;margin-left:auto;margin-right:auto}
+#view>.grid,#view>.panel,#view>.intro,#view>.wd-ctx{margin-left:auto;margin-right:auto}
+.ins-svg{margin:0 auto}
+.ins-svg [data-action]{cursor:pointer}
+.ins-svg .hl{transition:opacity .15s}
+.ins-svg.hlz:hover .hl{opacity:.38}
+.ins-svg.hlz .hl:hover{opacity:1}
+.ins-svg .hl.dim{opacity:.25}
+.ins-svg .hl:hover rect,.ins-svg .hl:hover circle{filter:drop-shadow(0 1px 3px rgba(24,32,51,.28))}
+.in-bk .in-bkb{all:unset;cursor:pointer;display:grid;grid-template-columns:10px auto 1fr;gap:6px;align-items:center;font-size:13px;padding:4px 6px;border-radius:6px}
+.in-bk .in-bkb:hover{background:var(--mist)} .in-bk .in-bkb.on{background:var(--act-soft);outline:1px solid var(--act)}
+.in-bk .in-bkb:disabled{opacity:.45;cursor:default}
+.in-bk .in-bkb i{width:10px;height:10px;border-radius:3px}
+.in-bk .in-bkb b{font-size:16px} .in-bk .in-bkb span{color:var(--ink-2);line-height:1.2}
+.in-seg{cursor:pointer} .in-seg:hover{filter:brightness(1.12)}
+.in-pick{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
+.in-pick .chip{border:0;cursor:pointer}
+.in-det{margin-top:10px;padding:10px 14px;border-radius:8px;background:var(--mist);border-left:3px solid var(--act);font-size:14px}
+.in-det .row{padding:6px 0}
+.in-cell{cursor:pointer;transition:outline .1s} .in-cell:hover{outline:2px solid var(--ink);outline-offset:-2px} .in-cell.on{outline:3px solid var(--act);outline-offset:-3px}
+.lg-btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:12px;font-size:12px;color:var(--ink-2)}
+.lg-btn:hover{background:var(--mist)} .lg-btn.off{opacity:.4;text-decoration:line-through}
+.lg-btn:focus-visible{outline:2px solid var(--act)}
+.wd-pill[data-action]{cursor:pointer} .wd-pill[data-action]:hover{border-color:#7B3FA0}

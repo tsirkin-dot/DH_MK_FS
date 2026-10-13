@@ -59,8 +59,9 @@ function vzDelta(cur, prev, goodUp = true) {
 }
 
 /* ---------- charts ---------- */
+function vzVisible(chs) { const h = vzState().hide || [], f = chs.filter(c => !h.includes(c.k)); return f.length ? f : chs; }
 function vzStack(chs, from, to) {
-  const W = 960, H = 300, L = 44, R = 70, T = 16, B = 30, n = to - from + 1, band = (W - L - R) / n, bw = Math.min(46, band * 0.62);
+  const W = typeof inFit === 'function' ? inFit(960) : 960, H = 300, L = 44, R = 70, T = 16, B = 30, n = to - from + 1, band = (W - L - R) / n, bw = Math.min(46, band * 0.62);
   const tot = i => vzSum(chs, i, i, 'signups');
   const max = Math.max(...Array.from({ length: n }, (_, k) => tot(from + k)));
   const top = Math.ceil(max / 100) * 100 || 100, y = v => T + (1 - v / top) * (H - T - B);
@@ -110,9 +111,10 @@ function trafficView() {
     ${kpi('Новий MRR', vzM(mrr), vzDelta(mrr, prev('mrr')))}
     ${paidChs.length ? kpi('CAC платних каналів', vzM(spend / Math.max(1, vzSum(paidChs, from, to, 'paid'))), vzDelta(spend / Math.max(1, vzSum(paidChs, from, to, 'paid')), prev('spend') / Math.max(1, pFrom >= 0 ? vzSum(paidChs, pFrom, pTo, 'paid') : 1), false), 'ціль $450') : ''}
   </div>`;
-  const legend = `<div class="legend" style="margin:0 0 8px">${chs.map(c => `<span><i style="width:12px;height:12px;border-radius:3px;background:${c.col};display:inline-block"></i>${esc(c.name)}</span>`).join('')}</div>`;
+  const hide = v.hide || [];
+  const legend = `<div class="legend" style="margin:0 0 8px">${chs.map(c => `<button class="lg-btn${hide.includes(c.k) ? ' off' : ''}" data-action="vz-hide" data-id="${c.k}"><i style="width:12px;height:12px;border-radius:3px;background:${c.col};display:inline-block"></i>${esc(c.name)}</button>`).join('')}<span class="small muted">натисніть канал, щоб сховати його на графіку</span></div>`;
   const table = `<div class="tbl-wrap"><table><thead><tr><th>Тиждень</th>${chs.map(c => `<th>${esc(c.name)}</th>`).join('')}<th>Разом</th></tr></thead><tbody>${Array.from({ length: v.weeks }, (_, k) => from + k).map(i => `<tr><td>${VZ_W[i]}</td>${chs.map(c => `<td>${vzN(VZ_ROWS.find(r => r.ch === c.k && r.w === i).signups)}</td>`).join('')}<td><b>${vzN(vzSum(chs, i, i, 'signups'))}</b></td></tr>`).join('')}</tbody></table></div>`;
-  const chart = `<div class="panel sec-gap"><h2>Реєстрації за тижнями, за каналами ${hint('Стовпчик — тиждень, сегменти — канали. Наведіть на тиждень, щоб побачити всі канали. Таблиця дає ті самі числа без графіка.')}<span class="sp"><button class="btn small" data-action="vz-table">${v.table ? 'Графік' : 'Таблиця'}</button></span></h2>${legend}${v.table ? table : `<div class="vz-chart">${vzStack(chs, from, to)}</div>`}</div>`;
+  const chart = `<div class="panel sec-gap"><h2>Реєстрації за тижнями, за каналами ${hint('Стовпчик — тиждень, сегменти — канали. Наведіть на тиждень, щоб побачити всі канали. Таблиця дає ті самі числа без графіка.')}<span class="sp"><button class="btn small" data-action="vz-table">${v.table ? 'Графік' : 'Таблиця'}</button></span></h2>${legend}${v.table ? table : `<div class="vz-chart">${vzStack(vzVisible(chs), from, to)}</div>`}</div>`;
 
   const fun = chs.map(c => { const g = k => vzSum([c], from, to, k); return { c, ses: g('sessions'), sig: g('signups'), act: g('act'), paid: g('paid'), spend: g('spend'), mrr: g('mrr') }; }).sort((a, b) => b.sig - a.sig);
   const maxSig = Math.max(...fun.map(f => f.sig));
