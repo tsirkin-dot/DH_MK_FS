@@ -1,0 +1,1956 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orca9 — маркетинговий оркестр (демо)</title>
+<script src="orca9-pin.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#182033; --ink-2:#55607A; --ink-3:#8A93A8;
+  --rail:#1B2140; --rail-ink:#C9CEE0; --rail-hi:#FFFFFF;
+  --mist:#EDF0F5; --paper:#FFFFFF; --line:#D9DEE8; --line-2:#C3CAD8;
+  --brass:#B8891A; --brass-soft:#F4EAD1;
+  --pass:#1E8A6E; --pass-soft:#DDF1EA;
+  --hold:#B86E00; --hold-soft:#FBEBD2;
+  --veto:#B9382A; --veto-soft:#F8DEDA;
+  --act:#3442A8; --act-soft:#E2E5F7;
+  --r:10px;
+  --ui:'Onest', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --disp:'Unbounded', 'Onest', system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:var(--ui);font-size:15px;line-height:1.5;color:var(--ink);background:var(--mist)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--act);outline-offset:2px}
+.app{display:grid;grid-template-columns:232px 1fr;height:100vh}
+/* rail */
+.rail{background:var(--rail);color:var(--rail-ink);display:flex;flex-direction:column;padding:20px 12px;gap:4px;overflow:auto}
+.logo{font-family:var(--disp);font-weight:600;font-size:22px;color:var(--rail-hi);padding:4px 10px 18px;letter-spacing:.5px}
+.logo small{display:block;font-family:var(--ui);font-weight:400;font-size:12px;color:var(--rail-ink);letter-spacing:0;margin-top:2px}
+.nav{display:flex;align-items:center;gap:10px;border:0;background:none;color:inherit;text-align:left;padding:9px 10px;border-radius:8px;width:100%}
+.nav:hover{background:rgba(255,255,255,.07)}
+.nav[aria-current="page"]{background:rgba(255,255,255,.12);color:var(--rail-hi)}
+.nav .ico{width:18px;height:18px;flex:none}
+.nav .count{margin-left:auto;background:var(--brass);color:#fff;font-size:12px;border-radius:9px;padding:0 7px;min-width:20px;text-align:center}
+.rail .foot{margin-top:auto;font-size:12px;color:#8E95B3;padding:12px 10px 0;border-top:1px solid rgba(255,255,255,.08)}
+/* main */
+.main{display:flex;flex-direction:column;min-width:0;height:100vh}
+.top{display:flex;align-items:center;gap:12px;padding:14px 24px;background:var(--paper);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.top h1{font-family:var(--disp);font-weight:500;font-size:20px;margin:0;margin-right:auto}
+.ctrl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
+select,input[type=text],input[type=number],input[type=date],textarea{border:1px solid var(--line-2);border-radius:8px;padding:7px 10px;background:var(--paper)}
+.btn{border:1px solid var(--line-2);background:var(--paper);border-radius:8px;padding:7px 14px;font-weight:500;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--act);border-color:var(--act);color:#fff}
+.btn.primary:hover{background:#28348A}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.small{padding:4px 10px;font-size:13px}
+.btn.danger{color:var(--veto)}
+.btn[aria-disabled="true"]{opacity:.55}
+.btn.live{background:var(--brass);border-color:var(--brass);color:#fff}
+.body{display:grid;grid-template-columns:1fr 340px;min-height:0;flex:1}
+#view{overflow:auto;padding:24px;min-width:0}
+/* feed */
+.feed{background:var(--paper);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tab{flex:1;border:0;background:none;padding:12px;font-weight:500;color:var(--ink-2);border-bottom:2px solid transparent}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--act)}
+.feed-list{overflow:auto;padding:12px 16px;flex:1;display:flex;flex-direction:column;gap:10px}
+.ev{font-size:13px;border-left:3px solid var(--line-2);padding:2px 0 2px 10px}
+.ev time{color:var(--ink-3);font-size:12px;margin-right:6px}
+.ev b{font-weight:600}
+.ev.o{border-color:var(--brass)} .ev.ok{border-color:var(--pass)} .ev.warn{border-color:var(--hold)} .ev.bad{border-color:var(--veto)} .ev.h{border-color:var(--act)}
+.slack{font-size:13px;display:grid;grid-template-columns:32px 1fr;gap:8px}
+.slack .av{width:32px;height:32px;border-radius:7px;background:var(--rail);color:#fff;font-family:var(--disp);font-size:11px;display:grid;place-items:center}
+.slack .who{font-weight:600} .slack .who time{font-weight:400;color:var(--ink-3);font-size:12px;margin-left:6px}
+.slack .acts{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.slack-ch{padding:8px 16px;font-size:13px;color:var(--ink-2);border-bottom:1px solid var(--line)}
+.empty{color:var(--ink-3);font-size:13px;padding:20px 0;text-align:center}
+/* blocks */
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px}
+.panel h2{font-size:16px;font-weight:600;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.panel h2 .sp{margin-left:auto}
+.metric{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.metric .lbl{font-size:13px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.metric .val{font-family:var(--disp);font-weight:500;font-size:24px;margin-top:4px}
+.metric .sub{font-size:12px;color:var(--ink-3)}
+.bar{height:6px;background:var(--mist);border-radius:3px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--act)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:2px 8px;border-radius:6px;background:var(--mist);color:var(--ink-2);white-space:nowrap}
+.chip.ok{background:var(--pass-soft);color:var(--pass)} .chip.warn{background:var(--hold-soft);color:var(--hold)} .chip.bad{background:var(--veto-soft);color:var(--veto)} .chip.o{background:var(--brass-soft);color:#7A5A0C} .chip.act{background:var(--act-soft);color:var(--act)}
+.muted{color:var(--ink-2)} .small{font-size:13px}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.row .grow{flex:1;min-width:0}
+.stack{display:flex;flex-direction:column;gap:16px}
+.sec-gap{margin-top:16px}
+/* score */
+.score{display:grid;grid-template-columns:minmax(180px,1.4fr) repeat(8,minmax(56px,1fr));align-items:center}
+.score .hd{font-size:12px;color:var(--ink-2);padding:0 0 8px;text-align:center}
+.score .hd.gate{color:#7A5A0C;font-weight:600}
+.score .lab{padding:10px 12px 10px 0;border-top:1px solid var(--line);min-width:0}
+.score .lab button{border:0;background:none;padding:0;text-align:left;font-weight:600;width:100%}
+.score .lab button:hover{color:var(--act)}
+.score .lab .small{display:block;color:var(--ink-3);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell{position:relative;height:56px;border-top:1px solid var(--line);display:grid;place-items:center}
+.cell::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:var(--line)}
+.cell.gate{border-left:3px solid var(--brass)}
+.cell.done::before{background:var(--pass)}
+.note{position:relative;width:16px;height:16px;border-radius:50%;background:var(--paper);border:2px solid var(--line-2)}
+.note.done{background:var(--pass);border-color:var(--pass)}
+.note.active{background:var(--act);border-color:var(--act);box-shadow:0 0 0 5px var(--act-soft)}
+.note.return{background:var(--hold);border-color:var(--hold);box-shadow:0 0 0 5px var(--hold-soft)}
+.note.veto{background:var(--veto);border-color:var(--veto)}
+.note.skip{background:var(--mist);border-style:dashed;border-color:var(--ink-3)}
+@media (prefers-reduced-motion:no-preference){ .note.active{animation:pulse 1.4s ease-in-out infinite} }
+@keyframes pulse{50%{box-shadow:0 0 0 9px rgba(52,66,168,.12)}}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-top:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .note{width:12px;height:12px}
+/* approvals */
+.ap{border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;background:var(--paper)}
+.ap + .ap{margin-top:12px}
+.ap .t{font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.diff{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.diff div{background:var(--mist);border-radius:8px;padding:8px 10px;font-size:13px}
+.diff div b{display:block;font-size:12px;color:var(--ink-2);font-weight:500}
+.diff .after{background:var(--act-soft)}
+.verd{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;margin-bottom:10px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+/* forms */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label,.field .l{font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px}
+.checks{display:flex;gap:8px;flex-wrap:wrap}
+.checks label{border:1px solid var(--line-2);border-radius:8px;padding:6px 12px;display:flex;gap:6px;align-items:center;font-size:14px;cursor:pointer}
+.checks input:checked + span{font-weight:600}
+.plan li{margin:6px 0}
+.plan .ag{color:var(--ink-2);font-size:13px}
+/* analytics */
+.alist .item{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--paper);border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
+.alist .item[aria-current="true"]{border-color:var(--act);box-shadow:0 0 0 1px var(--act)}
+.alist .big{font-family:var(--disp);font-weight:500;font-size:18px;color:var(--veto)}
+.hyp{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}
+.hyp:first-child{border-top:0}
+.hyp .dot{width:12px;height:12px;border-radius:50%;margin-top:5px;background:var(--line-2)}
+.hyp .dot.run{background:var(--act)}
+.hyp .dot.yes{background:var(--veto)} .hyp .dot.no{background:var(--pass)} .hyp .dot.partial{background:var(--hold)} .hyp .dot.skip{background:var(--line)}
+@media (prefers-reduced-motion:no-preference){ .hyp .dot.run{animation:blink .8s infinite alternate} }
+@keyframes blink{to{opacity:.3}}
+.opt{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;margin-top:8px;cursor:pointer}
+.opt:has(input:checked){border-color:var(--act);background:var(--act-soft)}
+.chart svg{width:100%;max-width:640px;height:auto;display:block}
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;color:var(--ink-2);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr.me td{background:var(--act-soft)}
+.tbl-wrap{overflow-x:auto}
+.yes{color:var(--pass);font-weight:600} .no{color:var(--ink-3)}
+.switch{position:relative;width:38px;height:22px;border-radius:11px;border:0;background:var(--line-2);padding:0}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
+.switch[aria-checked="true"]{background:var(--pass)}
+.switch[aria-checked="true"]::after{left:19px}
+/* pods */
+.pod{border:1px solid var(--line);border-radius:var(--r);background:var(--paper);padding:14px 16px}
+.pod h3{margin:0 0 8px;font-size:15px;display:flex;gap:8px;align-items:center}
+.pod ul{list-style:none;margin:0;padding:0}
+.pod li{padding:6px 0;border-top:1px solid var(--line);font-size:13px;display:flex;justify-content:space-between;gap:8px}
+.pod li:first-child{border-top:0}
+/* hints */
+.hint{width:18px;height:18px;border-radius:50%;border:1px solid var(--brass);background:var(--brass-soft);color:#7A5A0C;font-size:11px;font-weight:600;display:inline-grid;place-items:center;padding:0;flex:none;line-height:1}
+body.no-hints .hint{display:none}
+#tip{position:fixed;z-index:60;max-width:280px;background:var(--rail);color:#fff;font-size:13px;line-height:1.45;padding:9px 12px;border-radius:8px;pointer-events:none;opacity:0;transition:opacity .12s}
+#tip.on{opacity:1}
+/* tour */
+#tour{position:fixed;inset:0;z-index:70;display:none}
+#tour.on{display:block}
+#tour .spot{position:fixed;border-radius:10px;box-shadow:0 0 0 9999px rgba(14,18,38,.58);transition:all .25s;pointer-events:none}
+#tour .pop{position:fixed;width:340px;max-width:calc(100vw - 24px);background:var(--paper);border-radius:12px;padding:18px 20px;box-shadow:0 18px 40px rgba(14,18,38,.3)}
+#tour .pop h3{font-family:var(--disp);font-weight:500;font-size:17px;margin:0 0 8px}
+#tour .pop p{margin:0 0 14px;font-size:14px;color:var(--ink-2)}
+#tour .pop .nav-t{display:flex;align-items:center;gap:8px}
+#tour .pop .nav-t .st{margin-right:auto;font-size:12px;color:var(--ink-3)}
+/* modal */
+#modal{position:fixed;inset:0;z-index:65;background:rgba(14,18,38,.5);display:none;place-items:center;padding:20px}
+#modal.on{display:grid}
+#modal .box{background:var(--paper);border-radius:12px;max-width:720px;width:100%;max-height:88vh;overflow:auto;padding:22px 24px}
+#modal .box h2{font-family:var(--disp);font-weight:500;font-size:19px;margin:0 0 4px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:80;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
+#toast.on{opacity:1}
+.welcome{background:var(--rail);color:#fff;border-radius:var(--r);padding:18px 22px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.welcome h2{font-family:var(--disp);font-weight:500;font-size:18px;margin:0 0 4px}
+.welcome p{margin:0;color:var(--rail-ink);font-size:14px;max-width:60ch}
+.welcome .acts{margin-left:auto}
+.welcome .btn{background:transparent;color:#fff;border-color:rgba(255,255,255,.35)}
+.welcome .btn.primary{background:var(--brass);border-color:var(--brass)}
+.kv{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;font-size:14px}
+.kv dt{color:var(--ink-2)} .kv dd{margin:0}
+.stages{list-style:none;padding:0;margin:12px 0}
+.stages li{display:grid;grid-template-columns:18px 130px 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px;align-items:start}
+.stages li .note{width:14px;height:14px;margin-top:3px}
+
+/* sections: SEO, PPC, PM, events, slack */
+.dots{display:inline-flex;gap:4px;vertical-align:middle}
+.d6{width:12px;height:12px;border-radius:50%;border:2px solid var(--line-2);display:inline-block}
+.d6.c{background:var(--pass);border-color:var(--pass)} .d6.m{background:var(--pass-soft);border-color:var(--pass)}
+.rec{scroll-margin-top:16px}
+.rec.hi{box-shadow:0 0 0 2px var(--act)}
+.rv{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.rvc{font-size:13px;margin:0 0 8px;padding-left:16px;color:var(--ink-2)}
+.rvc li{margin:2px 0}
+.reason{background:var(--hold-soft);color:#6E4300;border-radius:8px;padding:8px 10px;font-size:13px;margin:8px 0}
+.reason.ok{background:var(--pass-soft);color:var(--pass)}
+.gate td{font-size:13px}
+.archlink{display:block;margin-top:10px;color:var(--rail-hi);font-weight:600;text-decoration:none;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px 10px}
+.archlink:hover{background:rgba(255,255,255,.07)}
+.navlab{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8E95B3;padding:14px 10px 4px}
+.intro{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:var(--r);padding:14px 18px;margin-bottom:16px;font-size:14px;color:var(--ink-2)}
+.intro b{color:var(--ink)}
+.flow{list-style:none;margin:0;padding:0;counter-reset:f;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.flow li{counter-increment:f;background:var(--mist);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.flow li::before{content:counter(f);width:22px;height:22px;border-radius:50%;background:var(--brass-soft);color:#7A5A0C;border:1px solid var(--brass);font-size:12px;font-weight:600;display:grid;place-items:center}
+.exm{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.exm:first-of-type{border-top:0}
+.exm > div{flex:1;min-width:0}
+.up{color:var(--pass);font-weight:600;font-size:12px} .down{color:var(--veto);font-weight:600;font-size:12px}
+.sub-h{font-size:14px;margin:18px 0 8px}
+.kan{display:grid;grid-template-columns:repeat(6,minmax(140px,1fr));gap:10px;overflow-x:auto}
+.kan .col{background:var(--mist);border-radius:8px;padding:10px;min-height:120px}
+.kan .col h4{margin:0 0 8px;font-size:12px;color:var(--ink-2);font-weight:600;display:flex;justify-content:space-between}
+.kan .card{background:var(--paper);border:1px solid var(--line);border-radius:7px;padding:8px 10px;font-size:13px;margin-bottom:8px}
+.lnk{border:0;background:none;padding:0;text-align:left;font-weight:600;font-size:13px}
+.lnk:hover{color:var(--act)}
+.evlist{display:flex;flex-direction:column;gap:10px;max-height:540px;overflow:auto}
+pre.code{background:var(--rail);color:#E6E9F5;border-radius:8px;padding:12px 14px;font-size:12px;line-height:1.5;overflow:auto;margin:0}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:var(--mist);padding:1px 5px;border-radius:4px}
+.panel h2 select{max-width:240px;font-size:13px;padding:5px 8px;font-weight:400}
+.panel h2 .nw{white-space:nowrap}
+.sl{display:grid;grid-template-columns:190px minmax(0,1fr);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--paper);height:620px;min-width:0}
+.sl .chs{background:var(--rail);color:var(--rail-ink);padding:14px 8px;display:flex;flex-direction:column;gap:2px;overflow:auto}
+.sl .ws{font-weight:600;color:#fff;padding:0 10px 12px;font-size:14px}
+.sl .chb{border:0;background:none;color:inherit;text-align:left;padding:6px 10px;border-radius:6px;font-size:14px;display:flex;justify-content:space-between;gap:6px;white-space:nowrap}
+.sl .chb:hover{background:rgba(255,255,255,.07)}
+.sl .chb[aria-current="true"]{background:var(--act);color:#fff}
+.sl .slm{display:flex;flex-direction:column;min-width:0;min-height:0}
+.sl .slh{padding:12px 16px;border-bottom:1px solid var(--line);font-weight:600}
+.sl .slh span{font-weight:400;margin-left:8px}
+.sl-msgs{flex:1;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:14px}
+.sl .slc{border-top:1px solid var(--line);padding:10px 12px;display:flex;gap:8px}
+.sl .slc input{flex:1;min-width:0}
+.cmds{display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 12px}
+.cmds button{border:1px solid var(--line-2);background:var(--mist);border-radius:6px;font-size:12px;padding:3px 8px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.cmds button:hover{border-color:var(--ink-3)}
+.slack .av.hu{background:var(--act)}
+.chn{font-weight:400;color:var(--ink-3);font-size:12px;margin-left:6px}
+.linkish{border:0;background:none;padding:0;color:var(--act);text-decoration:underline;font-size:13px}
+.dag svg{display:block;width:100%;height:auto;min-width:640px}
+.dag{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:#FBFCFE;padding:8px;margin:10px 0}
+.mgrid{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0}
+.mgrid i,.legend .mg{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid var(--line-2);background:var(--paper)}
+.legend .mg{width:12px;height:12px}
+.mgrid i.t,.legend .mg.t{background:var(--act);border-color:var(--act)}
+.mgrid i.c,.legend .mg.c{background:var(--mist);border-style:dashed;border-color:var(--ink-3)}
+.mgrid i.x,.legend .mg.x{background:var(--hold-soft);border-color:var(--hold)}
+.mgrid i.r,.legend .mg.r{background:var(--pass);border-color:var(--pass)}
+.mgrid i.b,.legend .mg.b{background:var(--veto-soft);border-color:var(--veto)}
+.waves{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:10px 0}
+.waves div{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;text-align:center;background:var(--paper)}
+.waves div.on{background:var(--act-soft);border-color:var(--act)} .waves div.ok{background:var(--pass-soft);border-color:var(--pass)} .waves div.bad{background:var(--veto-soft);border-color:var(--veto)}
+.rule-code{display:block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:var(--rail);color:#E6E9F5;border-radius:8px;padding:8px 12px;margin:8px 0;white-space:normal}
+.hf-steps{list-style:none;margin:12px 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.hf-steps li{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;background:var(--paper);display:flex;flex-direction:column;gap:2px}
+.hf-steps li time{font-size:12px;color:var(--ink-3)}
+.hf-steps li.done{border-color:var(--pass);background:var(--pass-soft)} .hf-steps li.on{border-color:var(--act);background:var(--act-soft)} .hf-steps li.wait{opacity:.6}
+.killbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.seg{display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin:0 0 14px}
+.seg button{border:1px solid var(--line-2);background:var(--paper);padding:5px 14px;font-size:13px;font-weight:500;color:var(--ink-2)}
+.seg{gap:6px;padding:8px;background:var(--mist);border-radius:10px}
+.seg .seg-l{font-size:13px;font-weight:600;color:var(--ink);margin-right:4px}
+.seg button{border-radius:8px}
+.seg.big{display:inline-flex;margin-bottom:16px}
+.seg.big button{font-size:14px;padding:7px 16px}
+#tip{white-space:pre-line}
+.vz-filters{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px}
+.vz-filters .sp{margin-left:auto}
+.vz-chart svg,.spark{display:block;width:100%;height:auto}
+.vz-chart{overflow-x:auto}.vz-chart svg{min-width:640px}
+.vz-hit:hover,.vz-hit:focus{fill:rgba(52,66,168,.06);outline:none}
+.spark{max-width:400px;margin:4px 0 10px;overflow:visible}
+.dbar{height:6px;background:var(--mist);border-radius:3px;margin:0 0 4px;max-width:140px}
+.dbar i{display:block;height:100%;background:#3442A8;border-radius:3px}
+.arow{display:grid;grid-template-columns:140px 1fr 56px;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.arow:first-of-type{border-top:0}
+.abars{display:flex;flex-direction:column;gap:3px;position:relative}
+.abars i{display:block;height:9px;border-radius:0 4px 4px 0;min-width:2px}
+.abars.cac i{height:14px}
+.abars .target{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.sc-rows .row{gap:12px}
+.heatmap{border-collapse:separate;border-spacing:3px}
+.heatmap th{text-align:center;font-size:11.5px;border:0}
+.heatmap th.gate{color:#7A5A0C}
+.heatmap td{border:0}
+.heatmap td.hc{text-align:center;font-size:12px;border-radius:6px;min-width:84px;padding:10px 6px;font-weight:500}
+.heatmap td.wait{background:var(--paper);color:var(--ink-3);box-shadow:inset 0 0 0 1px var(--line)}
+.heatmap td.skip{background:repeating-linear-gradient(45deg,var(--mist) 0 4px,var(--paper) 4px 8px);color:var(--ink-3)}
+.heatmap td.return{box-shadow:inset 0 0 0 2px #B86E00}
+.heatmap td.veto{box-shadow:inset 0 0 0 2px #B9382A}
+.seg button[aria-selected="true"]{background:var(--act);border-color:var(--act);color:#fff}
+.pcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.pcard{border:1px solid var(--line);border-left:4px solid var(--act);border-radius:10px;padding:14px;background:var(--paper);display:flex;flex-direction:column;gap:8px}
+.pcard.done{border-left-color:var(--pass)} .pcard.return{border-left-color:var(--hold)} .pcard.veto{border-left-color:var(--veto)} .pcard.wait{border-left-color:var(--line-2)}
+.pcard .hd{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+.pcard .lnk{font-size:14px}
+.segbar{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-top:4px}
+.segbar i{height:10px;border-radius:3px;background:var(--line)}
+.segbar i.g{outline:1px solid var(--brass);outline-offset:1px}
+.segbar i.done{background:var(--pass)} .segbar i.active{background:var(--act)} .segbar i.return{background:var(--hold)} .segbar i.veto{background:var(--veto)}
+.segbar i.skip{background:repeating-linear-gradient(45deg,var(--mist) 0 3px,var(--line-2) 3px 5px)}
+.segbar i.cur{height:14px;margin-top:-2px}
+.seglab{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;font-size:11px;color:var(--act);font-weight:600;min-height:14px;white-space:nowrap}
+.pflow{display:grid;grid-template-columns:repeat(8,minmax(124px,1fr));gap:8px;overflow-x:auto;padding-bottom:4px}
+.pflow .col{background:var(--mist);border-radius:8px;padding:8px;min-height:150px}
+.pflow .col.g{background:var(--brass-soft)}
+.pflow h4{margin:0 0 6px;font-size:12px;display:flex;justify-content:space-between;gap:6px;color:var(--ink)}
+.pflow .fc{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--act);border-radius:7px;padding:7px 9px;font-size:12.5px;margin-bottom:6px;display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.pflow .fc.return{border-left-color:var(--hold)} .pflow .fc.veto{border-left-color:var(--veto)} .pflow .fc.done{border-left-color:var(--pass)} .pflow .fc.wait{border-left-color:var(--line-2)}
+.killbar.off{background:var(--veto-soft);border-color:var(--veto)}
+@media (max-width:980px){
+  .navlab{display:none}
+  .sl{grid-template-columns:1fr;height:auto}
+  .sl .chs{flex-direction:row;overflow-x:auto;padding:8px}
+  .sl .ws{display:none}
+  .sl-msgs{max-height:420px;min-height:240px}
+}
+@media (max-width:980px){
+  .app{grid-template-columns:1fr;height:auto}
+  .rail{flex-direction:row;overflow-x:auto;padding:10px;position:sticky;top:0;z-index:20}
+  .logo{padding:4px 10px}.logo small{display:none}
+  .nav{width:auto;white-space:nowrap}
+  .rail .foot{display:none}
+  .main{height:auto}
+  .body{grid-template-columns:1fr}
+  .feed{border-left:0;border-top:1px solid var(--line);max-height:420px}
+  #view{padding:16px}
+  .score{min-width:780px}
+  .diff{grid-template-columns:1fr}
+}
+</style>
+<link rel="stylesheet" href="orca9-premium.css">
+</head>
+<body>
+<div class="app">
+  <aside class="rail" aria-label="Навігація">
+    <div class="logo">Orca9<small>маркетинговий оркестр</small></div>
+    <button class="nav" data-screen="hud" data-tour="nav-hud"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>HUD</button>
+    <button class="nav" data-screen="brief" data-tour="nav-brief"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M5 12h14"/></svg>Новий бриф</button>
+    <button class="nav" data-screen="analytics" data-tour="nav-analytics"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Аналітика<span class="count" id="cnt-an"></span></button>
+    <button class="nav" data-screen="approvals" data-tour="nav-approvals"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 12l4 4L19 6"/></svg>Апруви<span class="count" id="cnt-ap"></span></button>
+    <div class="navlab">Напрями</div>
+    <button class="nav" data-screen="seo"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx='11' cy='11' r='6'/><path d='M20 20l-4.5-4.5'/></svg>SEO</button>
+    <button class="nav" data-screen="ppc"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx='12' cy='12' r='9'/><path d='M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v12'/></svg>PPC<span class="count" id="cnt-ppc"></span></button>
+    <button class="nav" data-screen="aiv"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z"/></svg>AI Visibility</button>
+    <button class="nav" data-screen="cmps"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="5" cy="12" r="2.2"/><circle cx="18" cy="5" r="2.2"/><circle cx="18" cy="12" r="2.2"/><circle cx="18" cy="19" r="2.2"/><path d="M7 12h9M7 11l9-5M7 13l9 5"/></svg>Кампанії</button>
+    <button class="nav" data-screen="recs"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/></svg>Рекомендації<span class="count" id="cnt-rec"></span></button>
+    <button class="nav" data-screen="groups"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>Групи сторінок</button>
+    <button class="nav" data-screen="hotfix"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v10M12 17v.5"/><circle cx="12" cy="12" r="9"/></svg>Швидкі виправлення</button>
+    <button class="nav" data-screen="pm"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x='3' y='4' width='5' height='16' rx='1.2'/><rect x='10' y='4' width='5' height='10' rx='1.2'/><rect x='17' y='4' width='4' height='13' rx='1.2'/></svg>Менеджер проєкту</button>
+    <div class="navlab">Демо</div>
+    <button class="nav" data-screen="events"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d='M13 3L5 14h6l-1 7 8-11h-6z'/></svg>Події</button>
+    <button class="nav" data-screen="slackdemo"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d='M9 3L7 21M17 3l-2 18M4 8h17M3 16h17'/></svg>Slack</button>
+    <div class="navlab">Система</div>
+    <button class="nav" data-screen="agents"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M3 20c0-3 2.5-5 5-5s5 2 5 5M11 20c0-3 2.5-5 5-5s5 2 5 5"/></svg>Агенти</button>
+    <button class="nav" data-screen="crons" data-tour="nav-crons"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Розклад</button>
+    <button class="nav" data-screen="roles" data-tour="nav-roles"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>Ролі та доступи</button>
+    <button class="nav" data-screen="audit" data-tour="nav-audit"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/></svg>Журнал аудиту</button>
+    <div class="foot">Демо-концепт. Дані вигадані, жодних реальних підключень.<a class="archlink" href="orca9-architecture.html" target="_blank" rel="noopener">Архітектура і пайплайн →</a></div>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <h1 id="title">HUD</h1>
+      <div class="ctrl" data-tour="role">
+        <label for="role">Роль</label>
+        <select id="role">
+          <option value="owner">Owner</option>
+          <option value="lead" selected>Marketing lead</option>
+          <option value="seo">Channel manager (SEO/PPC)</option>
+          <option value="pm">Project manager</option>
+          <option value="editor">Editor</option>
+          <option value="analyst">Analyst</option>
+          <option value="viewer">Viewer / клієнт</option>
+        </select>
+        <button class="hint" data-hint="Роль визначає, що ви бачите і що можете затверджувати. Спробуйте Editor: він не зможе затвердити зміну бюджету.">?</button>
+      </div>
+      <button class="btn ghost" data-action="toggle-hints" id="hints-btn">Сховати підказки</button>
+      <button class="btn" data-action="tour">Тур</button>
+      <button class="btn primary" data-action="sim" id="sim-btn" data-tour="sim">Запустити симуляцію</button>
+    </header>
+    <div class="body">
+      <main id="view" tabindex="-1"></main>
+      <aside class="feed" data-tour="feed" aria-label="Стрічка подій">
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" aria-selected="true" data-action="feed-tab" data-tab="events">Події</button>
+          <button class="tab" role="tab" aria-selected="false" data-action="feed-tab" data-tab="slack">Slack</button>
+        </div>
+        <div id="feed" class="feed-list" aria-live="polite"></div>
+      </aside>
+    </div>
+  </div>
+</div>
+<div id="tip" role="tooltip"></div>
+<div id="tour" aria-live="polite"><div class="spot"></div><div class="pop" role="dialog" aria-modal="true" aria-labelledby="tour-h"><h3 id="tour-h"></h3><p id="tour-p"></p><div class="nav-t"><span class="st" id="tour-st"></span><button class="btn small ghost" data-action="tour-end">Пропустити</button><button class="btn small" data-action="tour-prev">Назад</button><button class="btn small primary" data-action="tour-next" id="tour-next">Далі</button></div></div></div>
+<div id="modal" role="dialog" aria-modal="true"><div class="box" id="modal-box"></div></div>
+<div id="toast" role="status"></div>
+
+<script src="orca9-page-control.js"></script>
+<script src="orca9-scale.js"></script>
+<script src="orca9-viz.js"></script>
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const ST = ['O1 план', 'Агенти', 'Канали', 'O2 докази', 'Координатор + O3', 'Людина', 'Тест-гейт', 'Gateway'];
+const GATES = [2, 3, 4, 6];
+const ROLES = {
+  owner:   { name: 'Owner', r2: true, r3: Infinity, crons: true },
+  lead:    { name: 'Marketing lead', r2: true, r3: 5000, crons: true },
+  seo:     { name: 'Channel manager', r2: true, r3: 500, crons: false, chs: ['SEO', 'PPC', 'AI Visibility'] },
+  pm:      { name: 'Project manager', r2: false, r3: 0, crons: true },
+  editor:  { name: 'Editor', r2: true, r3: 0, crons: false, chs: ['SEO', 'SMM', 'Контент', 'Email', 'Кампанія', 'AI Visibility'] },
+  analyst: { name: 'Analyst', r2: false, r3: 0, crons: false },
+  viewer:  { name: 'Viewer', r2: false, r3: 0, crons: false }
+};
+const now = () => new Date().toTimeString().slice(0, 5);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const hint = t => `<button class="hint" data-hint="${esc(t)}" aria-label="Підказка">?</button>`;
+
+const intro = t => `<div class="intro">${t}</div>`;
+const flow = (title, sub, steps, tourId) => `<div class="panel sec-gap"${tourId ? ` data-tour="${tourId}"` : ''}><h2>${title}</h2>${sub ? `<p class="small muted" style="margin:-6px 0 12px">${sub}</p>` : ''}<ol class="flow">${steps.map(x => `<li><b>${x[0]}</b><span class="small muted">${x[1]}</span></li>`).join('')}</ol></div>`;
+const examples = (tourId, items) => `<div class="panel" data-tour="${tourId}"><h2>Приклади ${hint('Кожен приклад запускає справжній сценарій у демо: події з’являться в стрічці праворуч, повідомлення — у Slack, апруви — в черзі.')}</h2>${items.map(i => `<div class="exm"><div><b>${i[2]}</b> <span class="chip ${i[1] === 'R3' ? 'warn' : i[1] === 'R2' ? 'act' : ''}">${i[1]}</span><div class="small muted">${i[3]}</div></div><button class="btn small" data-action="ex" data-id="${i[0]}">Запустити</button></div>`).join('')}</div>`;
+const rights = (title, rows, h) => `<div class="panel"><h2>${title}${h ? ' ' + hint(h) : ''}</h2>${rows.map(r => `<div class="row"><span class="chip ${r[0] === 'R3' ? 'warn' : r[0] === 'R2' ? 'act' : r[0] === 'Ніколи' ? 'bad' : ''}">${r[0]}</span><span class="grow">${r[1]}</span><span class="small muted" style="text-align:right;max-width:45%">${r[2]}</span></div>`).join('')}</div>`;
+const EVF = { all: ['Усі події', null], o: ['Оркестратори', 'o'], ag: ['Агенти і система', ''], h: ['Люди', 'h'], ok: ['Виконано', 'ok'], warn: ['Повернення і попередження', 'warn'], bad: ['Вето і проблеми', 'bad'] };
+const SLCH = { 'mkt-orchestra': 'Загальний: брифи, апруви кампаній, тижневий звіт', seo: 'Аномалії, ранги, апрув змін на сайті', ppc: 'Pacing-алерти, апрув бюджетів і ставок', 'pm-standup': 'Стендап-дайджест, нагадування, ескалації', 'ai-visibility': 'Згадки й цитування в AI, рекомендації наративу' };
+const CMDS = ['/orchestra help', '/orchestra status', '/orchestra brief Вебінар для CFO', '/orchestra approve AP-102', '/orchestra why /pricing-analytics', '/orchestra pause ppc', '/orchestra resume ppc', '/orchestra report'];
+
+const S = {
+  screen: 'hud', role: 'lead', feedTab: 'events', sim: false, seq: 500,
+  budgetUsed: 4120, budget: 5000,
+  pipelines: [
+    { id: 'MKT-477', title: 'SEO: нові title для 12 продуктових лендингів', ch: 'SEO', risk: 'R2', land: true, page: 'group:G-FEATURES', patch: { title: '{Функція} для SaaS — {вигода} | Acme' }, ap: 'AP-103', st: ['done', 'done', 'done', 'done', 'active', 'wait'],
+      note: 'Чекає апруву редактора.', out: ['3 підзадачі', 'Content Optimizer: 12 title і meta', 'Довжина, ключі, інтент — ок', 'Бренд-гайд — ок', '', ''] },
+    { id: 'MKT-479', title: 'LinkedIn Ads: перерозподіл бюджету', ch: 'PPC', risk: 'R3', ap: 'AP-101', st: ['done', 'done', 'done', 'done', 'active', 'wait'],
+      note: 'R3: потрібен апрув власника бюджету.', out: ['2 підзадачі', 'Budget Optimizer: +20% на кампанію CFO-ICP', 'Прогноз витрат перевірено', 'У межах тижневого ліміту $2 400', '', ''] },
+    { id: 'MKT-480', title: 'SMM: контент-план, тиждень 42', ch: 'SMM', risk: 'R2', ap: 'AP-102', st: ['done', 'done', 'done', 'done', 'active', 'wait'],
+      note: 'Пост для X чекає апруву.', out: ['5 підзадач', '5 постів LinkedIn, 8 X, 1 тред Reddit', 'UTM і довжина — ок', 'Тон бренду — ок', '', ''] },
+    { id: 'MKT-471', title: 'Тижневий звіт, тиждень 41', ch: 'Аналітика', risk: 'R1', st: ['done', 'done', 'done', 'done', 'done', 'done'],
+      note: 'Опубліковано в Google Docs і Slack.', out: ['1 підзадача', 'Performance Analyst + Data Storyteller', 'Кожну цифру звірено з джерелом', 'Не потрібен для R1', 'Не потрібна', 'Звіт у Google Docs'] }
+  ],
+  approvals: [
+    { id: 'AP-101', xr: ['SEO', 'Аналітика'], pl: 'MKT-479', risk: 'R3', amount: 400, ch: 'PPC', title: 'Підняти бюджет LinkedIn Ads на 20%', before: '$2 000 на тиждень', after: '$2 400 на тиждень', o2: 'Прогноз CPA $38 при цілі $40', o3: 'У межах ліміту $2 400', status: 'pending' },
+    { id: 'AP-102', xr: ['Бренд', 'AI Visibility'], pl: 'MKT-480', risk: 'R2', amount: 0, ch: 'SMM', title: 'Пост для X: реліз Smart Reports', before: 'Нова публікація', after: 'Закрийте місяць на 2 дні швидше. Smart Reports збирає звіт сам. Спробуйте: acme.io/smart?utm_source=x', o2: 'UTM є, 196 символів', o3: 'Тон бренду дотримано', status: 'pending' },
+    { id: 'AP-103', land: true, xr: ['SEO', 'PPC', 'AI Visibility'], pl: 'MKT-477', risk: 'R2', amount: 0, ch: 'SEO', title: 'Нові title для 12 сторінок', before: 'Pricing analytics | Acme', after: 'Аналітика цін для SaaS: дашборди за 10 хвилин', o2: '≤ 60 символів, ключ на початку', o3: 'Без заборонених слів', status: 'pending' }
+  ],
+  anomalies: [
+    { id: 'A1', page: '/pricing-analytics', metric: 'Покази', delta: -38, fc: -5, note: 'Google 3 → 7, Bing без змін', status: 'new',
+      hyps: [
+        ['Сезонність', 'Trends і той самий тиждень минулого року', 'Аналізатор сезонності', 'no', 'Попит стабільний, минулого року падіння не було'],
+        ['Технічне', 'Індексація, 5xx, robots, canonical, CWV', 'Technical SEO Auditor', 'no', 'Помилок немає, деплоїв за тиждень не було'],
+        ['Позиції по пошуковиках', 'Google, Bing, мобайл і десктоп', 'Keyword Researcher', 'yes', 'Google: 3 → 7. Bing: стабільно 2. Проблема лише в Google'],
+        ['Зміна SERP', 'AI Overview, відео, People also ask', 'AI Search Optimizer', 'no', 'Нових блоків у видачі немає'],
+        ['Конкуренти', 'Хто піднявся і що змінив', 'Competitive Intelligence', 'yes', '2 конкуренти додали порівняльні таблиці і FAQ'],
+        ['Новини та апдейти', 'Апдейти Google, новини ніші', 'News & Algorithm Watcher', 'yes', 'Core update почався 4 дні тому'],
+        ['Трекінг', 'Розбіжність GSC і GA4', 'Marketing Ops Architect', 'no', 'Дані узгоджені']
+      ].map(h => ({ name: h[0], check: h[1], agent: h[2], res: h[3], find: h[4], state: 'pending' })),
+      cause: 'Core update Google плюс сильніший контент двох конкурентів', conf: 78,
+      opts: [
+        ['Порівняльна таблиця, FAQ і свіжі цифри на 6 схожих сторінок', 'Тест: 3 сторінки проти 3 контрольних, 3 тижні. Очікувано +15–25% кліків'],
+        ['Лише оновити title і meta', 'Швидко, але слабкий ефект: конкуренти виграють змістом'],
+        ['Чекати завершення апдейту 2 тижні', 'Без витрат, ризик втратити ще 10–15% показів']
+      ],
+      test: [100, 108, 116, 122], ctrl: [100, 101, 99, 100], ab: [0, 0.8, 1.9, 2.6], ai: [0, 4, 9, 12] },
+    { id: 'A2', page: '/blog/finance-close', metric: 'Кліки', delta: -24, fc: -3, note: 'Позиція стабільна 2, CTR 6,1% → 4,2%', status: 'new',
+      hyps: [
+        ['Сезонність', 'Trends і минулий рік', 'Аналізатор сезонності', 'no', 'У межах норми'],
+        ['Технічне', 'Індексація, швидкість', 'Technical SEO Auditor', 'no', 'Все в нормі'],
+        ['Позиції по пошуковиках', 'Google, Bing', 'Keyword Researcher', 'no', 'Позиції стабільні в обох'],
+        ['Зміна SERP', 'AI Overview, відео, PAA', 'AI Search Optimizer', 'yes', 'З\'явився AI Overview, наш сайт у ньому не цитується'],
+        ['Конкуренти', 'Нові гравці в топ-10', 'Competitive Intelligence', 'no', 'Без змін'],
+        ['Новини та апдейти', 'Новини Google', 'News & Algorithm Watcher', 'partial', 'Google розширив AI Overviews на нові запити'],
+        ['Трекінг', 'GSC проти GA4', 'Marketing Ops Architect', 'no', 'Дані узгоджені']
+      ].map(h => ({ name: h[0], check: h[1], agent: h[2], res: h[3], find: h[4], state: 'pending' })),
+      cause: 'AI Overview забирає кліки, сайт не цитується в ньому', conf: 84,
+      opts: [
+        ['AEO-структура: визначення, таблиця, FAQ, цитовані джерела', 'Тест на 4 статтях проти 4 контрольних, 3 тижні. Мета: потрапити в цитування'],
+        ['Перейти на запити без AI Overview', 'Нові статті, ефект через 6–8 тижнів']
+      ],
+      test: [100, 104, 109, 113], ctrl: [100, 99, 100, 98], ab: [0, -0.3, 0.2, 0.5], ai: [0, 6, 13, 19] },
+    { id: 'A3', page: '/integrations', metric: 'Покази', delta: -15, fc: -13, note: 'Падіння майже як прогноз', status: 'new',
+      hyps: [
+        ['Сезонність', 'Trends і минулий рік', 'Аналізатор сезонності', 'yes', 'Падіння в межах сезонного коридору (жовтень)'],
+        ['Технічне', '', 'Technical SEO Auditor', 'skip', 'Не запускався: причину знайдено'],
+        ['Позиції по пошуковиках', '', 'Keyword Researcher', 'skip', 'Не запускався'],
+        ['Конкуренти', '', 'Competitive Intelligence', 'skip', 'Не запускався']
+      ].map(h => ({ name: h[0], check: h[1], agent: h[2], res: h[3], find: h[4], state: 'pending' })),
+      cause: 'Сезонність. Не аномалія', conf: 91, opts: [], seasonal: true }
+  ],
+  tests: [],
+  selAn: 'A1',
+  crons: [
+    ['data', 'Збір даних', '0 5 * * *', 'щодня 05:00', 'GSC, Bing WMT, GA4, ранги, краул', 'R0'],
+    ['seo', 'SEO rank tracking', '0 6 * * *', 'щодня 06:00', 'Позиції в Google і Bing, алерти', 'R0'],
+    ['anomaly', 'Пошук аномалій', '30 6 * * *', 'щодня 06:30', 'Факт проти сезонного прогнозу', 'R0'],
+    ['news', 'News watch', '0 7 * * *', 'щодня 07:00', 'Апдейти Google, новини ніші', 'R0'],
+    ['testmon', 'Моніторинг тестів', '0 8 * * *', 'щодня 08:00', 'Тест проти контролю, авто-відкат', 'R2'],
+    ['ppc', 'PPC pacing', '0 * * * *', 'щогодини', 'Витрати проти плану, корекція ставок', 'R3'],
+    ['smm', 'SMM calendar', '0 9 * * 1', 'пн 09:00', 'Контент-план на тиждень', 'R2'],
+    ['content', 'Content engine', '0 10 * * 1', 'пн 10:00', 'Один AEO-матеріал + дистрибуція', 'R2'],
+    ['weekly', 'Тижневий звіт', '0 16 * * 5', 'пт 16:00', 'Звіт про зміни в Google Docs і Slack', 'R1'],
+    ['tech', 'Tech SEO audit', '0 3 1 * *', '1-ше число, 03:00', 'Повний краул, задачі в Jira', 'R1'],
+    ['aiv', 'AI Visibility run', '0 4 * * *', 'щодня 04:00', '120 промптів × 6 AI-систем × 3 прогони', 'R0'],
+    ['gate', 'Тест-гейт', '0 9 * * *', 'щодня 09:00', 'A/B, SEO і AI Visibility тести проти контролю', 'R2']
+  ].map(c => ({ id: c[0], name: c[1], cron: c[2], human: c[3], what: c[4], risk: c[5], on: true, last: '—' })),
+  pods: [
+    ['SEO', ['Technical SEO Auditor', 'Keyword Researcher', 'Content Optimizer', 'AI Search Optimizer', 'Link Building Strategist', 'Programmatic SEO Strategist', 'Local & International SEO']],
+    ['PPC', ['PPC Strategist', 'Budget Optimizer', 'Attribution Analyst', 'Creative Strategist', 'Social Ads Specialist', 'Programmatic Media Buyer', 'Sponsorship & Syndication Buyer']],
+    ['SMM', ['LinkedIn Organic Strategist', 'Twitter/X Strategist', 'Reddit Community Specialist', 'Community Strategist', 'YouTube Producer', 'Podcast & Audio Strategist', 'Influencer Partnerships']],
+    ['Контент', ['Content Blog Strategist', 'Content Copywriter', 'Case Study Producer', 'Newsletter Curator', 'Content Operations Manager', 'Thought Leadership Ghostwriter', 'Video Script Writer', 'Whitepaper Architect']],
+    ['Email', ['Email Lifecycle Architect', 'Email Copywriter', 'Deliverability Specialist', 'Marketing Automation Engineer', 'Newsletter Growth Strategist']],
+    ['Аналітика', ['Marketing Performance Analyst', 'Marketing Data Storyteller', 'Marketing Ops Architect', 'Conversion Rate Optimizer', 'Customer Insights Researcher', 'GTM Data Strategist', 'MarTech Stack Strategist', 'Детектор аномалій (новий)', 'Аналізатор сезонності (новий)', 'News & Algorithm Watcher (новий)']],
+    ['AI Visibility', ['AI Visibility Tracker (новий)', 'Prompt Research Agent (новий)', 'Citation Analyst (новий)', 'Narrative Strategist (новий)']],
+    ['Координація', ['Оркестратор кампаній (новий)', 'Координатор сторінки (новий)', 'Координатор групи сторінок (новий)', 'SEO-оркестратор (новий)', 'PPC-оркестратор (новий)', 'AI Visibility-оркестратор (новий)']]
+  ],
+  feed: [], slack: [], audit: [], agentQ: '', slCh: 'mkt-orchestra', slDraft: '', slFocus: false, evF: 'all',
+  seoKw: [
+    { kw: 'pricing analytics', page: '/pricing-analytics', g: 7, gPrev: 3, b: 2, bPrev: 2, vol: 2400 },
+    { kw: 'saas pricing dashboard', page: '/pricing-analytics', g: 6, gPrev: 4, b: 3, bPrev: 3, vol: 880 },
+    { kw: 'month end close software', page: '/blog/finance-close', g: 2, gPrev: 2, b: 1, bPrev: 2, vol: 1900 },
+    { kw: 'financial reporting automation', page: '/smart-reports', g: 14, gPrev: 18, b: 9, bPrev: 12, vol: 1300 },
+    { kw: 'quickbooks integration saas', page: '/integrations', g: 9, gPrev: 11, b: 6, bPrev: 6, vol: 720 },
+    { kw: 'cfo dashboard template', page: '/blog/cfo-dashboard', g: 4, gPrev: 4, b: 5, bPrev: 5, vol: 1600 }
+  ],
+  seoIssues: [
+    { id: 'TI-1', sev: 'high', what: '12 сторінок /blog/tag/* з noindex потрапили в sitemap', fix: 'прибрати з sitemap.xml', status: 'open' },
+    { id: 'TI-2', sev: 'med', what: 'LCP 3,4 с на /smart-reports (мобайл)', fix: 'стиснути hero-зображення, відкласти завантаження відео', status: 'open' },
+    { id: 'TI-3', sev: 'low', what: '7 битих внутрішніх посилань у блозі', fix: 'оновити посилання', status: 'open' }
+  ],
+  campaigns: [
+    { id: 'C1', name: 'Brand UA', plat: 'Google Ads', day: 170, spent: 1180, plan: 1000, cpa: 41, tgt: 30, roas: 2.1, status: 'alert' },
+    { id: 'C2', name: 'Competitor EN', plat: 'Google Ads', day: 160, spent: 1050, plan: 1100, cpa: 52, tgt: 55, roas: 2.4, status: 'ok' },
+    { id: 'C3', name: 'CFO ICP', plat: 'LinkedIn Ads', day: 205, spent: 1420, plan: 1430, cpa: 38, tgt: 40, roas: 2.8, status: 'ok' },
+    { id: 'C4', name: 'Retargeting', plat: 'Meta Ads', day: 70, spent: 470, plan: 480, cpa: 22, tgt: 25, roas: 4.6, status: 'ok' },
+    { id: 'C5', name: 'Smart Reports launch', plat: 'Google Ads', day: 0, spent: 0, plan: 0, cpa: null, tgt: 45, roas: null, status: 'draft' }
+  ],
+  projects: [
+    { id: 'EP-12', name: 'Запуск Smart Reports', owner: 'Marketing lead', due: '2026-10-20', prog: 62, risk: 'під ризиком', why: '' },
+    { id: 'EP-14', name: 'Інтеграція з QuickBooks', owner: 'Marketing lead', due: '2026-11-03', prog: 10, risk: 'за планом', why: 'Бриф готовий, чекає запуску' },
+    { id: 'EP-09', name: 'SEO-оновлення Q4', owner: 'Channel manager', due: '2026-12-15', prog: 45, risk: 'за планом', why: '' },
+    { id: 'EP-11', name: 'Оптимізація PPC Q4', owner: 'Channel manager', due: '2026-12-31', prog: 38, risk: 'увага', why: '' }
+  ]
+};
+S.approvals.forEach((a, i) => a.age = [26, 5, 49][i]);
+S.pipelines.forEach(up8);
+Object.assign(S, {
+  recHi: null,
+  engines: [['ChatGPT', 38, 15, 2.8, 2], ['Perplexity', 46, 31, 2.1, 4], ['Google AI Overviews', 29, 22, 3.0, -6], ['Gemini', 25, 9, 3.6, 0], ['Claude', 35, 12, 2.5, 1], ['Copilot', 31, 18, 3.2, -2]],
+  prompts: [
+    { p: 'best pricing analytics tool for SaaS', st: 'BOFU', m: 'mc-cm-', comp: 'Baremetrics, ProfitWell', page: '/pricing-analytics', rec: 'REC-1' },
+    { p: 'Acme vs Baremetrics', st: 'BOFU', m: 'mcmmcm', comp: '—', page: '/pricing-analytics', rec: 'REC-1' },
+    { p: 'how to speed up month-end close', st: 'TOFU', m: '-c--m-', comp: 'Ramp, FloQast', page: '/blog/finance-close', rec: 'REC-2' },
+    { p: 'what is financial reporting automation', st: 'TOFU', m: '-c-cm-', comp: 'NetSuite, Datarails', page: '/smart-reports', rec: 'REC-3' },
+    { p: 'QuickBooks reporting automation for SaaS', st: 'MOFU', m: '---m--', comp: 'Fathom, Jirav', page: '/integrations', rec: 'REC-4' },
+    { p: 'CFO dashboard template for SaaS', st: 'TOFU', m: 'cc-mmc', comp: 'Databox', page: '/blog/cfo-dashboard' },
+    { p: 'SaaS financial reporting software for 100 people', st: 'BOFU', m: '-m-m--', comp: 'Mosaic, Jirav, Datarails', page: '/smart-reports' },
+    { p: 'Acme Smart Reports pricing', st: 'Бренд', m: 'cccmcc', comp: '—', page: '/pricing' }
+  ],
+  claims: [
+    ['Acme не інтегрується з QuickBooks', 'застаріло', 'ChatGPT, Gemini', 'огляд на G2 за 2024 рік', 'REC-4'],
+    ['Ціна Smart Reports — від $49 на місяць', 'помилка', 'Perplexity', 'стара версія /pricing у кеші', null],
+    ['Підходить SaaS-компаніям на 50–500 людей', 'правильно', 'усі шість', '/about, кейси клієнтів', null],
+    ['Smart Reports автоматично готує звіт на закриття місяця', 'не згадується', 'жодна', 'на лендингу немає визначення продукту', 'REC-3']
+  ],
+  recs: [
+    { id: 'REC-1', page: '/pricing-analytics', pod: 'AI Visibility', agent: 'Narrative Strategist', imp: 'high', impWhy: 'ключова сторінка, 18% реєстрацій', conf: 81,
+      title: 'Визначення і порівняльна таблиця на /pricing-analytics',
+      why: 'На запит «best pricing analytics tool for SaaS» 5 з 6 AI-систем цитують Baremetrics: у них є визначення і таблиця порівняння. У нас на сторінці лише слоган.',
+      before: 'H1: «Pricing analytics | Acme». Під ним: «Get insights into your pricing».',
+      after: 'H1: «Pricing analytics для SaaS». Перший абзац — визначення у 2 реченнях. Таблиця «Acme vs Baremetrics vs ProfitWell», 5 FAQ, цифра клієнта з джерелом.',
+      rv: { SEO: ['ok', 'ключ лишається в H1, таблиця додає long-tail запити'], PPC: ['ok', 'Competitor EN веде сюди, порівняння посилює message match'] },
+      tests: [['A/B тест', 3.9, 'конверсія в реєстрацію'], ['SEO-тест', 6, 'кліки до контролю'], ['AI Visibility тест', 9, 'цитування, п. на 40 промптах']], status: 'new' },
+    { id: 'REC-2', page: '/blog/finance-close', pod: 'AI Visibility', agent: 'AI Search Optimizer', imp: 'low', impWhy: 'стаття блогу, 2% трафіку, без форм', conf: 84,
+      title: 'Визначення і FAQ-schema для статті про закриття місяця',
+      why: 'AI Overview відповідає на запит, але цитує конкурента: у нас немає короткого визначення на початку статті.',
+      before: 'Вступ на 3 абзаци без визначення, без FAQ.',
+      after: 'Визначення «month-end close» у 40 словах на початку, таблиця кроків, 4 FAQ зі schema.org.',
+      rv: { SEO: ['ok', 'обсяг тексту і ключі збережено'], PPC: ['ok', 'сторінка не бере участі в рекламі'] },
+      tests: [['A/B тест', 0.4, 'клік на CTA статті'], ['SEO-тест', 5, 'кліки до контролю'], ['AI Visibility тест', 14, 'цитування в AI Overviews']], status: 'new' },
+    { id: 'REC-3', page: '/smart-reports', pod: 'PPC', agent: 'PPC Strategist', imp: 'low', impWhy: 'лендінг нової кампанії, трафіку ще мало', conf: 72,
+      title: 'PPC хоче скоротити перший екран',
+      why: 'PPC пропонує акцент на демо й коротший перший екран. Координатор має зберегти SEO-тему та визначення для AI Visibility.',
+      before: 'H1: «Financial reporting automation». Під ним — абзац-визначення Smart Reports.',
+      after: 'H1: «Звіти для CFO зі Smart Reports». Абзац-визначення прибрати; CTA «Переглянути демо».',
+      compromise: 'H1: «Financial reporting automation зі Smart Reports». Визначення збережене, CTA «Переглянути демо». Одна узгоджена версія для трьох каналів.',
+      rv: { SEO: ['no', 'прибирає ключ «financial reporting automation» з H1: прогноз −3–5 позицій'], 'AI Visibility': ['no', 'Perplexity цитує саме цей абзац-визначення, без нього цитування зникне'] },
+      tests: [['A/B тест', 6.1, 'конверсія з реклами'], ['SEO-тест', -7, 'кліки до контролю'], ['AI Visibility тест', -12, 'цитування, п. на 40 промптах']],
+      testsC: [['A/B тест', 4.8, 'конверсія з реклами'], ['SEO-тест', -0.5, 'кліки до контролю'], ['AI Visibility тест', 1, 'цитування, п. на 40 промптах']], status: 'new' },
+    { id: 'REC-4', page: '/integrations', pod: 'AI Visibility', agent: 'Citation Analyst', imp: 'low', impWhy: 'факт на сторінці інтеграцій, оффер не змінюється', conf: 90,
+      title: 'Виправити застарілий факт про QuickBooks',
+      why: 'ChatGPT і Gemini кажуть, що Acme не інтегрується з QuickBooks. Джерело — огляд на G2 за 2024 рік. На нашій сторінці немає дати запуску інтеграції.',
+      before: 'Логотип QuickBooks у сітці інтеграцій без тексту.',
+      after: 'Блок «QuickBooks: доступно з березня 2026» з описом синхронізації і посиланням на changelog. Рядок у llms.txt.',
+      rv: { SEO: ['ok', 'нова секція індексується, канібалізації немає'], PPC: ['ok', 'майбутня QuickBooks-кампанія зможе вести сюди'] },
+      tests: [['A/B тест', 1.1, 'клік «Підключити»'], ['SEO-тест', 2.5, 'кліки до контролю'], ['AI Visibility тест', 11, 'коректність факту, п. на 20 промптах']], status: 'new' }
+  ]
+});
+
+/* ---------- feed, audit, slack ---------- */
+function ev(cls, who, text) {
+  S.feed.unshift({ t: now(), cls, who, text });
+  S.audit.unshift({ t: now(), who, type: cls === 'h' ? 'Людина' : cls === 'o' ? 'Оркестратор' : who.startsWith('Cron') ? 'Система' : 'Агент', text });
+  if (S.feedTab === 'events') renderFeed();
+  if (S.screen === 'audit' || S.screen === 'events') render();
+}
+function slack(text, acts = [], ch = 'mkt-orchestra', from = null) {
+  S.slack.unshift({ t: now(), text, acts, ch, from });
+  if (S.feedTab === 'slack') renderFeed();
+  else { const t = $('[data-tab=slack]'); t.textContent = 'Slack •'; }
+  if (S.screen === 'slackdemo') render();
+}
+const chOf = c => c === 'SEO' ? 'seo' : c === 'PPC' ? 'ppc' : c === 'AI Visibility' ? 'ai-visibility' : 'mkt-orchestra';
+const slackMsg = (m, showCh = true) => `<div class="slack"><div class="av ${m.from ? 'hu' : ''}">${m.from ? esc(m.from.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()) : 'O9'}</div><div><div class="who">${m.from ? esc(m.from) : 'Orca9'}<time>${m.t}</time>${showCh ? `<span class="chn">#${m.ch}</span>` : ''}</div><div>${m.text}</div>${m.acts.length ? `<div class="acts">${m.acts.map(a => `<button class="btn small ${a.primary ? 'primary' : ''}" data-action="${a.action}" data-id="${a.id || ''}"${a.screen ? ` data-screen="${a.screen}"` : ''}>${a.label}</button>`).join('')}</div>` : ''}</div></div>`;
+function renderFeed() {
+  const el = $('#feed');
+  if (S.feedTab === 'events') {
+    el.innerHTML = S.feed.length ? S.feed.map(e => `<div class="ev ${e.cls}"><time>${e.t}</time><b>${esc(e.who)}</b> ${esc(e.text)}</div>`).join('')
+      : `<p class="empty">Тут з'являтимуться дії агентів і оркестраторів. Натисніть «Запустити симуляцію».</p>`;
+  } else {
+    $('[data-tab=slack]').textContent = 'Slack';
+    el.innerHTML = `<div class="slack-ch">Усі канали · <button class="linkish" data-action="nav-to" data-screen="slackdemo">відкрити демо Slack</button></div>` + (S.slack.length ? S.slack.map(m => slackMsg(m)).join('')
+      : `<p class="empty">Бот пише сюди алерти й запити на апрув. Їх можна затверджувати прямо з Slack.</p>`);
+  }
+}
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('on'), 2600); }
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------- helpers ---------- */
+const pending = () => S.approvals.filter(a => a.status === 'pending');
+function canApprove(a) {
+  const r = ROLES[S.role];
+  if (r.chs && a.ch && !r.chs.some(c => String(a.ch).includes(c))) return false;
+  if (a.risk === 'R3') return r.r3 > 0 && (S.r3Used?.[S.role] || 0) + (a.amount || 0) <= r.r3;
+  return r.r2;
+}
+function denyReason(a) {
+  const r = ROLES[S.role];
+  if (r.chs && a.ch && !r.chs.some(c => String(a.ch).includes(c))) return `Роль ${r.name} не затверджує канал «${a.ch}». Її канали: ${r.chs.join(', ')}.`;
+  if (a.risk === 'R3') { const used = S.r3Used?.[S.role] || 0; return r.r3 > 0 ? `Ліміт ролі ${r.name}: $${r.r3} на тиждень сукупно; уже зарезервовано $${used}, ця дія $${a.amount}. Потрібен Marketing lead або Owner.` : `Роль ${r.name} не затверджує зміни бюджету (R3).`; }
+  return `Роль ${r.name} не затверджує публікації (R2).`;
+}
+function counts() {
+  const p = pending().length; $('#cnt-ap').textContent = p || ''; $('#cnt-ap').style.display = p ? '' : 'none';
+  const n = S.anomalies.filter(a => a.status === 'new' || a.status === 'report').length; $('#cnt-an').textContent = n || ''; $('#cnt-an').style.display = n ? '' : 'none';
+  const rc = S.recs.filter(r => r.status === 'human' || r.status === 'won').length; $('#cnt-rec').textContent = rc || ''; $('#cnt-rec').style.display = rc ? '' : 'none';
+  const k = S.campaigns.filter(c => c.status === 'alert').length; $('#cnt-ppc').textContent = k || ''; $('#cnt-ppc').style.display = k ? '' : 'none';
+}
+
+/* ---------- screens ---------- */
+const TITLES = { hud: 'HUD', brief: 'Новий бриф', analytics: 'Аналітика', approvals: 'Апруви', seo: 'SEO', ppc: 'PPC', aiv: 'AI Visibility', recs: 'Рекомендації', cmps: 'Кампанії', groups: 'Групи сторінок', hotfix: 'Швидкі виправлення', pm: 'Менеджер проєкту', events: 'Демо подій', slackdemo: 'Демо Slack', agents: 'Агенти', crons: 'Розклад', roles: 'Ролі та доступи', audit: 'Журнал аудиту' };
+function go(screen) { S.screen = screen; render(); $('#view').scrollTop = 0; }
+function render() {
+  if (typeof cmpSync === 'function') cmpSync();
+  $('#title').textContent = TITLES[S.screen] + (S.writesOff ? ' · записи вимкнено' : '');
+  $$('.nav').forEach(b => b.setAttribute('aria-current', b.dataset.screen === S.screen ? 'page' : 'false'));
+  const wasIn = document.activeElement && document.activeElement.id === 'sl-in';
+  $('#view').innerHTML = VIEWS[S.screen]();
+  counts();
+  if (S.screen === 'analytics') drawCharts();
+  if (S.screen === 'slackdemo') {
+    const m = $('.sl-msgs'); if (m) m.scrollTop = m.scrollHeight;
+    const i = $('#sl-in'); if (i && (wasIn || S.slFocus)) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+    S.slFocus = false;
+  }
+}
+
+/* Three views of the same pipelines: score (classic), cards, stage flow. The switch only changes presentation. */
+const ST_WHO = ['O1 Planner', 'Агенти подів', 'SEO-, PPC-, AIV-оркестратори', 'O2 Verifier', 'Координатор + O3', 'Людина за роллю', 'CRO, SEO, AIV + O2', 'Gateway'];
+const ST_DO = ['розкладає мету на підзадачі', 'готують зміну з доказами', 'погоджують одну версію', 'перевіряє факти і джерела', 'збирає пакет, перевіряє політики', 'вирішує: тест, гроші, публікація', 'тест проти контролю', 'єдиний запис і read-back'];
+const ST_STATE = { done: 'готово', active: 'в роботі', return: 'повернуто', wait: 'очікує', veto: 'вето або відкат', skip: 'не потрібно' };
+function curStage(p) {
+  const i = p.st.findIndex(x => x === 'active' || x === 'return' || x === 'veto'); if (i >= 0) return i;
+  const w = p.st.findIndex(x => x === 'wait'); return w >= 0 ? w : 7;
+}
+function pipeState(p) { if (p.st.includes('veto')) return 'veto'; if (p.st.includes('return')) return 'return'; if (p.st[7] === 'done') return 'done'; if (p.st.includes('active')) return 'active'; return 'wait'; }
+try { S.scoreView = localStorage.getItem('orca9-score-view') || 'score'; } catch (e) { S.scoreView = 'score'; }
+function scoreSwitch() {
+  const v = S.scoreView || 'score', cur = SCORE_VIEWS.find(x => x[0] === v) || SCORE_VIEWS[0];
+  return `<div class="seg" role="tablist" aria-label="Вигляд конвеєра"><span class="seg-l">Вигляд:</span>${SCORE_VIEWS.map(([k, l]) => `<button role="tab" aria-selected="${k === v}" data-action="score-view" data-id="${k}">${l}</button>`).join('')}<span class="small muted" style="padding:5px 8px">${cur[2]}</span></div>`;
+}
+function scoreCards(list) {
+  return `<div class="pcards">${list.map(p => { const i = curStage(p), stt = pipeState(p), ap = p.ap && S.approvals.find(a => a.id === p.ap && a.status === 'pending');
+    return `<div class="pcard ${stt}"><div class="hd"><button class="lnk" data-action="open-pl" data-id="${p.id}">${esc(p.title)}</button><span class="chip ${p.risk === 'R3' ? 'warn' : p.risk === 'R2' ? 'act' : ''}">${p.risk}</span></div>
+      <div class="small muted">${p.id} · ${esc(p.ch)}${p.page || p.res ? ' · ' + esc(p.page || p.res) : ''}</div>
+      <div class="segbar" aria-label="Етапи">${p.st.map((x, k) => `<i class="${x} ${GATES.includes(k) ? 'g' : ''} ${k === i && stt !== 'done' ? 'cur' : ''}" title="${ST[k]}: ${ST_STATE[x]}"></i>`).join('')}</div>
+      <div class="seglab">${ST.map((n, k) => `<span class="${k === i ? 'on' : ''}">${k === i ? esc(n) : ''}</span>`).join('')}</div>
+      <div class="small"><b>${stt === 'done' ? 'Виконано' : 'Зараз: ' + ST[i]}</b>${stt === 'done' ? '' : ` · ${ST_WHO[i]} ${ST_DO[i]}`}</div>
+      <div class="small muted">${esc(p.note || '')}</div>
+      <div class="acts">${ap ? `<button class="btn small primary" data-action="nav-to" data-screen="approvals">До апруву</button>` : ''}<button class="btn small" data-action="open-pl" data-id="${p.id}">Деталі</button><span class="chip ${{ done: 'ok', active: 'act', return: 'warn', veto: 'bad', wait: '' }[stt]}">${ST_STATE[stt]}</span></div></div>`; }).join('')}</div>`;
+}
+function scoreFlow(list) {
+  const cols = ST.map(() => []);
+  list.forEach(p => cols[curStage(p)].push(p));
+  return `<div class="pflow">${ST.map((n, k) => `<div class="col ${GATES.includes(k) ? 'g' : ''}"><h4><span>${k} · ${n}</span><span>${cols[k].length}</span></h4><div class="small muted" style="margin:-4px 0 8px">${ST_WHO[k]}</div>
+    ${cols[k].map(p => { const stt = pipeState(p); return `<div class="fc ${stt}"><button class="lnk" data-action="open-pl" data-id="${p.id}">${esc(p.title)}</button><div class="small muted">${p.id} · ${p.risk}</div><span class="chip ${{ done: 'ok', active: 'act', return: 'warn', veto: 'bad', wait: '' }[stt]}">${ST_STATE[stt]}</span></div>`; }).join('') || '<p class="small muted" style="margin:0">порожньо</p>'}</div>`).join('')}</div>
+    <div class="legend"><span style="color:#7A5A0C">латунні колонки — ворота: погодження каналів, O2, Координатор і O3, тест-гейт</span></div>`;
+}
+function scoreHTML(list = S.pipelines) {
+  const v = S.scoreView || 'score';
+  const f = { cards: scoreCards, flow: scoreFlow, metro: scoreMetro, gantt: scoreGantt, heat: scoreHeat }[v];
+  return scoreSwitch() + (f ? f(list) : scoreClassic(list));
+}
+function scoreClassic(list = S.pipelines) {
+  return `<div class="tbl-wrap"><div class="score" role="table" aria-label="Конвеєри задач">
+    <div class="hd" style="text-align:left">Задача</div>${ST.map((s, i) => `<div class="hd ${GATES.includes(i) ? 'gate' : ''}">${s}</div>`).join('')}
+    ${list.map(p => `<div class="lab"><button data-action="open-pl" data-id="${p.id}">${esc(p.title)}</button><span class="small">${p.id}, ${p.ch}, ${p.risk}</span></div>
+      ${p.st.map((s, i) => `<div class="cell ${GATES.includes(i) ? 'gate' : ''} ${(s === 'done' || s === 'skip') && i < 7 && p.st[i + 1] !== 'wait' ? 'done' : ''}"><span class="note ${s}" title="${ST[i]}: ${{ done: 'готово', active: 'в роботі', return: 'повернуто', wait: 'очікує', veto: 'вето', skip: 'не потрібно' }[s]}"></span></div>`).join('')}`).join('')}
+  </div></div>
+  <div class="legend"><span><i class="note done"></i>готово</span><span><i class="note active"></i>в роботі</span><span><i class="note return"></i>повернуто на доопрацювання</span><span><i class="note veto"></i>вето або відкат</span><span><i class="note skip"></i>не потрібно</span><span><i class="note"></i>очікує</span><span style="color:#7A5A0C">латунна риска — ворота: погодження каналів, O2, O3, тест-гейт</span></div>`;
+}
+function apCard(a, compact) {
+  const ok = canApprove(a);
+  const p = S.pipelines.find(x => x.id === a.pl);
+  return `<div class="ap"><div class="t">${esc(a.title)} <span class="chip ${a.risk === 'R3' ? 'warn' : 'act'}">${a.risk}</span><span class="chip">${a.ch}</span></div>
+    ${compact ? '' : `<div class="diff"><div><b>Зараз</b>${esc(a.before)}</div><div class="after"><b>Після</b>${esc(a.after)}</div></div>
+    <div class="verd">${a.xr ? `<span class="chip ok">Погодження: ${a.xr.join(', ')} — за</span>` : ''}<span class="chip ok">O2: ${esc(a.o2)}</span><span class="chip ok">O3: ${esc(a.o3)}</span>${a.land ? `<span class="chip o">${a.phase === 'rollout' ? 'дозвіл на розгортання' : 'лише дозвіл на обмежений тест'}</span>` : ''}</div>${p?.packet ? packetHTML(p) : ''}`}
+    <div class="acts" style="${compact ? 'margin-top:8px' : ''}">
+      <button class="btn small primary" data-action="approve" data-id="${a.id}" aria-disabled="${!ok}">${a.land ? a.phase === 'rollout' ? 'Дозволити розгортання' : 'Дозволити тест пакета' : 'Затвердити'}</button>
+      ${compact ? `<button class="btn small" data-action="nav-to" data-screen="approvals">Деталі</button>` : `<button class="btn small" data-action="return-ap" data-id="${a.id}" aria-disabled="${!ok}">Повернути</button><button class="btn small danger" data-action="reject" data-id="${a.id}" aria-disabled="${!ok}">Відхилити</button>`}
+      ${ok ? '' : `<span class="small muted">${esc(denyReason(a))}</span>`}
+    </div></div>`;
+}
+
+const VIEWS = {
+  hud() {
+    const inWork = S.pipelines.filter(p => p.st[7] !== 'done' && !p.st.includes('veto')).length;
+    const passed = S.pipelines.filter(p => p.st[4] === 'done').length;
+    const pct = Math.round(passed / S.pipelines.length * 100);
+    const bp = Math.round(S.budgetUsed / S.budget * 100);
+    const runningTests = S.tests.filter(t => t.status === 'running').length;
+    return `${S.feed.length === 0 ? `<div class="welcome"><div><h2>Одна сторінка. Спільне рішення.</h2><p>Агенти пропонують зміни. SEO, PPC та AI Visibility погоджують свої вимоги; Координатор сторінки збирає єдиний пакет. Конфлікти розбираємо до тесту, важливі рішення віддаємо людині. Записує лише gateway.</p></div><div class="acts"><button class="btn" data-action="nav-to" data-screen="recs">Переглянути пакети</button><button class="btn primary" data-action="tour">Почати тур</button></div></div>` : ''}
+    <div class="grid g4" data-tour="metrics">
+      <div class="metric"><div class="lbl">Задач у роботі ${hint('Конвеєри, які ще не дійшли до кінця: від плану O1 до дії у зовнішньому сервісі.')}</div><div class="val">${inWork}</div><div class="sub">${runningTests} тест(и) запущено</div></div>
+      <div class="metric"><div class="lbl">Пройшли ворота O3 ${hint('Частка задач, які пройшли обидві перевірки: верифікатор O2 і аудитор O3.')}</div><div class="val">${pct}%</div><div class="sub">${passed} з ${S.pipelines.length}</div></div>
+      <div class="metric"><div class="lbl">Бюджет PPC, тиждень ${hint('O3 не пропустить жодну зміну, що виведе витрати за тижневий ліміт.')}</div><div class="val">$${S.budgetUsed.toLocaleString('uk')}</div><div class="sub">з $${S.budget.toLocaleString('uk')}</div><div class="bar"><i style="width:${bp}%;background:${bp > 90 ? 'var(--veto)' : bp > 80 ? 'var(--hold)' : 'var(--act)'}"></i></div></div>
+      <div class="metric"><div class="lbl">Чекають на вас ${hint('Дії рівня R2 (публікації) і R3 (гроші), що пройшли O2 і O3 і чекають людського рішення.')}</div><div class="val" style="color:${pending().length ? 'var(--hold)' : 'inherit'}">${pending().length}</div><div class="sub">апрувів у черзі</div></div>
+    </div>
+    <div class="panel sec-gap" data-tour="score"><h2>Партитура конвеєрів ${hint('Кожен рядок — задача, стовпці — етапи. Латунні риски — ворота O2 і O3: без них дія не піде назовні. Натисніть назву задачі, щоб побачити деталі.')}<span class="sp small muted">${S.pipelines.length} задач</span></h2>${scoreHTML()}</div>
+    <div class="grid g2 sec-gap">
+      <div class="panel" data-tour="queue"><h2>Апруви для вас ${hint('Найкоротший шлях до рішення. Ті самі запити приходять у Slack з кнопками.')}</h2>
+        ${pending().length ? pending().slice(0, 3).map(a => apCard(a, true)).join('') : `<p class="empty">Черга порожня. Нові запити з'являться тут і в Slack.</p>`}</div>
+      <div class="panel"><h2>Найближчі запуски ${hint('Крони ставлять задачі в чергу. Розклад і паузи — на екрані «Розклад».')}<button class="btn small sp" data-action="nav-to" data-screen="crons">Весь розклад</button></h2>
+        ${S.crons.slice(0, 5).map(c => `<div class="row"><span class="grow">${c.name}<br><span class="small muted">${c.what}</span></span><span class="chip ${c.on ? '' : 'warn'}">${c.on ? c.human : 'пауза'}</span></div>`).join('')}
+        <div class="acts sec-gap"><button class="btn small" data-action="weekly">Сформувати тижневий звіт</button></div></div>
+    </div>`;
+  },
+
+  brief() {
+    return `<div class="grid g2">
+      <div class="panel" data-tour="brief-form"><h2>Бриф ${hint('Бриф читає O1 (CATALYST). Він розкладає його на підзадачі і роздає агентам. Те саме можна зробити з Slack: /orchestra brief …')}</h2>
+        <div class="field"><label for="b-title">Мета</label><input id="b-title" type="text" value="Запуск інтеграції з QuickBooks"></div>
+        <div class="field"><label for="b-icp">ICP ${hint('Ідеальний клієнт. Береться також із brand-context.md, який отримують усі агенти.')}</label><input id="b-icp" type="text" value="Фінансові директори SaaS, 50–500 співробітників"></div>
+        <div class="field"><span class="l">Канали</span><div class="checks">${['SEO', 'PPC', 'SMM', 'Контент', 'Email'].map((c, i) => `<label><input type="checkbox" name="ch" value="${c}" ${i < 3 ? 'checked' : ''}><span>${c}</span></label>`).join('')}</div></div>
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div class="field"><label for="b-budget">Бюджет, $ ${hint('Якщо обрано PPC, задача отримує рівень R3: зміни бюджету затверджує власник.')}</label><input id="b-budget" type="number" value="3000" min="0" step="100"></div>
+          <div class="field"><label for="b-date">Дедлайн</label><input id="b-date" type="date" value="2026-11-03"></div>
+        </div>
+        <p id="b-err" class="small" style="color:var(--veto);margin:0 0 10px"></p>
+        <div class="acts"><button class="btn" data-action="brief-plan">Показати план O1</button><button class="btn primary" data-action="brief-launch">Запустити</button></div>
+      </div>
+      <div class="panel" id="plan-box"><h2>План O1 ${hint('Попередній перегляд декомпозиції. Після запуску задача з\'явиться в партитурі на HUD і пройде всі ворота.')}</h2><p class="empty">Натисніть «Показати план O1», щоб побачити, яким агентам піде робота.</p></div>
+    </div>`;
+  },
+
+  analytics() { return anTabs() + ((S.anTab || 'traffic') === 'anom' ? VIEWS.analyticsAnom() : trafficView()); },
+  analyticsAnom() {
+    const a = S.anomalies.find(x => x.id === S.selAn);
+    const t = null, lr = S.recs.find(x => x.anomalyId === a.id);
+    const running = a.hyps.some(h => h.state === 'run');
+    const done = a.hyps.every(h => h.state === 'done');
+    const dotCls = h => h.state === 'run' ? 'run' : h.state === 'done' ? h.res : '';
+    const resChip = h => h.state !== 'done' ? (h.state === 'run' ? '<span class="chip act">перевіряє…</span>' : '<span class="chip">очікує</span>') :
+      ({ yes: '<span class="chip bad">підтверджено</span>', no: '<span class="chip ok">відкинуто</span>', partial: '<span class="chip warn">частково</span>', skip: '<span class="chip">пропущено</span>' }[h.res]);
+    return `<div class="grid" style="grid-template-columns:minmax(240px,320px) 1fr">
+      <div class="alist" data-tour="anomalies"><h2 style="font-size:16px;margin:0 0 12px;display:flex;gap:8px;align-items:center">Знайдені аномалії ${hint('Детектор щодня о 06:30 порівнює факт із прогнозом, який уже враховує сезонність. Тут лише те, що вийшло за довірчий інтервал.')}</h2>
+        ${S.anomalies.map(x => `<button class="item" data-action="sel-an" data-id="${x.id}" aria-current="${x.id === a.id}"><div class="small muted">${x.metric}, 7 днів</div><div><span class="big">${x.delta}%</span> <span class="small muted">прогноз ${x.fc}%</span></div><div style="font-weight:600">${x.page}</div><div class="small muted">${x.note}</div><div style="margin-top:6px">${{ new: '<span class="chip warn">нова</span>', diag: '<span class="chip act">діагностика</span>', report: '<span class="chip o">звіт готовий</span>', test: '<span class="chip act">у тесті</span>', closed: '<span class="chip ok">закрито</span>', deployed: '<span class="chip ok">розгорнуто</span>' }[x.status]}</div></button>`).join('')}
+      </div>
+      <div class="stack">
+        <div class="panel" data-tour="diag"><h2>Діагностика: ${a.page} ${hint('O1 будує гіпотези і запускає лише потрібних аналізаторів паралельно. Червоне — причина підтверджена, зелене — відкинута.')}
+          <span class="sp">${a.status === 'new' ? `<button class="btn small primary" data-action="diag" data-id="${a.id}">Запустити діагностику</button>` : ''}</span></h2>
+          ${a.hyps.map(h => `<div class="hyp"><span class="dot ${dotCls(h)}"></span><div><b>${h.name}</b> <span class="small muted">${h.agent}</span><div class="small muted">${h.state === 'done' ? esc(h.find) : esc(h.check)}</div></div>${resChip(h)}</div>`).join('')}
+        </div>
+        ${done ? `<div class="panel" data-tour="report"><h2>Звіт для людини ${hint('O2 перевірив, що кожен висновок має доказ у даних. O3 перевірив, що варіанти не порушують політик і бюджету.')}<span class="sp chip ok">O2 і O3 пройдено</span></h2>
+          <dl class="kv"><dt>Причина</dt><dd><b>${esc(a.cause)}</b></dd><dt>Впевненість</dt><dd>${a.conf}%</dd><dt>Відкинуто</dt><dd>${a.hyps.filter(h => h.res === 'no').map(h => h.name).join(', ') || '—'}</dd></dl>
+          ${a.seasonal ? `<p class="small muted sec-gap">Падіння пояснюється сезонністю, дій не потрібно. Аномалію закрито автоматично, подію записано в журнал.</p>` :
+            a.status === 'report' ? `<div class="sec-gap"><span class="small" style="font-weight:500">Варіанти рішення</span>${a.opts.map((o, i) => `<label class="opt"><input type="radio" name="opt" value="${i}" ${i === 0 ? 'checked' : ''}><span><b>${esc(o[0])}</b><br><span class="small muted">${esc(o[1])}</span></span></label>`).join('')}
+            <div class="acts sec-gap"><button class="btn primary" data-action="approve-report" data-id="${a.id}" aria-disabled="${!ROLES[S.role].r2}">Передати план на узгодження</button><button class="btn" data-action="reject-report" data-id="${a.id}">Відхилити</button>${ROLES[S.role].r2 ? '' : `<span class="small muted">Роль ${ROLES[S.role].name} не затверджує зміни на сайті.</span>`}</div></div>`
+            : `<p class="small muted sec-gap">Обрано: ${esc(a.chosen || '')}</p>`}
+        </div>` : ''}
+        ${lr ? `<div class="panel"><h2>Рішення в роботі: ${lr.id}<span class="sp chip ${REC_ST[lr.status][1]}">${REC_ST[lr.status][0]}</span></h2><p class="small muted">Обраний варіант проходить той самий контур, що й інші зміни: канали, Координатор, O2 і O3, тест-гейт.</p><button class="btn small" data-action="open-rec" data-id="${lr.id}">Відкрити пакет</button></div>` : ''}
+        ${t ? `<div class="panel" data-tour="test"><h2>Тест ${t.id}: SEO, A/B і AI Visibility проти контролю ${hint('Зміни внесено лише в тестову групу сторінок. Моніторинг щодня о 08:00. Якщо тест гірший за контроль на 10% п\'ять днів поспіль, оркестр сам відкотить зміни.')}<span class="sp chip ${t.status === 'won' ? 'ok' : t.status === 'deployed' ? 'ok' : 'act'}">${{ running: 'тиждень ' + t.week + ' з 3', won: 'тест виграв', deployed: 'розгорнуто' }[t.status]}</span></h2>
+          <div class="chart" data-test="${t.id}"></div>
+          <div class="tbl-wrap sec-gap"><table class="gate"><thead><tr><th>Тест-гейт ${hint('Будь-яка зміна сторінки проходить три тести одночасно. Розгортання дозволено, лише якщо жоден не гірший за контроль більш ніж на 2%, а хоча б один значуще кращий.')}</th><th>Метрика</th><th>Тиждень ${t.week}</th><th></th></tr></thead><tbody>
+            ${[['SEO-тест', 'кліки до контролю', a.test[t.week] - a.ctrl[t.week]], ['A/B тест (CRO)', 'конверсія в реєстрацію', a.ab[t.week]], ['AI Visibility тест', 'цитування, п. на 40 промптах', a.ai[t.week]]].map(g => `<tr><td><b>${g[0]}</b></td><td class="small muted">${g[1]}</td><td>${g[2] >= 0 ? '+' : ''}${String(g[2]).replace('.', ',')}%</td><td>${t.week === 0 ? '<span class="chip">старт</span>' : g[2] < -2 ? '<span class="chip bad">гірше</span>' : g[2] >= 2 ? '<span class="chip ok">краще</span>' : '<span class="chip">нейтрально</span>'}</td></tr>`).join('')}
+          </tbody></table></div>
+          <div class="legend"><span><i style="width:18px;height:3px;background:var(--act);display:inline-block"></i>тестова група</span><span><i style="width:18px;height:3px;background:var(--ink-3);display:inline-block"></i>контроль</span><span>індекс, тиждень 0 = 100</span></div>
+          <div class="acts sec-gap">${t.status === 'running' ? `<button class="btn" data-action="week" data-id="${t.id}">Перемотати на тиждень вперед</button>` : ''}${t.status === 'won' ? `<button class="btn primary" data-action="deploy" data-id="${t.id}">Розгорнути на всі сторінки</button>` : ''}<button class="btn" data-action="weekly">Тижневий звіт</button></div>
+        </div>` : ''}
+      </div>
+    </div>`;
+  },
+
+  approvals() {
+    const p = pending();
+    const doneA = S.approvals.filter(a => a.status !== 'pending');
+    return `<div class="panel" data-tour="ap-list"><h2>Чекають рішення ${hint('Кожна картка показує «до» і «після», вердикти O2 і O3 та гроші. «Повернути» відправляє задачу назад агенту з вашим коментарем.')}<span class="sp small muted">ваша роль: ${ROLES[S.role].name}</span></h2>
+      ${p.length ? p.map(a => apCard(a, false)).join('') : `<p class="empty">Усе затверджено. Нові запити з'являться після наступного запуску конвеєрів.</p>`}</div>
+      ${doneA.length ? `<div class="panel sec-gap"><h2>Вирішено</h2>${doneA.map(a => `<div class="row"><span class="grow">${esc(a.title)}</span><span class="chip">${a.risk}</span><span class="chip ${a.status === 'approved' ? 'ok' : a.status === 'returned' ? 'warn' : 'bad'}">${{ approved: 'затверджено', returned: 'повернуто', rejected: 'відхилено', expired: 'прострочено' }[a.status]}</span><span class="small muted">${a.by || ''}</span></div>`).join('')}</div>` : ''}`;
+  },
+
+
+  seo() {
+    const kw = S.seoKw;
+    const mv = (n, p) => { const d = p - n; return d > 0 ? `<span class="up">↑${d}</span>` : d < 0 ? `<span class="down">↓${-d}</span>` : `<span class="small muted">=</span>`; };
+    const avg = k => (kw.reduce((t, x) => t + x[k], 0) / kw.length).toFixed(1).replace('.', ',');
+    const pls = S.pipelines.filter(p => p.ch === 'SEO');
+    const aps = pending().filter(a => a.ch === 'SEO');
+    const sev = { high: '<span class="chip bad">високий</span>', med: '<span class="chip warn">середній</span>', low: '<span class="chip">низький</span>' };
+    return `${intro(`<b>SEO-напрям.</b> 7 агентів стежать за позиціями в Google і Bing, технічним станом сайту і видимістю в AI-відповідях. Ресерч і аудит ідуть без людини. Будь-яка зміна на сайті — рівень R2: її перевіряють O2 і O3, а затверджує Channel manager або Editor.`)}
+    <div class="grid g4">
+      <div class="metric"><div class="lbl">Кліки, 7 днів ${hint('Google Search Console плюс Bing Webmaster Tools. Оновлюється щодня о 05:00.')}</div><div class="val">${vzN(vzSeoWeek().clicks)}</div><div class="sub">${vzSeoWeek().dClicks} до минулого тижня · W41</div></div>
+      <div class="metric"><div class="lbl">Покази, 7 днів</div><div class="val">${vzSeoWeek().impr} тис.</div><div class="sub">${vzSeoWeek().dImpr}, найбільше на /pricing-analytics</div></div>
+      <div class="metric"><div class="lbl">Сер. позиція ${hint('Середнє по відстежуваних запитах. Розбіжність між Google і Bing — перша підказка, де шукати причину.')}</div><div class="val">${avg('g')} <span class="small muted">Google</span></div><div class="sub">${avg('b')} у Bing</div></div>
+      <div class="metric"><div class="lbl">Проіндексовано</div><div class="val">1 186</div><div class="sub">з 1 240 сторінок</div><div class="bar"><i style="width:96%"></i></div></div>
+    </div>
+    ${flow('Як працює SEO-цикл', 'Щоранку оркестр проходить ці кроки сам. Людина з’являється лише там, де зміна йде на сайт.', [
+      ['05:00 · Дані', 'GSC, Bing Webmaster Tools, GA4, краул сайту'],
+      ['06:00 · Ранги', 'Позиції в Google і Bing, мобайл і десктоп'],
+      ['06:30 · Аномалії', 'Факт проти сезонного прогнозу, без зайвих тривог'],
+      ['Діагностика', '7 гіпотез паралельно: техніка, SERP, конкуренти, апдейти'],
+      ['Погодження каналів', 'PPC і AI Visibility перевіряють свій канал; CRO судить A/B тест'],
+      ['Тест-гейт', 'A/B, SEO-тест і AI Visibility тест на тестовій групі, 3 тижні'],
+      ['Розгортання', 'Після виграшу тесту і вашого апруву']
+    ])}
+    <div class="grid g2 sec-gap">
+      <div class="panel" data-tour="seo-kw"><h2>Позиції: Google і Bing ${hint('Rank tracking щодня о 06:00. Якщо запит просів лише в одному пошуковику, причина зазвичай в апдейті алгоритму, а не на сайті.')}<button class="btn small sp" data-action="ex" data-id="seo-rank">Перевірити зараз</button></h2>
+        <div class="tbl-wrap"><table><thead><tr><th>Запит</th><th>Google</th><th>Bing</th><th>Обсяг</th></tr></thead><tbody>
+        ${kw.map(k => `<tr><td><b>${esc(k.kw)}</b><br><span class="small muted">${k.page}</span></td><td>${k.g} ${mv(k.g, k.gPrev)}</td><td>${k.b} ${mv(k.b, k.bPrev)}</td><td class="small muted">${k.vol.toLocaleString('uk')}</td></tr>`).join('')}
+        </tbody></table></div></div>
+      ${examples('seo-ex', [
+        ['seo-rank', 'R0', 'Перевірка позицій', 'Keyword Researcher знімає ранги в Google і Bing і пише в #seo, якщо запит просів на 3+ позиції.'],
+        ['seo-title', 'R2', 'Нові title і meta', 'Content Optimizer переписує title для /smart-reports. Погодження PPC- і AI Visibility-оркестраторів, далі O2, O3, ваш апрув і тест-гейт.'],
+        ['seo-aeo', 'R2', 'AEO-блок для статті', 'Низький вплив: після погодження SEO-, PPC- та AI Visibility-оркестраторів координатор фіксує авто-дозвіл. O2 спершу поверне цифру без джерела, далі тест-гейт.'],
+        ['seo-audit', 'R1', 'Технічний аудит', 'Technical SEO Auditor краулить сайт і заводить задачі в Jira. Апрув не потрібен.']
+      ])}
+    </div>
+    <div class="panel sec-gap"><h2>Задачі SEO ${hint('Ті самі конвеєри, що на HUD, лише для SEO. Запустіть приклад, і тут з’явиться новий рядок.')}<span class="sp small muted">${pls.length} задач</span></h2>
+      ${pls.length ? scoreHTML(pls) : '<p class="empty">Запустіть приклад, щоб побачити SEO-задачу в роботі.</p>'}
+      ${aps.length ? `<h3 class="sub-h">Чекають апруву</h3>${aps.map(a => apCard(a, false)).join('')}` : ''}</div>
+    <div class="grid g2 sec-gap">
+      <div class="panel"><h2>Технічні проблеми ${hint('Знаходить Technical SEO Auditor під час щомісячного краулу. Задача в Jira — рівень R1, людський апрув не потрібен.')}<button class="btn small sp" data-action="ex" data-id="seo-audit">Запустити аудит</button></h2>
+        ${S.seoIssues.map(i => `<div class="row"><span class="grow"><b>${esc(i.what)}</b><br><span class="small muted">Рішення: ${esc(i.fix)}</span></span>${sev[i.sev]}${i.status === 'open' ? `<button class="btn small" data-action="seo-jira" data-id="${i.id}">У Jira</button>` : `<span class="chip ok">${i.status}</span>`}</div>`).join('')}</div>
+      ${rights('Що агенти SEO роблять самі', [
+        ['R0', 'Ресерч ключів, ранги, краул, аудит', 'автоматично'],
+        ['R1', 'Задачі в Jira, чернетки в Google Docs', 'O2'],
+        ['R2', 'Title, meta, тексти, schema, внутрішні посилання', 'погодження PPC і AIV → O2 + O3 → людина, якщо вплив високий → тест-гейт'],
+        ['Ніколи', 'robots.txt, редиректи, видалення сторінок', 'лише людина вручну']
+      ], 'Межі задаються в політиках O3. Агент бачить інструмент, але не має прав на небезпечні дії.')}
+    </div>`;
+  },
+
+  ppc() {
+    const live = S.campaigns.filter(c => c.cpa && c.spent);
+    const spent = live.reduce((t, c) => t + c.spent, 0);
+    const conv = live.reduce((t, c) => t + c.spent / c.cpa, 0);
+    const roas = (live.reduce((t, c) => t + c.roas * c.spent, 0) / spent).toFixed(1).replace('.', ',');
+    const bp = Math.round(S.budgetUsed / S.budget * 100);
+    const alerts = S.campaigns.filter(c => c.status === 'alert').length;
+    const pls = S.pipelines.filter(p => p.ch === 'PPC');
+    const aps = pending().filter(a => a.ch === 'PPC');
+    const st = { alert: '<span class="chip bad">перевитрата</span>', ok: '<span class="chip ok">у плані</span>', fixed: '<span class="chip ok">виправлено</span>', draft: '<span class="chip">чернетка</span>' };
+    return `${intro(`<b>PPC-напрям.</b> 7 агентів керують ставками, бюджетами і креативами в Google Ads, LinkedIn Ads і Meta. Будь-яка зміна грошей — рівень R3: O3 звіряє її з лімітами, а затверджує власник бюджету в межах свого ліміту (Channel manager до $500, Marketing lead до $5 000).`)}
+    <div class="grid g4">
+      <div class="metric"><div class="lbl">Витрати, тиждень ${hint('O3 не пропустить жодну зміну, що виведе витрати за тижневий ліміт.')}</div><div class="val">$${S.budgetUsed.toLocaleString('uk')}</div><div class="sub">з $${S.budget.toLocaleString('uk')}</div><div class="bar"><i style="width:${bp}%;background:${bp > 90 ? 'var(--veto)' : bp > 80 ? 'var(--hold)' : 'var(--act)'}"></i></div></div>
+      <div class="metric"><div class="lbl">CPA, зважений</div><div class="val">$${Math.round(spent / conv)}</div><div class="sub">ціль $35</div></div>
+      <div class="metric"><div class="lbl">ROAS, 30 днів</div><div class="val">${roas}</div><div class="sub">дохід на $1 витрат</div></div>
+      <div class="metric"><div class="lbl">Алерти ${hint('Кампанії, де витрати або CPA вийшли за план. Pacing перевіряється щогодини.')}</div><div class="val" style="color:${alerts ? 'var(--veto)' : 'inherit'}">${alerts}</div><div class="sub">кампаній поза планом</div></div>
+    </div>
+    ${flow('Як працює PPC-цикл', 'Агенти пропонують, оркестратори перевіряють, гроші рухає лише людина.', [
+      ['Щогодини · Pacing', 'Витрати проти плану по кожній кампанії'],
+      ['Щодня · Запити', 'Пошукові запити: мінус-слова і нові ключі'],
+      ['Пропозиція', 'Budget Optimizer або PPC Strategist готують зміну з прогнозом'],
+      ['O2', 'Математика прогнозу і статистична значущість'],
+      ['O3', 'Тижневий ліміт, крок ставки, політики платформ'],
+      ['Людина', 'Апрув у HUD або кнопкою в Slack #ppc']
+    ])}
+    <div class="panel sec-gap" data-tour="ppc-camp"><h2>Кампанії ${hint('Смужка — витрати тижня проти плану. Червоний CPA — вище цілі.')}<button class="btn small sp" data-action="ex" data-id="ppc-pacing">Перевірити pacing</button></h2>
+      <div class="tbl-wrap"><table><thead><tr><th>Кампанія</th><th>Бюджет на день</th><th>Витрати тижня</th><th>CPA / ціль</th><th>ROAS</th><th>Статус</th></tr></thead><tbody>
+      ${S.campaigns.map(c => `<tr><td><b>${esc(c.name)}</b><br><span class="small muted">${c.plat}</span></td><td>${c.day ? '$' + c.day : '—'}</td><td style="min-width:150px">$${c.spent.toLocaleString('uk')} <span class="small muted">план $${c.plan.toLocaleString('uk')}</span><div class="bar"><i style="width:${c.plan ? Math.min(100, Math.round(c.spent / c.plan * 100)) : 0}%;background:${c.spent > c.plan * 1.1 ? 'var(--veto)' : 'var(--act)'}"></i></div></td><td>${c.cpa ? `<span style="${c.cpa > c.tgt ? 'color:var(--veto);font-weight:600' : ''}">$${c.cpa}</span> / $${c.tgt}` : '—'}</td><td>${c.roas ? String(c.roas).replace('.', ',') : '—'}</td><td>${st[c.status]}</td></tr>`).join('')}
+      </tbody></table></div></div>
+    <div class="grid g2 sec-gap">
+      ${examples('ppc-ex', [
+        ['ppc-pacing', 'R3', 'Pacing-алерт', 'Brand UA перевитрачає 18%. PPC Strategist пропонує −12% ставок і перенести $150/день. Запит приходить у #ppc.'],
+        ['ppc-neg', 'R2', 'Мінус-слова', '14 запитів без конверсій з’їли $310. Низький вплив: SEO і Аналітика за — координатор фіксує авто-дозвіл.'],
+        ['ppc-land', 'R2', 'Змінити лендінг під оголошення', 'PPC не може змінити сторінку сам: рекомендація йде на погодження SEO-, PPC- та AI Visibility-оркестраторів.'],
+        ['ppc-ab', 'R2', 'A/B тест оголошень', 'Creative Strategist пише 3 нові оголошення для CFO ICP, старі лишаються як контроль.'],
+        ['ppc-veto', 'R3', 'Вето O3', 'Budget Optimizer просить +$1 500. Витрати вийшли б за ліміт, і O3 блокує дію ще до людини.']
+      ])}
+      ${rights('Запобіжники бюджету', [
+        ['R3', 'Тижневий ліміт', '$5 000'],
+        ['R3', 'Зміна ставки за один крок', 'не більше 15%'],
+        ['R3', 'Нова кампанія або платформа', 'лише Owner'],
+        ['R2', 'Зміна лендингу під оголошення', 'лише рекомендація: погодження SEO і AIV → тест-гейт'],
+        ['R1', 'Авто-пауза: CPA більше 2× цілі 3 дні поспіль', 'агент сам, людині — алерт'],
+        ['Ніколи', 'Зміна способу оплати, ключів доступу', 'лише людина вручну']
+      ], 'O3 перевіряє кожну дію проти цих правил. Правила задає Owner.')}
+    </div>
+    <div class="panel sec-gap"><h2>Задачі PPC <span class="sp small muted">${pls.length} задач</span></h2>
+      ${pls.length ? scoreHTML(pls) : '<p class="empty">Запустіть приклад, щоб побачити PPC-задачу в роботі.</p>'}
+      ${aps.length ? `<h3 class="sub-h">Чекають апруву</h3>${aps.map(a => apCard(a, false)).join('')}` : ''}</div>`;
+  },
+
+
+  aiv() {
+    const marks = m => `<span class="dots">${[...m].map((c, i) => `<i class="d6 ${c === 'c' ? 'c' : c === 'm' ? 'm' : ''}" title="${ENG[i]}: ${c === 'c' ? 'цитує наш сайт' : c === 'm' ? 'згадує Acme без посилання' : 'не згадує'}"></i>`).join('')}</span>`;
+    const tot = S.prompts.length * 6;
+    const men = S.prompts.reduce((t, p) => t + [...p.m].filter(c => c !== '-').length, 0);
+    const cit = S.prompts.reduce((t, p) => t + [...p.m].filter(c => c === 'c').length, 0);
+    const cl = { 'правильно': 'ok', 'застаріло': 'warn', 'помилка': 'bad', 'не згадується': '' };
+    return `${intro(`<b>AI Visibility.</b> Як часто ChatGPT, Perplexity, Gemini, Google AI Overviews, Claude і Copilot згадують Acme, посилаються на наш сайт і чи правильно описують продукт. Агенти AI Visibility нічого не змінюють самі: вони пишуть рекомендації, а ті проходять погодження трьох каналів і Координатора сторінки, тріаж за впливом і тест-гейт.`)}
+    <div class="grid g4">
+      <div class="metric"><div class="lbl">Share of voice ${hint('Частка згадок Acme серед усіх брендів у відповідях на наш промпт-сет.')}</div><div class="val">23%</div><div class="sub">Baremetrics 31%, ProfitWell 19%</div></div>
+      <div class="metric"><div class="lbl">Згадки ${hint('Відповідь називає Acme, навіть без посилання.')}</div><div class="val">34%</div><div class="sub">120 промптів × 6 AI-систем</div></div>
+      <div class="metric"><div class="lbl">Цитування ${hint('Відповідь посилається на сторінку acme.io як на джерело. Найцінніший сигнал.')}</div><div class="val">18%</div><div class="sub">посилань на acme.io</div></div>
+      <div class="metric"><div class="lbl">Точність наративу ${hint('Частка тверджень про Acme в AI-відповідях, які збігаються з brand-context.md.')}</div><div class="val">71%</div><div class="sub">2 з 4 ключових тверджень неточні</div></div>
+    </div>
+    ${flow('Як працює AI Visibility', 'Відповіді моделей недетерміновані, тому кожен промпт проганяється тричі, а висновки робляться лише на стійких змінах.', [
+      ['Промпт-сет', 'Prompt Research Agent: 120 промптів з ICP, GSC, Reddit і дзвінків продажів'],
+      ['04:00 · Прогін', 'AI Visibility Tracker: 120 × 6 AI-систем × 3 прогони'],
+      ['Аналіз', 'Згадка, цитування, позиція в списку, тональність, точність фактів'],
+      ['Gap-аналіз', 'Citation Analyst: кого цитують замість нас і чому'],
+      ['Рекомендація', 'Narrative Strategist пише наратив для сторінки'],
+      ['Погодження каналів', 'SEO і PPC; CRO судить A/B у тест-гейті; далі O2, O3 і тріаж'],
+      ['Тест-гейт', 'A/B + SEO-тест + AI Visibility тест проти контролю']
+    ])}
+    <div class="panel sec-gap"><h2>По AI-системах ${hint('Середнє за 7 днів. Позиція — на якому місці Acme в переліку рекомендованих інструментів.')}<button class="btn small sp" data-action="ex" data-id="aiv-run">Прогнати промпти зараз</button></h2>
+      <div class="tbl-wrap"><table><thead><tr><th>AI-система</th><th>Згадки</th><th>Цитування</th><th>Сер. позиція</th><th>Цитування, 7 днів</th></tr></thead><tbody>
+      ${S.engines.map(e => `<tr><td><b>${e[0]}</b></td><td style="min-width:110px">${e[1]}%<div class="bar"><i style="width:${e[1]}%"></i></div></td><td style="min-width:110px">${e[2]}%<div class="bar"><i style="width:${e[2]}%;background:var(--pass)"></i></div></td><td>${String(e[3]).replace('.', ',')}</td><td>${e[4] > 0 ? `<span class="up">↑${e[4]} п.</span>` : e[4] < 0 ? `<span class="down">↓${-e[4]} п.</span>` : '<span class="small muted">=</span>'}</td></tr>`).join('')}
+      </tbody></table></div></div>
+    <div class="panel sec-gap" data-tour="aiv-prompts"><h2>По промптах: найбільші розриви ${hint('8 промптів із 120, де розрив із конкурентами найбільший. Точки по порядку: ChatGPT, Perplexity, AI Overviews, Gemini, Claude, Copilot. Наведіть на точку, щоб побачити назву.')}<span class="sp small muted"><span class="dots"><i class="d6 c"></i></span> цитує · <span class="dots"><i class="d6 m"></i></span> згадує · <span class="dots"><i class="d6"></i></span> немає</span></h2>
+      <div class="tbl-wrap"><table><thead><tr><th>Промпт</th><th>Етап</th><th>6 AI-систем</th><th>Цитують замість нас</th><th>Рекомендація</th></tr></thead><tbody>
+      ${S.prompts.map(p => { const r = p.rec && S.recs.find(x => x.id === p.rec); return `<tr><td><b>${esc(p.p)}</b><br><span class="small muted">${p.page}</span></td><td><span class="chip">${p.st}</span></td><td>${marks(p.m)}</td><td class="small">${esc(p.comp)}</td><td>${r ? `<button class="btn small" data-action="open-rec" data-id="${r.id}">${r.id} · ${REC_ST[r.status][0]}</button>` : '<span class="small muted">—</span>'}</td></tr>`; }).join('')}
+      </tbody></table></div></div>
+    <div class="grid g2 sec-gap">
+      <div class="panel"><h2>Що AI каже про Acme ${hint('Citation Analyst порівнює твердження з відповідей з brand-context.md і шукає джерело неточності.')}</h2>
+        ${S.claims.map(c => `<div class="row"><span class="grow"><b>«${esc(c[0])}»</b><br><span class="small muted">${c[2]} · джерело: ${esc(c[3])}</span></span><span class="chip ${cl[c[1]]}">${c[1]}</span>${c[4] ? `<button class="btn small" data-action="open-rec" data-id="${c[4]}">${c[4]}</button>` : ''}</div>`).join('')}</div>
+      ${examples('aiv-ex', [
+        ['aiv-run', 'R0', 'Щоденний прогін', 'AI Visibility Tracker проганяє промпт-сет і пише в #ai-visibility, що змінилось.'],
+        ['aiv-rec', 'R2', 'Наратив для ключової сторінки', 'REC-1: визначення і таблиця на /pricing-analytics. Високий вплив, тому після погодження каналів — до людини.'],
+        ['aiv-fact', 'R2', 'Виправити застарілий факт', 'REC-4: QuickBooks. Низький вплив, усі рев’юери за — координатор фіксує авто-дозвіл, далі тест-гейт.'],
+        ['aiv-conflict', 'R2', 'Конфлікт подів', 'REC-3: PPC хоче H1 як в оголошенні. SEO і AI Visibility проти — вирішує людина.']
+      ])}
+    </div>
+    <div class="grid g2 sec-gap">
+      <div class="panel"><h2>По агентах ${hint('Нові агенти пода AI Visibility. Мають доступ лише на читання до сайту і AI-систем.')}</h2>
+        ${[['AI Visibility Tracker', 'проганяє промпти, рахує згадки і цитування', '720 відповідей за ніч'], ['Prompt Research Agent', 'тримає промпт-сет актуальним', '+6 промптів цього тижня'], ['Citation Analyst', 'шукає, кого і чому цитують замість нас, ловить неточні факти', '2 неточності знайдено'], ['Narrative Strategist', 'пише наратив для сторінок під AI-відповіді', '3 рекомендації'], ['AI Search Optimizer', 'структура: визначення, таблиці, FAQ, schema (под SEO)', '1 рекомендація']].map(a => `<div class="row"><span class="grow"><b>${a[0]}</b><br><span class="small muted">${a[1]}</span></span><span class="small muted" style="text-align:right">${a[2]}</span></div>`).join('')}</div>
+      ${rights('Що агенти AI Visibility роблять самі', [
+        ['R0', 'Прогін промптів, аналіз відповідей, gap-аналіз', 'автоматично'],
+        ['R1', 'Звіти, задачі в Jira, чернетки наративу', 'O2'],
+        ['R2', 'Будь-яка зміна сторінки', 'лише рекомендація → погодження каналів → тріаж → тест-гейт'],
+        ['Ніколи', 'Пости від імені бренду на Reddit і форумах, щоб накрутити згадки', 'заборонено політикою O3']
+      ])}
+    </div>`;
+  },
+
+  recs() {
+    const by = k => S.recs.filter(r => k.includes(r.status));
+    const groups = [['Чекають людину', ['human', 'won']], ['Пакети в роботі й черзі', ['new', 'queued', 'review', 'ready', 'auto', 'test', 'inconclusive']], ['Завершені', ['deployed', 'rolledback', 'rejected']]];
+    return `${intro(`<b>Спільне керування сторінкою.</b> Агент подає пропозицію. Оркестратори SEO, PPC та AI Visibility оцінюють одну версію; Координатор сторінки перевіряє взаємний вплив, збирає компроміс і вирішує, чи потрібна людина. Канальний апрув не дозволяє запис. Один пакет проходить обмежений тест, а gateway застосовує тільки його погоджену версію.`)}
+    ${pageControlHTML()}
+    <div class="acts sec-gap"><button class="btn" data-action="page-queue">SEO-пропозиція на /smart-reports: перевірити чергу</button></div>
+    ${flow('Життєвий цикл рекомендації', '', [
+      ['Рекомендація', 'Автор: що змінити, чому, докази, очікуваний ефект'],
+      ['Канальні погодження', 'SEO, PPC та AI Visibility: кожен оцінює свій канал, ніхто не записує'],
+      ['Координатор + O2/O3', 'Єдина версія; взаємний вплив, докази, дозволені поля та політики'],
+      ['Дозвіл на тест', 'Низький вплив і всі погодили — авто. Конфлікт, високий вплив — людина'],
+      ['Обмежений тест', 'Тестова версія окрема від основної; сторонні правки стоять у черзі'],
+      ['Gateway і моніторинг', 'Застосовує погоджений пакет або відновлює тестову групу; невизначеність блокує rollout']
+    ])}
+    <div class="grid g2 sec-gap">
+      ${rights('Хто затверджує', [
+        ['Координатор', 'Низький вплив, три канали погодили незмінний пакет', 'O3 фіксує авто-дозвіл на обмежений тест'],
+        ['Людина', 'Високий вплив: ключова сторінка, оффер, ціна, позиціонування', 'Editor, Channel manager, Marketing lead'],
+        ['Людина', 'Конфлікт каналів після спроби узгодження', 'обирає варіант; він повторно погоджується перед тестом'],
+        ['R3', 'Будь-яка зміна грошей', 'завжди людина в межах ліміту ролі'],
+        ['Ніколи', 'Зміна сторінки без тест-гейту', 'O3 блокує розгортання']
+      ], 'Правила тріажу задає Owner. O3 застосовує їх до кожної рекомендації.')}
+      ${examples('recs-ex', [
+        ['rec-all', 'R2', 'Погодити нові пакети', 'Запускає перевірку всіх рекомендацій зі статусом «нова». Подивіться, як вони розійдуться: агенти, людина, конфлікт.'],
+        ['rec-fast', 'R2', 'Прогнати всі тести до кінця', 'Перемотує тест-гейт на 3 тижні для всіх рекомендацій у тесті.'],
+        ['ppc-land', 'R2', 'PPC хоче змінити лендінг', 'Нова рекомендація від PPC: SEO і AI Visibility будуть проти.']
+      ])}
+    </div>
+    ${groups.map(([t, k]) => { const list = by(k); return list.length ? `<div class="panel sec-gap"${t === 'Чекають людину' ? ' data-tour="recs-list"' : ''}><h2>${t} <span class="chip">${list.length}</span></h2>${list.map(recCard).join('')}</div>` : ''; }).join('')}`;
+  },
+
+  pm() {
+    syncProjects();
+    const pend = pending();
+    const over = pend.filter(a => (a.age || 0) >= sla(a));
+    const blockers = S.pipelines.filter(p => p.st.includes('return') || p.st.includes('veto')).length;
+    const inWork = S.pipelines.filter(p => p.st[7] !== 'done' && !p.st.includes('veto')).length;
+    const cols = ['План O1', 'Агенти', 'Погодження каналів, O2, O3', 'Чекає людину', 'Тест-гейт', 'Готово'];
+    const by = cols.map(() => []);
+    S.pipelines.forEach(p => by[colOf(p)].push(p));
+    const rk = { 'за планом': 'ok', 'увага': 'warn', 'під ризиком': 'bad' };
+    const card = p => `<div class="card"><button class="lnk" data-action="open-pl" data-id="${p.id}">${esc(p.title)}</button><div class="small muted">${p.id} · ${esc(p.ch)}</div><div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><span class="chip">${p.risk}</span>${p.st.includes('return') ? '<span class="chip warn">повернуто O2</span>' : ''}${p.st.includes('veto') ? '<span class="chip bad">вето</span>' : ''}</div></div>`;
+    return `${intro(`<b>Менеджер проєкту.</b> PM не затверджує контент і бюджети: це роблять Editor, Channel manager і Marketing lead. Його робота в Orca9 — дедлайни, вузькі місця і рішення, які затримуються. Оберіть угорі роль <b>Project manager</b>, щоб побачити екран його очима.`)}
+    <div class="grid g4">
+      <div class="metric"><div class="lbl">Активні епіки ${hint('Епіки синхронізуються з Jira в обидва боки.')}</div><div class="val">${S.projects.length}</div><div class="sub">${S.projects.filter(p => p.risk !== 'за планом').length} потребують уваги</div></div>
+      <div class="metric"><div class="lbl">Задач у роботі</div><div class="val">${inWork}</div><div class="sub">по всіх напрямах</div></div>
+      <div class="metric"><div class="lbl">Апруви поза SLA ${hint('R3 (гроші) — 8 годин, R2 (публікації) — 24 години.')}</div><div class="val" style="color:${over.length ? 'var(--veto)' : 'inherit'}">${over.length}</div><div class="sub">з ${pend.length} у черзі</div></div>
+      <div class="metric"><div class="lbl">Блокери</div><div class="val" style="color:${blockers ? 'var(--hold)' : 'inherit'}">${blockers}</div><div class="sub">повернення O2 і вето O3</div></div>
+    </div>
+    <div class="panel sec-gap"><h2>Епіки і дедлайни ${hint('Прогрес рахується за завершеними підзадачами. Статус оновлюється сам, коли конвеєр застрягає або рушає далі.')}</h2>
+      <div class="tbl-wrap"><table><thead><tr><th>Епік</th><th>Дедлайн</th><th>Прогрес</th><th>Статус</th><th>Чому</th></tr></thead><tbody>
+      ${S.projects.map(p => `<tr><td><b>${esc(p.name)}</b><br><span class="small muted">${p.id} · ${p.owner}</span></td><td>${p.due.slice(8, 10)}.${p.due.slice(5, 7)}<br><span class="small muted">${daysLeft(p.due)}</span></td><td style="min-width:120px">${p.prog}%<div class="bar"><i style="width:${p.prog}%"></i></div></td><td><span class="chip ${rk[p.risk]}">${p.risk}</span></td><td class="small">${esc(p.why)}</td></tr>`).join('')}
+      </tbody></table></div></div>
+    <div class="panel sec-gap" data-tour="pm-kan"><h2>Дошка задач ${hint('Колонки — етапи конвеєра. Картки рухаються самі, коли агенти й оркестратори завершують кроки. Натисніть картку, щоб побачити деталі.')}</h2>
+      <div class="kan">${cols.map((c, i) => `<div class="col"><h4>${c}<span>${by[i].length}</span></h4>${by[i].map(card).join('') || '<p class="small muted" style="margin:0">порожньо</p>'}</div>`).join('')}</div></div>
+    <div class="grid g2 sec-gap">
+      <div class="panel"><h2>Апруви і SLA ${hint('Червоне — прострочено. «Нагадати» пише затверджувачу в Slack #pm-standup з кнопкою апруву.')}</h2>
+        ${pend.length ? pend.map(a => `<div class="row"><span class="grow"><b>${esc(a.title)}</b><br><span class="small muted">${a.id} · затверджує ${approverOf(a)}</span></span><span class="chip ${(a.age || 0) >= sla(a) ? 'bad' : 'ok'}">${a.age || 0} год / SLA ${sla(a)}</span><button class="btn small" data-action="nudge" data-id="${a.id}">${a.nudged ? 'Ще раз' : 'Нагадати'}</button></div>`).join('') : '<p class="empty">Черга апрувів порожня.</p>'}</div>
+      ${examples('pm-ex', [
+        ['pm-standup', 'R1', 'Стендап-дайджест', 'Одне повідомлення в #pm-standup: що в роботі, що прострочено, де ризики.'],
+        ['pm-nudge', 'R1', 'Нагадати про прострочене', 'Усім, хто тримає апрув довше за SLA, приходить нагадування з кнопкою.'],
+        ['pm-deadline', 'R1', 'Перенести дедлайн', 'EP-14 зсувається на тиждень. O1 перепланує підзадачі й перекине агентів на EP-12.'],
+        ['pm-block', 'R1', 'Ескалувати блокер', 'Пакет кампанії CMP-482 застряг на O2 чи апруві. PM ескалює до Marketing lead у Slack.']
+      ])}
+    </div>
+    ${flow('Що робить PM в Orca9', '', [
+      ['Бачить усе', 'Усі епіки й конвеєри, без права апруву R2 і R3'],
+      ['Стежить за SLA', 'Прострочені апруви підсвічуються, є нагадування'],
+      ['Керує розкладом', 'Ставить крони на паузу, наприклад на час релізу'],
+      ['Переносить дедлайни', 'O1 перепланує підзадачі під нову дату'],
+      ['Ескалює', 'Блокер іде власнику рішення одним повідомленням']
+    ])}`;
+  },
+
+  events() {
+    const f = S.evF;
+    const list = S.feed.filter(e => f === 'all' || e.cls === EVF[f][1]);
+    const cnt = k => S.feed.filter(e => e.cls === EVF[k][1]).length;
+    return `${intro(`<b>Події</b> — пам’ять оркестру. Кожен крок агента, оркестратора, крона чи людини стає подією: вона з’являється в стрічці праворуч, потрапляє в журнал аудиту, а важливі (апрув, алерт, вето, звіт) дублюються в Slack. Запустіть сценарій і подивіться, які події він породжує.`)}
+    <div class="grid g2">
+      ${examples('ev-demo', [
+        ['ev-r2', 'R2', 'Звичайний шлях', 'Задача проходить O1 → агенти → O2 → O3 і зупиняється на вашому апруві.'],
+        ['ev-return', 'R2', 'Заперечення і повернення', 'Рев’юер Бренду проти тону, потім O2 знаходить цифру без джерела. Обидва рази робота йде назад агенту.'],
+        ['ev-auto', 'R2', 'Авто-дозвіл координатора', 'Низький вплив, усі рев’юери за: людина не потрібна, але тест-гейт обов’язковий.'],
+        ['ev-conflict', 'R2', 'Конфлікт каналів у конвеєрі', 'SEO і AI Visibility проти PPC-зміни hero. Координатор переносить рішення в Рекомендації.'],
+        ['ev-noaddr', 'R2', 'Зміна без адреси', 'Пакет без явної сторінки чи групи відхиляється на вході: Координатор не вгадує ресурс.'],
+        ['ev-gate', 'R2', 'Тест-гейт не пройдено', 'A/B +5%, але AI Visibility −11 п. — O3 відкочує зміну.'],
+        ['ev-veto', 'R3', 'Вето O3', 'Агент пропонує перевитрату бюджету, O3 блокує дію. Подія червона, у #ppc — алерт.'],
+        ['ev-cron', 'R0', 'Ранок за розкладом', 'Крони збирають дані і шукають аномалії. Системні події.'],
+        ['ev-anom', 'R0', 'Діагностика аномалії', 'Аналізатори перевіряють гіпотези паралельно, кожна дає свою подію.']
+      ])}
+      <div class="panel"><h2>Кольори подій ${hint('Колір лівої риски показує, хто діяв і чим закінчилось.')}</h2>
+        <div class="stack" style="gap:10px">
+          <div class="ev o"><b>Оркестратор</b> O1 планує, O2 перевіряє факти, O3 перевіряє бренд і бюджет</div>
+          <div class="ev"><b>Агент або крон</b> виконав роботу або поставив задачу в чергу</div>
+          <div class="ev h"><b>Людина</b> затвердила, повернула, змінила роль чи розклад</div>
+          <div class="ev ok"><b>Успіх</b> дію виконано, тест виграв, гіпотезу відкинуто</div>
+          <div class="ev warn"><b>Попередження</b> O2 повернув роботу, аномалія, перевитрата</div>
+          <div class="ev bad"><b>Проблема</b> вето O3 або підтверджена причина падіння</div>
+        </div></div>
+    </div>
+    <div class="grid g2 sec-gap">
+      <div class="panel"><h2><span class="nw">Усі події</span> <span class="chip">${S.feed.length}</span><span class="sp"><select id="ev-f" aria-label="Фільтр подій">${Object.entries(EVF).map(([k, v]) => `<option value="${k}" ${k === f ? 'selected' : ''}>${v[0]}${k === 'all' ? '' : ' (' + cnt(k) + ')'}</option>`).join('')}</select></span></h2>
+        <div class="evlist">${list.length ? list.map(e => `<div class="ev ${e.cls}"><time>${e.t}</time><b>${esc(e.who)}</b> ${esc(e.text)}</div>`).join('') : '<p class="empty">Подій цього типу ще немає. Запустіть сценарій вище.</p>'}</div></div>
+      <div class="stack">
+        <div class="panel"><h2>Анатомія події ${hint('Так подія виглядає в API і вебхуках. Поле evidence — посилання на дані, якими O2 підтвердив висновок.')}</h2>
+<pre class="code">{
+  "time": "2026-10-13T06:31:04Z",
+  "actor": "O2 Verifier",
+  "type": "orchestrator",
+  "pipeline": "MKT-477",
+  "risk": "R2",
+  "action": "verify.pass",
+  "text": "пропустив «SEO: нові title для 12 сторінок»",
+  "evidence": ["gsc://query/pricing-analytics",
+               "brand-context.md#tone"],
+  "prompt_version": "o2-verifier@1.8",
+  "model": "claude"
+}</pre></div>
+        ${rights('Куди йде подія', [
+          ['Стрічка', 'Праворуч, у реальному часі', 'усі'],
+          ['Аудит', 'Журнал, зберігається 12 місяців', 'усі'],
+          ['Slack', 'Апрув, алерт, вето, звіт', 'лише важливі'],
+          ['API', 'Вебхук або експорт у BigQuery', 'усі']
+        ])}
+      </div>
+    </div>`;
+  },
+
+  slackdemo() {
+    const msgs = S.slack.filter(m => m.ch === S.slCh).slice().reverse();
+    return `${intro(`<b>Slack</b> — другий пульт керування. Бот Orca9 пише алерти й запити на апрув у канали за напрямами, а кнопки в повідомленнях працюють так само, як у HUD, з тими ж правами ролі. Спробуйте команди <code>/orchestra</code> у полі внизу.`)}
+    <div class="sl" data-tour="sl-demo">
+        <div class="chs"><div class="ws">Acme · Marketing</div>${Object.keys(SLCH).map(c => { const n = S.slack.filter(m => m.ch === c).length; return `<button class="chb" data-action="sl-ch" data-id="${c}" aria-current="${c === S.slCh}"><span># ${c}</span>${n ? `<span class="small">${n}</span>` : ''}</button>`; }).join('')}</div>
+        <div class="slm"><div class="slh"># ${S.slCh}<span class="small muted">${SLCH[S.slCh]}</span></div>
+          <div class="sl-msgs">${msgs.length ? msgs.map(m => slackMsg(m, false)).join('') : `<p class="empty">У #${S.slCh} поки тихо. Запустіть приклад праворуч або наберіть команду.</p>`}</div>
+          <div class="slc"><input id="sl-in" type="text" placeholder="/orchestra help" value="${esc(S.slDraft)}" aria-label="Повідомлення в #${S.slCh}" autocomplete="off"><button class="btn primary" data-action="sl-send">Надіслати</button></div>
+          <div class="cmds">${CMDS.map(c => `<button data-action="sl-fill" data-id="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+        </div>
+      </div>
+      <div class="grid g2 sec-gap">
+        ${examples('sl-ex', [
+          ['sl-anom', 'R0', 'Алерт аномалії в #seo', 'Детектор знайшов просідання і пропонує діагностику.'],
+          ['sl-ap', 'R3', 'Апрув бюджету в #ppc', 'Кнопка «Затвердити» перевіряє ліміт вашої ролі.'],
+          ['sl-standup', 'R1', 'Стендап у #pm-standup', 'Дайджест для менеджера проєкту.']
+        ])}
+        ${rights('Як працює бот', [
+          ['Апрув', 'Кнопка в повідомленні', 'ті самі права, що в HUD'],
+          ['Канали', '#seo, #ppc, #pm-standup, #mkt-orchestra', 'за напрямом задачі'],
+          ['Команди', 'brief, status, approve, why, pause, resume, report', '/orchestra …'],
+          ['Тиша', 'Рядові дії агентів у Slack не йдуть', 'лише важливе']
+        ], 'Бот зв’язує Slack-користувача з роллю в Orca9. Editor не затвердить бюджет навіть кнопкою в Slack.')}
+      </div>
+    `;
+  },
+
+  agents() {
+    const q = S.agentQ.toLowerCase();
+    return `<div class="panel" style="margin-bottom:16px"><div class="field" style="margin:0"><label for="ag-q">Пошук агента ${hint('План: 85 агентів (78 із репозиторію shalintripathi/saas-marketing-agents + 7 нових для аналітики й AI Visibility) і 6 ролей координації — разом 91. Жоден агент не змінює сторінку сам: лише через погодження каналів канальних оркестраторів і тест-гейт. Агент бачить інструмент, але не токен. У демо показано ${S.pods.reduce((t, p) => t + p[1].length, 0)} ролей із 91 запланованої.')}</label><input id="ag-q" type="text" placeholder="Наприклад, Budget" value="${esc(S.agentQ)}"></div></div>
+      <div class="grid g2">${S.pods.map(([pod, list]) => {
+        const f = list.filter(n => n.toLowerCase().includes(q));
+        if (!f.length) return '';
+        return `<div class="pod"><h3>${pod} <span class="chip">${list.length} агентів</span></h3><ul>${f.map(n => `<li><span>${esc(n)}</span><span class="chip ${n.includes('новий') ? 'o' : ''}">${pod === 'Аналітика' ? 'лише читання' : pod === 'AI Visibility' ? 'лише рекомендації' : pod === 'Координація' ? 'координує, не пише' : pod === 'PPC' ? 'R3 + погодження каналів' : pod === 'SEO' || pod === 'SMM' || pod === 'Контент' ? 'R2 + погодження каналів' : 'R1–R2 + погодження каналів'}</span></li>`).join('')}</ul></div>`;
+      }).join('') || `<p class="empty">Агентів за запитом «${esc(S.agentQ)}» не знайдено. Спробуйте іншу назву.</p>`}</div>`;
+  },
+
+  crons() {
+    const can = ROLES[S.role].crons;
+    return `${killPanelHTML()}<div class="panel" data-tour="cron-table"><h2>Розклад ${hint('Крон не запускає агента напряму: він ставить задачу в чергу. Це дає повтори, ліміти паралельності і паузу однією кнопкою.')}<span class="sp small muted">${can ? 'ви можете змінювати розклад' : 'перегляд: змінює Owner або Marketing lead'}</span></h2>
+      <div class="tbl-wrap"><table><thead><tr><th>Увімкнено</th><th>Цикл</th><th>Розклад</th><th>Що робить</th><th>Ризик</th><th>Останній запуск</th><th></th></tr></thead><tbody>
+      ${S.crons.map(c => `<tr><td><button class="switch" role="switch" aria-checked="${c.on}" aria-label="${c.name}" data-action="cron-toggle" data-id="${c.id}" aria-disabled="${!can}"></button></td><td><b>${c.name}</b><br><span class="small muted">${c.cron}</span></td><td>${c.human}</td><td class="small">${c.what}</td><td><span class="chip">${c.risk}</span></td><td class="small muted">${c.last}</td><td><button class="btn small" data-action="cron-run" data-id="${c.id}">Запустити зараз</button></td></tr>`).join('')}
+      </tbody></table></div></div>`;
+  },
+
+  roles() {
+    const rows = [
+      ['owner', 'Owner', 'Усе', 'Так', 'Без ліміту', 'Так', 'Так'],
+      ['lead', 'Marketing lead', 'Усі канали', 'Так', 'До $5 000/тиж. сукупно', 'Так', 'Ні'],
+      ['seo', 'Channel manager', 'SEO, PPC, AI Visibility', 'Так', 'До $500/тиж. сукупно', 'Ні', 'Ні'],
+      ['pm', 'Project manager', 'Усі проєкти, дедлайни, SLA', 'Ні', 'Ні', 'Так', 'Ні'],
+      ['editor', 'Editor', 'Контент, SMM, Email, SEO-тексти, кампанії', 'Так', 'Ні', 'Ні', 'Ні'],
+      ['analyst', 'Analyst', 'Дашборди, дані', 'Ні', 'Ні', 'Ні', 'Ні'],
+      ['viewer', 'Viewer / клієнт', 'Звіти проєкту', 'Ні', 'Ні', 'Ні', 'Ні']
+    ];
+    const yn = v => v === 'Так' ? `<span class="yes">Так</span>` : v === 'Ні' ? `<span class="no">Ні</span>` : v;
+    return `<div class="panel" data-tour="role-table"><h2>Ролі людей ${hint('Підсвічено вашу поточну роль. Змініть роль угорі, і HUD та апруви одразу поведуться інакше.')}</h2>
+      <div class="tbl-wrap"><table><thead><tr><th>Роль</th><th>Бачить</th><th>Апрув R2 (публічне)</th><th>Апрув R3 (гроші)</th><th>Крони</th><th>Ключі і конектори</th></tr></thead><tbody>
+      ${rows.map(r => `<tr class="${r[0] === S.role ? 'me' : ''}"><td><b>${r[1]}</b></td><td>${r[2]}</td><td>${yn(r[3])}</td><td>${yn(r[4])}</td><td>${yn(r[5])}</td><td>${yn(r[6])}</td></tr>`).join('')}
+      </tbody></table></div></div>
+      <div class="grid g2 sec-gap">
+        <div class="panel"><h2>Рівні ризику ${hint('Що вищий рівень, то більше воріт. R3 завжди проходить O2, O3 і людину.')}</h2>
+          ${[['R0', 'Чернетки, ресерч', 'O2'], ['R1', 'Внутрішнє: Jira, Google Docs', 'O2'], ['R2', 'Публічне: пост, стаття, meta', 'O2 + O3 + редактор'], ['R3', 'Гроші: ставки, бюджети', 'O2 + O3 + власник бюджету']].map(r => `<div class="row"><span class="chip ${r[0] === 'R3' ? 'warn' : r[0] === 'R2' ? 'act' : ''}">${r[0]}</span><span class="grow">${r[1]}</span><span class="small muted">${r[2]}</span></div>`).join('')}</div>
+        <div class="panel"><h2>Безпека ${hint('Текст із веб-сторінок, листів і документів агенти сприймають як дані, а не як команди.')}</h2>
+          <div class="row"><span class="grow">Секрети у Vault, ротація кожні 90 днів</span></div>
+          <div class="row"><span class="grow">SSO і MFA для всіх ролей, що публікують або керують бюджетом</span></div>
+          <div class="row"><span class="grow">PII маскується перед передачею в модель</span></div>
+          <div class="row"><span class="grow">Журнал аудиту зберігається 12 місяців</span></div></div>
+      </div>`;
+  },
+
+  audit() {
+    const f = S.auditF || 'all';
+    const list = S.audit.filter(a => f === 'all' || a.type === f);
+    return `<div class="panel" data-tour="audit-table"><h2>Журнал аудиту ${hint('Кожне рішення агента, оркестратора чи людини: хто, що і коли. У продукті тут також версія промпту і модель.')}
+      <span class="sp"><select id="audit-f" aria-label="Фільтр">${['all', 'Людина', 'Оркестратор', 'Агент', 'Система'].map(o => `<option value="${o}" ${o === f ? 'selected' : ''}>${o === 'all' ? 'Усі учасники' : o}</option>`).join('')}</select></span></h2>
+      ${list.length ? `<div class="tbl-wrap"><table><thead><tr><th>Час</th><th>Хто</th><th>Тип</th><th>Дія</th></tr></thead><tbody>${list.map(a => `<tr><td class="small muted">${a.t}</td><td><b>${esc(a.who)}</b></td><td><span class="chip">${a.type}</span></td><td class="small">${esc(a.text)}</td></tr>`).join('')}</tbody></table></div>`
+        : `<p class="empty">Журнал порожній. Затвердьте щось або запустіть симуляцію, і записи з'являться тут.</p>`}</div>`;
+  }
+};
+
+/* ---------- chart ---------- */
+function drawCharts() {
+  $$('.chart').forEach(el => {
+    const t = S.tests.find(x => x.id === el.dataset.test); if (!t) return;
+    const W = 460, H = 210, L = 34, R = 14, T = 18, B = 28;
+    const a = S.anomalies.find(x => x.id === t.an);
+    const ts = a.test.slice(0, t.week + 1), cs = a.ctrl.slice(0, t.week + 1);
+    const lo = 90, hi = 130;
+    const X = i => L + i * (W - L - R) / 3, Y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+    const pts = arr => arr.map((v, i) => `${X(i)},${Y(v)}`).join(' ');
+    let g = '';
+    for (let v = 90; v <= 130; v += 10) g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#E3E7EF"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="12" fill="#8A93A8">${v}</text>`;
+    for (let i = 0; i < 4; i++) g += `<text x="${X(i)}" y="${H - 8}" text-anchor="${i === 0 ? 'start' : i === 3 ? 'end' : 'middle'}" font-size="12" fill="#8A93A8">тиждень ${i}</text>`;
+    const last = ts.length - 1;
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Тест проти контролю">${g}
+      <polyline points="${pts(cs)}" fill="none" stroke="#8A93A8" stroke-width="2" stroke-dasharray="5 4"/>
+      <polyline points="${pts(ts)}" fill="none" stroke="#3442A8" stroke-width="2.5"/>
+      ${ts.map((v, i) => `<circle cx="${X(i)}" cy="${Y(v)}" r="3.5" fill="#3442A8"/>`).join('')}
+      <text x="${X(last) + (last === 3 ? -6 : 8)}" y="${Y(ts[last]) - 8}" font-size="13" font-weight="600" fill="#3442A8" text-anchor="${last === 3 ? 'end' : 'start'}">${ts[last] - cs[last] >= 0 ? '+' : ''}${ts[last] - cs[last]}% до контролю</text></svg>`;
+  });
+}
+
+/* ---------- actions ---------- */
+function approve(id, via) {
+  const a = S.approvals.find(x => x.id === id);
+  if (!a || a.status !== 'pending') return;
+  if (!canApprove(a)) { toast(denyReason(a)); return; }
+  const target = S.pipelines.find(x => x.id === a.pl);
+  if (target?.land && (!packetReady(target) || a.packetFingerprint !== packetFingerprint(target))) { toast('Погодження пакета застаріло або сторінка зайнята. Потрібне повторне узгодження.'); return; }
+  const add = a.risk === 'R3' ? Math.round((a.amount || 0) / 2) : 0;
+  if (add && S.budgetUsed + add > S.budget) { ev('bad', 'O3 Auditor', `вето: ${a.id} вивело б витрати тижня за ліміт $${S.budget.toLocaleString('uk')}`); toast('O3: дія перевищила б тижневий бюджет. Не затверджено.'); return; }
+  a.status = 'approved'; a.by = ROLES[S.role].name;
+  if (a.risk === 'R3') { S.budgetUsed += add; S.r3Used[S.role] = (S.r3Used[S.role] || 0) + (a.amount || 0); }
+  const p = S.pipelines.find(x => x.id === a.pl);
+  if (p && a.phase === 'rollout') p.rolloutApproved = true;
+  if (p) { p.st[5] = 'done'; if (p.packet) p.packet.humanApproved = true; p.note = `Затверджено (${a.by}).${p.land ? ' Дозволено обмежений тест пакета.' : ' Дію виконано.'}`; p.out[5] = `Затвердив ${a.by}`; }
+  if (a.onApprove) a.onApprove();
+  ev('h', ROLES[S.role].name, `затвердив: ${a.title}${via ? ' (зі Slack)' : ''}`);
+  const land = p && p.land;
+  ev('ok', 'O3 Auditor', land ? a.phase === 'rollout' ? `дозволив розгортання пакета: ${a.title}` : `запускає обмежений тест пакета: ${a.title}` : `пропустив дію назовні: ${a.title}`);
+  slack(`Затверджено: <b>${esc(a.title)}</b>. ${land ? a.phase === 'rollout' ? 'Застосовую погоджений пакет через gateway.' : 'Запускаю обмежений тест; основна сторінка незмінна.' : 'Виконую.'}`, [], chOf(a.ch));
+  toast(land ? a.phase === 'rollout' ? 'Дозволено розгортання погодженого пакета.' : 'Дозволено обмежений тест пакета.' : 'Затверджено. Дію виконано.');
+  render();
+  if (p) finish(p);
+}
+function decide(id, status) {
+  const a = S.approvals.find(x => x.id === id);
+  if (!a || !canApprove(a)) { toast(a ? denyReason(a) : ''); return; }
+  a.status = status; a.by = ROLES[S.role].name;
+  if (a.onReject) a.onReject(status);
+  const p = S.pipelines.find(x => x.id === a.pl);
+  if (p) {
+    if (p.land && p.page) delete pageState(p.page).testContent;
+    if (!p.land && p.res && status !== 'returned') releasePage(p.res, p.id, status);
+    if (status === 'returned') { p.st = ['done', 'active', 'wait', 'wait', 'wait', 'wait', 'wait', 'wait']; p.note = 'Повернуто людиною на доопрацювання.'; }
+    else { p.st[5] = 'veto'; p.note = 'Відхилено людиною.'; }
+    if (p.land && status !== 'returned') releasePage(p.page, p.id, 'rejected');
+    if (p.packet && status === 'returned') newPacket(p);
+  }
+  ev('h', ROLES[S.role].name, `${status === 'returned' ? 'повернув на доопрацювання' : 'відхилив'}: ${a.title}`);
+  toast(status === 'returned' ? 'Повернуто агенту з коментарем.' : 'Відхилено.');
+  render();
+  if (status === 'returned' && p) runPipeline(p, 1, false);
+}
+
+async function runPipeline(p, from = 0, withReturn = false) {
+  if (p.running || p.st[7] === 'done' || p.st.includes('veto')) return;
+  if (p.land && !p.page) {
+    p.st[1] = 'return'; p.note = 'Немає явного ресурсу (page або group): Координатор не приймає пакет без адреси.';
+    ev('warn', 'Координатор сторінки', `${p.id}: відхилено на вході — не вказано сторінку чи групу`); render(); return;
+  }
+  if (!p.land && p.res && !takePage(p.res, p, 'pipeline')) { p.pageQueued = true; p.note = `У черзі ресурсу ${p.res}: його утримує ${holderOf(p.res)?.id}.`; render(); return; }
+  if (p.land && !pipelinePacket(p)) {
+    p.pageQueued = true; p.note = `У черзі сторінки ${p.page}: активний пакет ${pageState(p.page).active.id}.`; render(); return;
+  }
+  p.running = true;
+  try {
+  const step = async (i, state, ms = 900) => { p.st[i] = state; if (LIVE.includes(S.screen)) render(); await wait(ms); };
+  if (from <= 0) { await step(0, 'active', 700); await step(0, 'done', 200); ev('o', 'O1 Planner', `розклав «${p.title}» на підзадачі`); }
+  await step(1, 'active', 1200); await step(1, 'done', 200); ev('', 'Агенти', `здали результати для «${p.title}»`);
+  const rv = reviewers(p);
+  await step(2, 'active', 900);
+  if (p.xrObject && !p.xrFixed) {
+    const [pod, txt] = p.xrObject;
+    await step(2, 'return', 800);
+    ev('warn', `${XRC[pod][0]} (${pod})`, `проти «${p.title}»: ${txt}`);
+    p.xrFixed = true;
+    await step(1, 'active', 900); await step(1, 'done', 200);
+    ev('', 'Агенти', `доопрацювали «${p.title}» з урахуванням ${pod}`);
+    await step(2, 'active', 700);
+  }
+  rv.forEach(x => ev('ok', `${XRC[x][0]}`, `погодив пакет «${p.title}»: ${XRC[x][1]}`));
+  p.out[2] = 'Оркестратори погодили одну версію: ' + rv.join(', ') + (p.xrObject ? ` (${p.xrObject[0]} — після правок)` : '');
+  await step(2, 'done', 200);
+  await step(3, 'active', 900);
+  if (withReturn) {
+    await step(3, 'return', 900); ev('warn', 'O2 Verifier', `повернув 1 задачу: немає джерела для цифри у «${p.title}»`);
+    if (p.packet) newPacket(p);
+    await step(1, 'active', 1000); await step(1, 'done', 200);
+    await step(2, 'active', 350);
+    rv.forEach(x => ev('ok', XRC[x][0], `повторно погодив виправлену версію «${p.title}»`));
+    await step(2, 'done', 150); await step(3, 'active', 800);
+  }
+  await step(3, 'done', 200); ev('o', 'O2 Verifier', `пропустив «${p.title}»`);
+  await step(4, 'active', 800); await step(4, 'done', 200); ev('o', 'O3 Auditor', `бренд, політики і бюджет — ок: «${p.title}»`);
+  if (p.packet) {
+    const objections = approvePipelineChannels(p);
+    if (objections.length) return pipelineConflict(p, objections);
+    p.out[4] = `Координатор: єдиний пакет v${p.packet.version}; O3: політики — ок`;
+    ev('o', 'Координатор сторінки', `${p.id}: погодження трьох каналів зібрано на одну версію; окремі правки заборонені`);
+  }
+  if (p.risk === 'R1' || !needsHuman(p)) {
+    p.st[5] = 'skip';
+    p.out[5] = p.risk === 'R1' ? 'Не потрібна для R1' : 'Авто-дозвіл координатора: низький вплив, усі рев’юери за';
+    if (p.risk !== 'R1') {
+      ev('ok', 'O3 Auditor', `авто-апрув «${p.title}»: низький вплив, ${rv.join(', ')} — за. Людина побачить у дайджесті`);
+      slack(`Авто-дозвіл координатора: <b>${esc(p.title)}</b>. Низький вплив, ${rv.join(', ')} — за.${p.land ? ' Запускаю тест-гейт.' : ''}`, [], chOf(p.ch));
+    }
+    render(); return await finish(p);
+  }
+  p.st[5] = 'active';
+  const ap = { id: 'AP-' + (++S.seq), pl: p.id, risk: p.risk, amount: p.amount || 0, ch: p.ch, land: p.land, xr: rv, title: p.apTitle || `Опублікувати пакет «${p.title}»`, before: p.before || 'Нова публікація', after: p.after || 'Пакет матеріалів готовий', o2: 'Факти і UTM перевірено', o3: p.risk === 'R3' ? 'У межах ліміту' : 'Бренд-гайд дотримано', status: 'pending', age: 0 };
+  S.approvals.push(ap); p.ap = ap.id; p.note = `Чекає апруву: ${p.risk === 'R3' ? 'гроші (R3)' : 'високий вплив'}.`;
+  if (p.packet) { ap.packetVersion = p.packet.version; ap.packetFingerprint = packetFingerprint(p); }
+  slack(`Потрібен апрув (${ap.risk}, ${p.risk === 'R3' ? 'гроші' : 'високий вплив'}): <b>${esc(ap.title)}</b><br>Погодження каналів: ${rv.join(', ')} — за.${p.land ? ' Після апруву — тест-гейт.' : ''}`, [{ label: 'Затвердити', action: 'approve-slack', id: ap.id, primary: true }, { label: 'Відкрити в HUD', action: 'nav-to', id: '' }], chOf(p.ch));
+  render();
+  } finally { p.running = false; }
+}
+
+function briefData() {
+  const title = $('#b-title').value.trim();
+  const chs = $$('input[name=ch]:checked').map(i => i.value);
+  return { title, chs, budget: +$('#b-budget').value || 0, icp: $('#b-icp').value.trim() };
+}
+const PLAN = {
+  SEO: [['Підібрати кластер запитів', 'Keyword Researcher'], ['Оптимізувати лендінг інтеграції', 'Content Optimizer'], ['Додати AEO-блоки: FAQ, визначення', 'AI Search Optimizer']],
+  PPC: [['Структура кампанії Google Ads', 'PPC Strategist'], ['Розподіл бюджету по тижнях', 'Budget Optimizer'], ['3 варіанти оголошень', 'Creative Strategist']],
+  SMM: [['4 пости LinkedIn', 'LinkedIn Organic Strategist'], ['Тред для X', 'Twitter/X Strategist']],
+  'Контент': [['Стаття-гайд про інтеграцію', 'Content Copywriter'], ['Кейс клієнта', 'Case Study Producer']],
+  Email: [['Лист існуючим клієнтам', 'Email Copywriter'], ['Сегмент і тригер', 'Email Lifecycle Architect']]
+};
+function validBrief(d) {
+  const e = $('#b-err');
+  if (!d.title) { e.textContent = 'Вкажіть мету кампанії.'; $('#b-title').focus(); return false; }
+  if (!d.chs.length) { e.textContent = 'Оберіть хоча б один канал.'; return false; }
+  if (d.chs.includes('PPC') && d.budget <= 0) { e.textContent = 'Для PPC вкажіть бюджет більший за 0.'; $('#b-budget').focus(); return false; }
+  e.textContent = ''; return true;
+}
+function showPlan(d) {
+  const items = d.chs.flatMap(c => PLAN[c].map(x => [c, ...x]));
+  const risk = d.chs.includes('PPC') ? 'R3' : 'R2';
+  $('#plan-box').innerHTML = `<h2>План O1 <span class="chip ${risk === 'R3' ? 'warn' : 'act'}">${risk}</span><span class="sp small muted">${items.length} підзадач</span></h2>
+    <ol class="plan">${items.map(i => `<li>${esc(i[1])} <span class="chip">${i[0]}</span><br><span class="ag">${esc(i[2])}</span></li>`).join('')}</ol>
+    <p class="small muted">Після запуску Оркестратор кампаній розкладе бриф на пакети за типом ресурсу. Після агентів: SEO-, PPC- та AI Visibility-оркестратори погоджують зміни сторінки. Координатор збирає один пакет; O2 перевіряє докази, O3 — політики${risk === 'R3' ? ' і бюджет $' + d.budget.toLocaleString('uk') : ''}. Дозвіл на тест і розгортання — окремі рішення.</p>`;
+}
+
+async function diagnose(a) {
+  if (a.status !== 'new') return;
+  a.status = 'diag';
+  ev('o', 'O1 Planner', `побудував ${a.hyps.length} гіпотез для ${a.page} і запустив аналізаторів`);
+  render();
+  const active = a.hyps.filter(h => h.res !== 'skip');
+  active.forEach(h => h.state = 'run');
+  if (S.screen === 'analytics') render();
+  for (const h of active) {
+    await wait(650);
+    h.state = 'done';
+    ev(h.res === 'yes' ? 'bad' : h.res === 'partial' ? 'warn' : 'ok', h.agent, `${h.name}: ${h.find}`);
+    if (S.screen === 'analytics' && S.selAn === a.id) render();
+  }
+  a.hyps.filter(h => h.res === 'skip').forEach(h => h.state = 'done');
+  await wait(500);
+  if (a.seasonal) {
+    a.status = 'closed';
+    ev('ok', 'O2 Verifier', `${a.page}: сезонність, аномалію закрито`);
+  } else {
+    a.status = 'report';
+    ev('o', 'O2 Verifier', `звіт по ${a.page}: кожен висновок має доказ`);
+    ev('o', 'O3 Auditor', `варіанти рішення по ${a.page} у межах політик`);
+    slack(`Аномалія <b>${a.page}</b>: ${a.metric.toLowerCase()} ${a.delta}%. Причина: ${esc(a.cause)} (впевненість ${a.conf}%). Потрібне рішення.`, [{ label: 'Відкрити звіт', action: 'open-an', id: a.id, primary: true }], 'seo');
+  }
+  render();
+}
+function approveReport(a) {
+  if (!a || a.status !== 'report') return;
+  if (!ROLES[S.role].r2) { toast(`Роль ${ROLES[S.role].name} не затверджує зміни на сайті.`); return; }
+  const i = +($('input[name=opt]:checked')?.value || 0);
+  const id = 'REC-' + a.id;
+  const existing = S.recs.find(x => x.id === id);
+  if (existing) { openRec(id); return; }
+  a.chosen = a.opts[i][0];
+  const r = { id, page: a.page, pod: 'SEO', agent: 'Діагностика SEO', anomalyId: a.id, imp: 'high', impWhy: 'відновлення сторінки після аномалії', conf: a.conf, title: a.chosen, before: 'Поточна сторінка після діагностики.', after: a.chosen, why: 'Рішення діагностики має пройти той самий контур погоджень, що й інші зміни.', rv: { SEO: ['ok', 'Рішення відповідає діагностиці.'], PPC: ['ok', 'Рекламний CTA зберігається.'], 'AI Visibility': ['ok', 'Визначення та факти збережені.'] }, tests: [['A/B тест', a.ab[3], 'конверсія'], ['SEO-тест', a.test[3] - a.ctrl[3], 'кліки до контролю'], ['AI Visibility тест', a.ai[3], 'цитування']], status: 'new' };
+  S.recs.push(r); ev('h', ROLES[S.role].name, `обрав план ${a.chosen}; передано Координатору сторінки, ще не дозвіл на запис`);
+  reviewRec(r); openRec(id);
+}
+function weekForward(t) {
+  if (!t || t.status !== 'running') return;
+  const a = S.anomalies.find(x => x.id === t.an);
+  t.week = Math.min(3, t.week + 1);
+  const diff = a.test[t.week] - a.ctrl[t.week];
+  ev('', 'Моніторинг тестів', `${t.id}, тиждень ${t.week}: тест ${diff >= 0 ? '+' : ''}${diff}% до контролю`);
+  if (t.week === 3) {
+    const vals = [diff, a.ab[t.week], a.ai[t.week]];
+    t.status = vals.some(v => !Number.isFinite(v)) || !vals.some(v => v >= 2) ? 'inconclusive' : vals.some(v => v < -2) ? 'rolledback' : 'won';
+    if (t.status !== 'won') { ev('warn', 'Координатор сторінки', `${t.id}: ${t.status}; розгортання заборонено`); render(); return; }
+    ev('ok', 'O2 Verifier', `${t.id}: результат значущий, тест виграв`);
+    slack(`Тест <b>${t.id}</b> виграв: +${diff}% кліків до контролю. Пропоную розгорнути на всі сторінки.`, [{ label: 'Розгорнути', action: 'deploy', id: t.id, primary: true }], 'seo');
+  }
+  render();
+}
+function deploy(t) {
+  toast('Розгортання сторінки відбувається лише через погоджений пакет у рекомендаціях.');
+}
+function weekly() {
+  const tests = [...S.recs.filter(r => ['test', 'won', 'deployed', 'rolledback', 'inconclusive', 'expired'].includes(r.status)).map(r => `<li><b>${r.id}</b> ${esc(r.page)}: ${REC_ST[r.status][0]}</li>`), ...S.gps.filter(g => !['new', 'queued', 'review'].includes(g.status)).map(g => `<li><b>${g.id}</b> ${esc(GROUPS[g.group].name)}: ${GP_ST[g.status][0]}</li>`), ...S.pipelines.filter(p => p.land && !['wait', 'skip'].includes(p.st[6])).map(p => `<li><b>${p.id}</b> ${esc(p.title)}: ${esc(p.out[6] || p.note)}</li>`)].join('');
+  const an = S.anomalies.filter(a => a.status !== 'new').map(a => `<li><b>${a.page}</b>: ${esc(a.cause)}</li>`).join('');
+  const apd = S.approvals.filter(a => a.status === 'approved').length;
+  $('#modal-box').innerHTML = `<h2>Тижневий звіт про зміни</h2><p class="small muted">Формує Marketing Data Storyteller щоп'ятниці о 16:00. Повна версія йде в Google Docs, підсумок — у Slack.</p>
+    <h3 style="font-size:15px">Аномалії і причини</h3><ul>${an || '<li class="muted">Нових аномалій не досліджено. Запустіть діагностику на екрані «Аналітика».</li>'}</ul>
+    <h3 style="font-size:15px">Тести</h3><ul>${tests || '<li class="muted">Тестів немає.</li>'}</ul>
+    <h3 style="font-size:15px">Рішення людей</h3><ul><li>Затверджено: ${apd}</li><li>Чекають: ${pending().length}</li></ul>
+    <h3 style="font-size:15px">PPC</h3><ul><li>Витрачено $${S.budgetUsed.toLocaleString('uk')} з $${S.budget.toLocaleString('uk')} тижневого бюджету</li></ul>
+    <h3 style="font-size:15px">Рекомендації на наступний тиждень</h3><ul><li>Додати AEO-структуру в топ-10 статей блогу</li><li>Переглянути ставки на бренд-кампанію після core update</li><li>Розширити тест порівняльних таблиць на розділ /features</li></ul>
+    <div class="acts sec-gap"><button class="btn primary" data-action="weekly-send">Надіслати в Slack</button><button class="btn" data-action="close-modal">Закрити</button></div>`;
+  openModal();
+}
+function openPipeline(p) {
+  $('#modal-box').innerHTML = `<h2>${esc(p.title)}</h2><p class="small muted">${p.id}, ${p.ch}, рівень ${p.risk}</p><p>${esc(p.note)}</p>
+    <ul class="stages">${ST.map((s, i) => `<li><span class="note ${p.st[i]}"></span><b>${s}</b><span class="small">${esc(p.out?.[i] || (p.st[i] === 'wait' ? 'Очікує' : p.st[i] === 'active' ? 'В роботі' : '—'))}</span></li>`).join('')}</ul>${p.packet ? packetHTML(p) : ''}
+    <div class="acts">${p.ap && S.approvals.find(a => a.id === p.ap && a.status === 'pending') ? `<button class="btn primary" data-action="nav-to" data-screen="approvals">До апруву</button>` : ''}${p.st.includes('return') ? `<button class="btn primary" data-action="fix-pl" data-id="${p.id}">Агенти виправили, перевірити знову</button>` : ''}<button class="btn" data-action="close-modal">Закрити</button></div>`;
+  openModal();
+}
+function openModal() { $('#modal').classList.add('on'); setTimeout(() => $('#modal-box .btn.primary, #modal-box .btn')?.focus(), 30); }
+function closeModal() { $('#modal').classList.remove('on'); }
+
+function runCron(c) {
+  c.last = 'сьогодні ' + now();
+  ev('', 'Cron', `${c.name}: поставлено в чергу`);
+  if (c.id === 'anomaly') { const a = S.anomalies.find(x => x.status === 'new'); if (a) { slack(`Знайдено аномалію: <b>${a.page}</b>, ${a.metric.toLowerCase()} ${a.delta}% (прогноз ${a.fc}%).`, [{ label: 'Діагностувати', action: 'open-an', id: a.id, primary: true }], 'seo'); ev('warn', 'Детектор аномалій', `${a.page}: ${a.metric.toLowerCase()} ${a.delta}%`); } else ev('ok', 'Детектор аномалій', 'нових аномалій немає'); }
+  if (c.id === 'weekly') weekly();
+  if (c.id === 'testmon') { S.recs.filter(r => r.status === 'test').forEach(recWeek); S.gps.filter(g => g.status === 'test').forEach(gpWeek); }
+  if (c.id === 'ppc') ppcAlert();
+  if (c.id === 'aiv') return EX['aiv-run']();
+  if (c.id === 'gate') ev('o', 'O3 Auditor', 'тест-гейт: рішення по завершених тестах прийнято; невизначені — без розгортання');
+  if (c.id === 'news') ev('', 'News & Algorithm Watcher', 'core update Google триває, 4-й день');
+  if (c.id === 'data') ev('', 'Marketing Performance Analyst', 'зібрано GSC, Bing WMT, GA4: 1 240 сторінок');
+  render();
+}
+function ppcAlert() {
+  if (S.approvals.find(a => a.ppcAlert && a.status === 'pending')) return;
+  ev('warn', 'Budget Optimizer', 'Brand UA: перевитрата 18%, CPA $41 при цілі $30');
+  const h0 = holderOf('ppc:Brand UA'); if (h0) { ev('warn', 'Budget Optimizer', `Brand UA: зміна вже в роботі (${h0.id}); новий алерт чекає`); return; }
+  const p = { id: 'MKT-' + (++S.seq), title: 'PPC: корекція Brand UA', res: 'ppc:Brand UA', ch: 'PPC', risk: 'R3', amount: 150, st: ['done', 'done', 'done', 'done', 'done', 'active', 'wait', 'wait'], xr: ['SEO', 'Аналітика'], note: 'R3: −12% ставок, 14 мінус-слів, $150/день у Competitor EN.', out: ['Алерт pacing', 'PPC Strategist: 3 дії', 'За: SEO (канібалізації бренду немає), Аналітика (атрибуція підтверджує)', 'Математика прогнозу — ок', 'Ліміт $5 000 — ок', '', '', ''] };
+  S.pipelines.unshift(p); takePage(p.res, p, 'pipeline');
+  const ap = { id: 'AP-' + (++S.seq), pl: p.id, risk: 'R3', amount: 150, ch: 'PPC', ppcAlert: true, xr: ['SEO', 'Аналітика'], title: 'Brand UA: −12% ставок і перерозподіл $150/день', before: 'CPA $41, перевитрата 18%', after: 'Прогноз CPA $32, витрати в плані', o2: 'Значущість: 1 400 кліків', o3: 'Зміна ставки ≤ 15%', status: 'pending' };
+  S.approvals.unshift(ap); p.ap = ap.id; ap.age = 0;
+  ap.onApprove = () => { const c = S.campaigns.find(x => x.id === 'C1'); if (c) { c.status = 'fixed'; c.cpa = 32; } };
+  const c1 = S.campaigns.find(x => x.id === 'C1'); if (c1) { c1.status = 'alert'; c1.cpa = 41; }
+  slack(`PPC alert: <b>Brand UA</b> перевитрачає 18%. Пропоную −12% ставок і перенести $150/день.`, [{ label: 'Затвердити', action: 'approve-slack', id: ap.id, primary: true }], 'ppc');
+}
+
+async function simulate() {
+  if (S.sim) return;
+  S.sim = true; const b = $('#sim-btn'); b.textContent = 'Симуляція триває…'; b.classList.add('live');
+  ev('', 'Cron', 'Збір даних о 05:00: GSC, Bing WMT, GA4, ранги');
+  await wait(900);
+  const a = S.anomalies.find(x => x.id === 'A1');
+  if (a.status === 'new') {
+    ev('warn', 'Детектор аномалій', `${a.page}: покази ${a.delta}% при прогнозі ${a.fc}%`);
+    slack(`Знайдено аномалію: <b>${a.page}</b>, покази ${a.delta}% (прогноз ${a.fc}%). Запускаю діагностику.`, [], 'seo');
+    await wait(900);
+    await diagnose(a);
+  }
+  await wait(700);
+  const cmp = S.cmps.find(x => x.id === 'CMP-482');
+  if (cmp && !['running', 'done'].includes(cmp.status)) { cmpRun(cmp); await wait(2500); }
+  await wait(600);
+  ppcAlert(); render();
+  await wait(500);
+  ev('o', 'Orca9', 'симуляцію завершено: перевірте аналітику, апруви та Slack');
+  toast('Ранок змодельовано. Відкрийте «Аналітика» і «Апруви».');
+  S.sim = false; b.textContent = 'Запустити симуляцію'; b.classList.remove('live');
+  render();
+}
+
+/* ---------- cross-review, test gate, AI visibility, recommendations ---------- */
+const W8 = () => Array(8).fill('wait');
+function up8(p) {
+  if (p.st.length === 6) { const x = p.st; p.st = [x[0], x[1], x[2] === 'wait' ? 'wait' : 'done', x[2], x[3], p.risk === 'R1' && x[4] === 'done' ? 'skip' : x[4], x[5] === 'done' ? (p.land ? 'done' : 'skip') : 'wait', x[5]]; }
+  if (p.out && p.out.length === 6) { const o = p.out; p.out = [o[0], o[1], p.st[2] === 'done' ? 'За: ' + reviewers(p).join(', ') : '', o[2], o[3], o[4], p.st[6] === 'skip' ? 'Не потрібен: не зміна сторінки' : p.st[6] === 'done' ? 'A/B, SEO і AI Visibility — пройдено' : '', o[5]]; }
+}
+const XRC = {
+  SEO: ['SEO-оркестратор', 'ключ і H1 збережено, канібалізації немає'],
+  PPC: ['PPC-оркестратор', 'message match з оголошеннями не порушено'],
+  'AI Visibility': ['AI Visibility-оркестратор', 'визначення і факти, які цитують AI, на місці'],
+  'Аналітика': ['Attribution Analyst', 'атрибуція підтверджує прогноз'],
+  'Бренд': ['Content Operations Manager', 'тон і факти збігаються з brand-context.md']
+};
+function podOf(p) { return p.ch === 'SEO' ? 'SEO' : p.ch === 'PPC' ? 'PPC' : p.ch === 'AI Visibility' ? 'AI Visibility' : null; }
+function reviewers(p) {
+  const own = podOf(p);
+  const list = p.land ? ['SEO', 'PPC', 'AI Visibility'] : p.ch === 'PPC' ? ['SEO', 'Аналітика'] : ['Бренд', 'AI Visibility'];
+  return p.land ? list : list.filter(x => x !== own);
+}
+function needsHuman(p) { return p.risk === 'R3' || p.imp !== 'low' || (p.conf ?? 85) < 70 || !!p.unresolvedConflict; }
+function pipelineConflict(p, objs) {
+  p.st[4] = 'return'; p.out[4] = `Конфлікт: ${objs.join(', ')} проти — передано в Рекомендації`;
+  p.note = `Канали не погодили пакет (${objs.join(', ')}). Координатор переніс рішення в Рекомендації: компроміс або людина.`;
+  ev('warn', 'Координатор сторінки', `${p.id}: конфлікт ${objs.join(', ')}; переношу в Рекомендації як REC-${p.id}`);
+  releasePage(p.page, p.id, 'conflict');
+  const r = { id: 'REC-' + p.id, page: p.page, pod: podOf(p) || 'PPC', agent: 'з конвеєра ' + p.id, imp: p.imp || 'high', impWhy: 'конфлікт каналів у конвеєрі', conf: 80,
+    title: p.title, why: `Канали не погодили пакет ${p.id}. Рішення — тут: компроміс Координатора або людина.`, before: p.before || '', after: p.after || '',
+    patch: p.patch, patchC: p.patchC, rv: p.rv, compromise: p.compromise, tests: p.recTests, testsC: p.testsC, status: 'new' };
+  S.recs.push(r); render(); reviewRec(r);
+}
+async function finish(p) {
+  if (!gwAllowed(`«${p.title}»`, () => finish(p))) { p.note = 'Запис зупинено аварійним вимикачем; продовжиться після увімкнення.'; render(); return; }
+  if (p.land) {
+    if (!p.testsPassed) { const ok = await runTests(p); if (!ok) return; p.testsPassed = true; }
+    if (needsHuman(p) && !p.rolloutApproved) {
+      if (!S.approvals.some(a => a.pl === p.id && a.phase === 'rollout' && a.status === 'pending')) {
+        const a = { id: 'AP-' + (++S.seq), pl: p.id, phase: 'rollout', risk: 'R2', amount: 0, ch: p.ch, land: true, title: `Розгорнути погоджений пакет: ${p.title}`, before: 'Лише тестова група', after: p.after || p.title, xr: CHANNEL_OWNERS, o2: 'Умовні показники демо пройдено', o3: 'Незмінна погоджена версія', packetVersion: p.packet.version, packetFingerprint: packetFingerprint(p), status: 'pending', age: 0 };
+        S.approvals.push(a); p.ap = a.id;
+      }
+      p.st[7] = 'active'; p.note = 'Тест пройдено. Основна сторінка незмінна; чекає окремого дозволу на розгортання.'; render(); return;
+    }
+  }
+  else { p.st[6] = 'skip'; p.out[6] = 'Не потрібен: не зміна сторінки'; }
+  p.st[7] = 'done'; p.out[7] = p.out[7] || 'Виконано';
+  if (p.packet) {
+    if (!packetReady(p)) { p.st[7] = 'veto'; p.note = 'Пакет або база змінилися: gateway заблокував запис.'; releasePage(p.page, p.id, 'blocked'); render(); return; }
+    if (String(p.page).startsWith('group:')) for (const w of WAVES) { ev('ok', 'Координатор групи', `${p.id}: хвиля ${w}% — guardrail ок`); await wait(350); }
+    const v = commitResource(p.page, p.packet.after, p.packet.patch);
+    p.out[7] = `Gateway: пакет v${p.packet.version}, ресурс v${v}`;
+    p.note = `Погоджений пакет розгорнуто через gateway; ${p.page} тепер v${v}.`;
+    releasePage(p.page, p.id, 'deployed');
+  } else if (p.res) releasePage(p.res, p.id, 'done');
+  ev('ok', 'Orca9', `«${p.title}» виконано`);
+  render();
+}
+async function runTests(p) {
+  if (!p.packet || !packetReady(p)) { p.st[6] = 'return'; p.out[6] = 'Немає актуального погодженого пакета.'; render(); return false; }
+  pageState(p.page).testContent = { ...p.packet.after };
+  const testedFingerprint = packetFingerprint(p);
+  p.st[6] = 'active'; if (LIVE.includes(S.screen)) render();
+  ev('o', 'O1 Planner', `тест-гейт «${p.title}»: A/B, SEO-тест і AI Visibility тест паралельно (у демо 3 тижні стиснуто до секунд)`);
+  const res = p.tests || [['A/B тест', 'Conversion Rate Optimizer', 3.4, 'конверсія +3,4% (p = 0,03)'], ['SEO-тест', 'Keyword Researcher', 5, 'кліки +5% до контролю'], ['AI Visibility тест', 'AI Visibility Tracker', 8, 'цитування +8 п. на 40 промптах']];
+  if (res.length !== 3 || res.some(r => !Number.isFinite(r[2]))) { p.st[6] = 'return'; p.out[6] = 'Неповні вимірювання: висновок не визначено, запис заблоковано.'; delete pageState(p.page).testContent; releasePage(p.page, p.id, 'inconclusive'); render(); return false; }
+  for (const r of res) { await wait(700); ev(r[2] < -2 ? 'bad' : r[2] >= 2 ? 'ok' : '', r[1], `${r[0]}: ${r[3]}`); }
+  await wait(400);
+  if (!packetReady(p) || testedFingerprint !== packetFingerprint(p)) { p.st[6] = 'return'; p.out[6] = 'Пакет змінився під час тесту: дозвіл скинуто.'; delete pageState(p.page).testContent; releasePage(p.page, p.id, 'blocked'); render(); return false; }
+  const gv = gateEvaluate(asGate(res));
+  if (gv.verdict !== 'pass') {
+    const harm = gv.verdict === 'harm';
+    p.st[6] = harm ? 'veto' : 'return';
+    p.out[6] = harm ? 'Відкат: ' + gv.why : 'Висновок не визначено: ' + gv.why + '; завершено без розгортання';
+    p.note = harm ? 'Тест-гейт: шкода каналу, зміни відкочено до контрольної версії.' : 'Тест-гейт: перемоги немає, завершено без розгортання.';
+    delete pageState(p.page).testContent; releasePage(p.page, p.id, harm ? 'rolledback' : 'inconclusive');
+    ev(harm ? 'bad' : 'warn', 'O3 Auditor', `${harm ? 'відкат' : 'без розгортання'} «${p.title}»: ${gv.why}`);
+    slack(`<b>${harm ? 'Відкат' : 'Без розгортання'}.</b> «${esc(p.title)}»: ${esc(gv.why)}. Сторінка лишилась на контрольній версії.`, [{ label: 'Відкрити задачу', action: 'open-pl', id: p.id }], chOf(p.ch));
+    render(); return false;
+  }
+  p.st[6] = 'done'; p.out[6] = res.map(r => `${r[0]} ${fmtGate(r[0], r[2])}`).join(' · ');
+  ev('ok', 'O2 Verifier', `тест-гейт «${p.title}» пройдено: жоден тест не гірший за контроль`);
+  return true;
+}
+const ENG = ['ChatGPT', 'Perplexity', 'Google AI Overviews', 'Gemini', 'Claude', 'Copilot'];
+const fmtP = v => (v >= 0 ? '+' : '') + String(v).replace('.', ',');
+const recVal = (t, w) => Math.round(t[1] * w / 3 * 10) / 10;
+const recTests = r => r.variant === 'orig' ? r.tests : r.variant === 'comp' ? r.testsC : r.tests;
+const REC_ST = { queued: ['у черзі сторінки', 'warn'], ready: ['пакет погоджений', 'ok'], inconclusive: ['висновок не визначено', 'warn'], new: ['нова', ''], review: ['погодження каналів', 'act'], human: ['чекає людину', 'warn'], auto: ['авто-апрув', 'ok'], test: ['у тест-гейті', 'act'], won: ['тест виграв', 'ok'], deployed: ['розгорнуто', 'ok'], rolledback: ['відкочено', 'bad'], rejected: ['відхилено', 'bad'] };
+const recCh = r => r.pod === 'SEO' ? 'seo' : r.pod === 'PPC' ? 'ppc' : 'ai-visibility';
+async function reviewRec(r, variant, revised) { return pcReview(r, variant, revised); }
+function startRecTest(r) { return pcStartTest(r); }
+function recWeek(r) { return pcRecWeek(r); }
+function recApprove(r) { return pcApprove(r); }
+function recDeploy(r) { return pcCommit(r, true); }
+function recCard(r) { return pcCard(r); }
+function openRec(id) { S.recHi = id; go('recs'); setTimeout(() => { const el = $('#rec-' + id); el && el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 60); }
+
+/* ---------- SEO, PPC, PM, events, slack demos ---------- */
+const LIVE = ['hud', 'seo', 'ppc', 'pm', 'cmps', 'groups'];
+function sla(a) { return a.risk === 'R3' ? 8 : 24; }
+function approverOf(a) { return a.risk === 'R3' ? (a.amount > 500 ? 'Marketing lead' : 'Channel manager') : a.ch === 'SMM' ? 'Editor' : 'Channel manager'; }
+function colOf(p) {
+  if (p.st.includes('return')) return 1;
+  const v = p.st.indexOf('veto'); if (v >= 0) return v === 5 ? 3 : v === 6 ? 4 : 2;
+  const i = p.st.findIndex(x => x !== 'done' && x !== 'skip'); if (i === -1) return 5;
+  return [0, 1, 2, 2, 2, 3, 4, 5][i];
+}
+function daysLeft(d) {
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const n = Math.round((new Date(d + 'T00:00:00') - t) / 864e5);
+  return n > 0 ? `через ${n} дн.` : n === 0 ? 'сьогодні' : `прострочено на ${-n} дн.`;
+}
+function syncProjects() {
+  const e12 = S.projects.find(p => p.id === 'EP-12'), c = S.cmps?.find(x => x.id === 'CMP-482');
+  if (c) {
+    const tot = c.packets.length || 6, done = c.packets.filter(k => k.status === 'done').length;
+    const bad = c.packets.find(k => ['return', 'rejected', 'failed', 'blocked'].includes(k.status)), hum = c.packets.filter(k => k.status === 'human');
+    e12.prog = c.packets.length ? Math.round(30 + 70 * done / tot) : 25;
+    if (c.status === 'done') { e12.risk = 'за планом'; e12.why = 'Кампанію завершено: усі пакети пройшли свої ворота'; e12.prog = 100; }
+    else if (bad) { e12.risk = 'під ризиком'; e12.why = `${bad.id}: ${CK_ST[bad.status][0]}${bad.note ? ' — ' + bad.note : ''}`; }
+    else if (hum.length) { e12.risk = 'увага'; e12.why = `Чекають людину: ${hum.map(k => k.key).join(', ')}`; }
+    else if (!c.packets.length) { e12.risk = 'увага'; e12.why = 'Бриф ще не розкладено на пакети'; }
+    else { e12.risk = 'за планом'; e12.why = `Готово ${done} з ${tot} пакетів`; }
+  }
+  const e11 = S.projects.find(p => p.id === 'EP-11'), c1 = S.campaigns.find(x => x.id === 'C1');
+  if (c1.status === 'fixed') { e11.risk = 'за планом'; e11.why = 'Brand UA виправлено, CPA в межах прогнозу'; }
+  else { e11.risk = 'увага'; e11.why = 'Brand UA перевитрачає 18%, CPA $41 при цілі $30'; }
+  const e9 = S.projects.find(p => p.id === 'EP-09'), m = S.pipelines.find(p => p.id === 'MKT-477');
+  e9.why = m?.st[7] === 'done' ? '12 title розгорнуто хвилями' : m?.st[6] === 'active' ? 'Тест групи: 6 сторінок проти 6' : m?.st.includes('veto') ? 'Груповий пакет знято' : 'Груповий пакет на 12 title чекає апруву';
+}
+function launch(p, withReturn = false) {
+  p.id = 'MKT-' + (++S.seq); p.st = W8();
+  p.out = p.out || ['', '', '', '', '', '']; up8(p); p.note = p.note || 'Запущено з прикладу.';
+  S.pipelines.unshift(p);
+  ev('h', ROLES[S.role].name, `запустив «${p.title}»`);
+  toast('Запущено. Події — у стрічці праворуч, апрув — у черзі та Slack.');
+  runPipeline(p, 0, withReturn);
+  return p;
+}
+async function vetoDemo() {
+  const p = { id: 'MKT-' + (++S.seq), title: 'PPC: +$1 500 на Competitor EN', ch: 'PPC', risk: 'R3', st: W8(), note: 'В роботі.',
+    out: ['1 підзадача', 'Budget Optimizer: +$1 500 на тиждень', 'За: SEO, Аналітика', 'Прогноз CPA перевірено', 'Вето: витрати тижня стали б $5 620 при ліміті $5 000', 'Не дійшло до людини', 'Не дійшло', 'Дію не виконано'] };
+  S.pipelines.unshift(p);
+  toast('Запущено. Слідкуйте за стрічкою подій.');
+  const step = async (i, x, ms = 700) => { p.st[i] = x; if (LIVE.includes(S.screen)) render(); await wait(ms); };
+  await step(0, 'active'); await step(0, 'done', 150); ev('o', 'O1 Planner', `розклав «${p.title}»`);
+  await step(1, 'active', 900); await step(1, 'done', 150); ev('', 'Budget Optimizer', 'пропонує +$1 500 на тиждень для Competitor EN: CPA нижчий за ціль');
+  await step(2, 'active'); await step(2, 'done', 150); ev('ok', 'Content Optimizer (SEO)', 'за: брендова органіка не постраждає'); ev('ok', 'Attribution Analyst (Аналітика)', 'за: атрибуція підтверджує прогноз CPA');
+  await step(3, 'active'); await step(3, 'done', 150); ev('o', 'O2 Verifier', 'математика прогнозу коректна');
+  await step(4, 'active', 900); await step(4, 'veto', 150);
+  p.note = 'O3 наклав вето: витрати тижня стали б $5 620 при ліміті $5 000. Дію не виконано.';
+  ev('bad', 'O3 Auditor', `вето: «${p.title}» виводить витрати за тижневий ліміт $5 000`);
+  slack('<b>Вето O3.</b> Budget Optimizer хотів додати $1 500 на Competitor EN. Витрати тижня стали б $5 620 при ліміті $5 000. Нічого не змінено.', [{ label: 'Відкрити задачу', action: 'open-pl', id: p.id }], 'ppc');
+  render();
+}
+function standup() {
+  syncProjects();
+  const pend = pending(), over = pend.filter(a => (a.age || 0) >= sla(a));
+  const inWork = S.pipelines.filter(p => p.st[7] !== 'done' && !p.st.includes('veto')).length;
+  const risks = S.projects.filter(p => p.risk !== 'за планом');
+  slack(`<b>Стендап-дайджест</b><br>У роботі ${inWork} задач. На апруві ${pend.length}, поза SLA ${over.length}${over.length ? ': ' + over.map(a => a.id).join(', ') : ''}.<br>Ризики: ${risks.map(p => `<b>${esc(p.name)}</b> — ${esc(p.why)}`).join('; ') || 'немає'}.<br>Сьогодні за розкладом ${S.crons.filter(c => c.on).length} циклів.`,
+    over.length ? [{ label: 'Нагадати всім', action: 'ex', id: 'pm-nudge', primary: true }] : [], 'pm-standup');
+  ev('ok', 'Content Operations Manager', 'стендап-дайджест надіслано в #pm-standup');
+  toast('Дайджест надіслано в Slack #pm-standup.');
+}
+function nudge(id) {
+  const a = S.approvals.find(x => x.id === id); if (!a || a.status !== 'pending') return;
+  const who = approverOf(a);
+  slack(`Нагадування для <b>${who}</b>: «${esc(a.title)}» чекає ${a.age || 0} год при SLA ${sla(a)} год.`, [{ label: 'Затвердити', action: 'approve-slack', id: a.id, primary: true }], 'pm-standup');
+  ev('h', ROLES[S.role].name, `нагадав ${who} про ${a.id}`);
+  a.nudged = true; toast('Нагадування надіслано в Slack.'); render();
+}
+function seoJira(id) {
+  const i = S.seoIssues.find(x => x.id === id); if (!i || i.status !== 'open') return;
+  i.status = 'SEO-' + (241 + S.seoIssues.indexOf(i));
+  ev('', 'Technical SEO Auditor', `створив ${i.status} у Jira: ${i.what}`);
+  ev('o', 'O2 Verifier', `${i.status}: рівень R1, апрув людини не потрібен`);
+  toast(`Задачу ${i.status} створено в Jira.`); render();
+}
+const EX = {
+  'seo-rank': () => {
+    S.crons.find(c => c.id === 'seo').last = 'сьогодні ' + now();
+    ev('', 'Cron', 'SEO rank tracking: поставлено в чергу');
+    ev('', 'Keyword Researcher', `перевірив ${S.seoKw.length} запитів у Google і Bing`);
+    const drops = S.seoKw.filter(k => k.g - k.gPrev >= 2), ups = S.seoKw.filter(k => k.gPrev - k.g >= 2);
+    drops.forEach(k => ev('warn', 'Keyword Researcher', `«${k.kw}»: Google ${k.gPrev} → ${k.g}, Bing ${k.b}`));
+    ups.forEach(k => ev('ok', 'Keyword Researcher', `«${k.kw}»: Google ${k.gPrev} → ${k.g}`));
+    slack(`Ранги на сьогодні: просіли ${drops.length}, виросли ${ups.length}.<br>${drops.map(k => `↓ <b>${esc(k.kw)}</b>: Google ${k.gPrev} → ${k.g}, Bing ${k.bPrev} → ${k.b}`).join('<br>')}${drops.length ? '<br>Просідання лише в Google — схоже на апдейт алгоритму.' : ''}`,
+      drops.length ? [{ label: 'Діагностувати', action: 'open-an', id: 'A1', primary: true }] : [], 'seo');
+    toast('Позиції перевірено. Алерт у Slack #seo.'); render();
+  },
+  'seo-title': () => launch({ title: 'SEO: title і meta для /smart-reports', ch: 'SEO', risk: 'R2', land: true, page: '/smart-reports', patch: { title: 'Автоматичні фінансові звіти для SaaS — Smart Reports' }, apTitle: 'Новий title для /smart-reports', before: 'Smart Reports | Acme', after: 'Автоматичні фінансові звіти для SaaS — Smart Reports', out: ['2 підзадачі', 'Content Optimizer: title, meta, H1', '56 символів, ключ на початку', 'Бренд-гайд — ок', '', ''] }),
+  'seo-aeo': () => launch({ title: 'AEO-блок для /blog/finance-close', ch: 'SEO', risk: 'R2', imp: 'low', land: true, page: '/blog/finance-close', patch: { definition: 'Закриття місяця — підготовка й перевірка фінансових даних за завершений місяць.' }, apTitle: 'AEO-блок: визначення, таблиця, FAQ', before: 'Стаття без структурованих відповідей', after: 'Визначення, порівняльна таблиця, 5 FAQ зі schema.org', out: ['3 підзадачі', 'AI Search Optimizer + Content Copywriter', 'Після виправлення: джерело для цифри додано', 'Бренд-гайд — ок', '', ''] }, true),
+  'seo-audit': () => {
+    const open = S.seoIssues.filter(i => i.status === 'open');
+    S.crons.find(c => c.id === 'tech').last = 'сьогодні ' + now();
+    ev('', 'Cron', 'Tech SEO audit: поставлено в чергу');
+    ev('', 'Technical SEO Auditor', `прокраулив 1 240 сторінок, нових проблем: ${open.length}`);
+    open.forEach(i => { i.status = 'SEO-' + (241 + S.seoIssues.indexOf(i)); ev(i.sev === 'high' ? 'warn' : '', 'Technical SEO Auditor', `${i.status} у Jira: ${i.what}`); });
+    slack(open.length ? `Технічний аудит завершено: ${open.length} проблеми, задачі створено в Jira. Найважливіша: ${esc(open[0].what)}.` : 'Технічний аудит завершено: нових проблем немає.', [{ label: 'Відкрити SEO', action: 'nav-to', screen: 'seo' }], 'seo');
+    toast('Аудит завершено.'); render();
+  },
+  'ppc-pacing': () => {
+    if (S.approvals.find(a => a.ppcAlert && a.status === 'pending')) { toast('Алерт по Brand UA уже чекає апруву.'); return; }
+    S.crons.find(c => c.id === 'ppc').last = 'сьогодні ' + now();
+    ev('', 'Cron', 'PPC pacing: поставлено в чергу');
+    ppcAlert(); toast('Pacing-алерт: запит на апрув у черзі та Slack #ppc.'); render();
+  },
+  'ppc-neg': () => launch({ title: 'PPC: мінус-слова для Brand UA', ch: 'PPC', risk: 'R2', imp: 'low', res: 'ppc:Brand UA', apTitle: 'Додати 14 мінус-слів у Brand UA', before: '14 запитів без конверсій, $310 за тиждень', after: 'Мінус-слова на рівні кампанії, економія близько $300 на тиждень', out: ['1 підзадача', 'PPC Strategist: звіт пошукових запитів', '1 400 кліків, 0 конверсій — значуще', 'Без брендових слів у списку — ок', '', ''] }),
+  'ppc-ab': () => launch({ title: 'PPC: A/B тест оголошень CFO ICP', ch: 'PPC', risk: 'R2', apTitle: 'Запустити 3 нові оголошення в CFO ICP', before: '2 оголошення, CTR 0,61%', after: '+3 варіанти: «закриття місяця за 2 дні», «звіт без Excel», відгук клієнта', out: ['2 підзадачі', 'Creative Strategist + Social Ads Specialist', 'Претензії підкріплено джерелами', 'Політики LinkedIn — ок', '', ''] }),
+  'ppc-veto': vetoDemo,
+  'pm-standup': standup,
+  'pm-nudge': () => { const over = pending().filter(a => (a.age || 0) >= sla(a)); if (!over.length) { toast('Прострочених апрувів немає.'); return; } over.forEach(a => nudge(a.id)); },
+  'pm-deadline': () => {
+    const p = S.projects.find(x => x.id === 'EP-14'); if (p.moved) { toast('Дедлайн EP-14 уже перенесено.'); return; }
+    p.due = '2026-11-10'; p.moved = true; p.why = 'Дедлайн перенесено на тиждень, план оновлено';
+    ev('h', ROLES[S.role].name, 'переніс дедлайн EP-14 «Інтеграція з QuickBooks» на 10.11');
+    ev('o', 'O1 Planner', 'перепланував 10 підзадач EP-14: 2 агенти тимчасово переходять на EP-12');
+    slack('Дедлайн <b>EP-14 Інтеграція з QuickBooks</b> перенесено на 10.11. O1 оновив план, Jira синхронізовано.', [], 'pm-standup');
+    toast('Дедлайн перенесено, O1 перепланував.'); render();
+  },
+  'pm-block': () => {
+    const c = S.cmps.find(x => x.id === 'CMP-482'), k = c?.packets.find(x => ['return', 'human', 'queued', 'failed', 'rejected', 'blocked'].includes(x.status));
+    if (!k) { toast('Блокерів у кампанії зараз немає. Запустіть CMP-482 на екрані «Кампанії».'); return; }
+    slack(`Ескалація для <b>Marketing lead</b>: ${k.id} «${esc(k.title)}» — ${CK_ST[k.status][0]}${k.note ? ': ' + esc(k.note) : ''}. Дедлайн епіку 20.10.`, [{ label: 'Відкрити кампанію', action: 'nav-to', screen: 'cmps', primary: true }], 'mkt-orchestra');
+    ev('h', ROLES[S.role].name, `ескалював блокер ${k.id} до Marketing lead`); toast('Ескалацію надіслано в Slack.');
+  },
+  'aiv-run': () => {
+    S.crons.find(c => c.id === 'aiv').last = 'сьогодні ' + now();
+    ev('', 'Cron', 'AI Visibility run: поставлено в чергу');
+    ev('', 'AI Visibility Tracker', `прогнав ${S.prompts.length * 15} промптів × 6 AI-систем × 3 прогони`);
+    ev('warn', 'AI Visibility Tracker', 'Google AI Overviews: цитування −6 п. за тиждень');
+    ev('warn', 'Citation Analyst', 'ChatGPT і Gemini досі кажуть, що інтеграції з QuickBooks немає');
+    ev('ok', 'AI Visibility Tracker', 'Perplexity: цитування +4 п., джерело — /blog/finance-close');
+    slack('AI Visibility за ніч: цитування 18% (+1 п.), згадки 34%. AI Overviews −6 п. Неточність про QuickBooks тримається — є рекомендація REC-4.', [{ label: 'Відкрити REC-4', action: 'open-rec', id: 'REC-4', primary: true }], 'ai-visibility');
+    toast('Прогін завершено. Підсумок у Slack #ai-visibility.'); render();
+  },
+  'aiv-rec': () => { openRec('REC-1'); reviewRec(S.recs.find(r => r.id === 'REC-1')); },
+  'aiv-fact': () => { openRec('REC-4'); reviewRec(S.recs.find(r => r.id === 'REC-4')); },
+  'aiv-conflict': () => { openRec('REC-3'); reviewRec(S.recs.find(r => r.id === 'REC-3')); },
+  'rec-all': () => { const n = S.recs.filter(r => r.status === 'new'); if (!n.length) { toast('Нових рекомендацій немає.'); return; } n.forEach((r, i) => setTimeout(() => reviewRec(r), i * 300)); toast(`Погодження каналів запущено для ${n.length} рекомендацій.`); },
+  'rec-fast': () => { const t = S.recs.filter(r => r.status === 'test'); if (!t.length) { toast('Немає рекомендацій у тест-гейті.'); return; } t.forEach(r => { while (r.status === 'test') recWeek(r); }); },
+  'ppc-land': () => {
+    const n = S.recs.filter(r => r.id.startsWith('REC-')).length + 1;
+    const src = S.recs.find(r => r.id === 'REC-3');
+    const r = JSON.parse(JSON.stringify(src)); r.id = 'REC-' + n; r.status = 'new'; r.rvState = {}; r.reason = ''; r.page = '/quickbooks'; r.title = 'H1 лендингу QuickBooks як в оголошенні';
+    r.before = 'H1: «QuickBooks reporting automation». Під ним — абзац-визначення інтеграції.'; r.after = 'H1: «Звіти з QuickBooks за 10 хвилин». Абзац-визначення прибрати.';
+    S.recs.push(r); ev('', 'PPC Strategist', `запропонував ${r.id}: ${r.title}`); openRec(r.id); reviewRec(r);
+  },
+  'ev-auto': () => launch({ title: 'Внутрішні посилання на /integrations', ch: 'SEO', risk: 'R2', imp: 'low', land: true, page: '/integrations', patch: { details: '8 вхідних посилань з блогу' }, apTitle: 'Додати 6 внутрішніх посилань', before: '2 вхідні посилання', after: '8 вхідних посилань з блогу' }),
+  'ev-gate': () => launch({ title: 'Новий hero на /pricing', ch: 'Кампанія', risk: 'R2', imp: 'low', land: true, page: '/pricing', patch: { h1: 'Відео-демо над тарифами' }, apTitle: 'Новий hero на /pricing', before: 'Таблиця тарифів одразу', after: 'Відео-демо над тарифами',
+    tests: [['A/B тест', 'Conversion Rate Optimizer', 5.2, 'конверсія +5,2%'], ['SEO-тест', 'Keyword Researcher', -1, 'кліки −1%, у межах норми'], ['AI Visibility тест', 'AI Visibility Tracker', -11, 'цитування −11 п.: відео замінило текстову таблицю цін']] }),
+  'ev-conflict': () => launch({ title: 'PPC: hero /pricing-analytics під оголошення', ch: 'PPC', risk: 'R2', land: true, page: '/pricing-analytics', apTitle: 'Новий hero /pricing-analytics',
+    before: 'H1 «Pricing analytics | Acme» і визначення', after: 'H1 «Побачте MRR за 10 хвилин», без визначення',
+    patch: { h1: 'Побачте MRR за 10 хвилин', definition: '' }, patchC: { h1: 'Pricing analytics для SaaS: MRR за 10 хвилин', definition: 'Pricing analytics — аналіз того, як ціна впливає на MRR.' },
+    compromise: 'H1 з ключем на початку і обіцянкою з оголошення; визначення лишається.',
+    rv: { SEO: ['no', 'прибирає ключ «pricing analytics» з початку H1'], PPC: ['ok', 'message match з оголошенням Competitor EN'], 'AI Visibility': ['no', 'видаляє визначення, яке цитує Perplexity'] },
+    recTests: [['A/B тест', 5, 'конверсія з реклами'], ['SEO-тест', -6, 'кліки до контролю'], ['AI Visibility тест', -9, 'цитування, п.']],
+    testsC: [['A/B тест', 3.6, 'конверсія з реклами'], ['SEO-тест', 0.4, 'кліки до контролю'], ['AI Visibility тест', 0.5, 'цитування, п.']] }),
+  'ev-noaddr': () => launch({ title: 'Правка лендингу без адреси', ch: 'SEO', risk: 'R2', land: true, apTitle: 'Правка без адреси' }),
+  'ev-r2': () => launch({ title: 'Meta description для статті про CFO-дашборд', ch: 'SEO', risk: 'R2', land: true, page: '/blog/cfo-dashboard', patch: { title: 'CFO-дашборд: 12 показників для SaaS | Acme' }, apTitle: 'Нові meta description для 5 статей', before: 'Автоматичні уривки', after: '5 описів по 150 символів з закликом до дії' }),
+  'ev-return': () => launch({ title: 'Лист клієнтам про Smart Reports', ch: 'Email', risk: 'R2', xrObject: ['Бренд', 'тон занадто агресивний: «найкращий на ринку» без доказу'], apTitle: 'Розсилка про Smart Reports', before: 'Нова розсилка', after: 'Лист 3 400 клієнтам, сегмент «фінанси»' }, true),
+  'ev-veto': vetoDemo,
+  'ev-cron': () => { runCron(S.crons.find(c => c.id === 'data')); setTimeout(() => runCron(S.crons.find(c => c.id === 'anomaly')), 800); },
+  'ev-anom': () => { const a = S.anomalies.find(x => x.status === 'new'); if (!a) { toast('Усі аномалії вже продіагностовано.'); return; } S.selAn = a.id; toast(`Діагностика ${a.page} запущена.`); diagnose(a); },
+  'sl-anom': () => {
+    S.slCh = 'seo'; const a = S.anomalies.find(x => x.status === 'new');
+    if (a) slack(`Знайдено аномалію: <b>${a.page}</b>, ${a.metric.toLowerCase()} ${a.delta}% (прогноз ${a.fc}%).`, [{ label: 'Діагностувати', action: 'open-an', id: a.id, primary: true }], 'seo');
+    else slack('Нових аномалій немає. Усі відхилення в межах сезонного прогнозу.', [], 'seo');
+  },
+  'sl-ap': () => {
+    S.slCh = 'ppc'; const x = S.approvals.find(a => a.ppcAlert && a.status === 'pending');
+    if (x) slack(`Нагадування: <b>${esc(x.title)}</b> чекає рішення.`, [{ label: 'Затвердити', action: 'approve-slack', id: x.id, primary: true }], 'ppc');
+    else { ppcAlert(); render(); }
+  },
+  'sl-standup': () => { S.slCh = 'pm-standup'; standup(); }
+};
+function sendSlash() {
+  const i = $('#sl-in'); const v = (i ? i.value : S.slDraft).trim();
+  S.slDraft = ''; S.slFocus = true;
+  if (!v) { render(); return; }
+  slashCmd(v);
+}
+function slashCmd(raw) {
+  const ch = S.slCh, r = ROLES[S.role];
+  slack(esc(raw), [], ch, r.name);
+  const reply = (t, a = []) => setTimeout(() => slack(t, a, ch), 450);
+  const parts = raw.split(/\s+/), cmd = parts[0], sub = (parts[1] || '').toLowerCase(), arg = parts.slice(2).join(' ');
+  if (cmd !== '/orchestra') return reply('Я реагую на команди <code>/orchestra</code>. Наберіть <code>/orchestra help</code>.');
+  if (sub === 'status') {
+    const inWork = S.pipelines.filter(p => p.st[7] !== 'done' && !p.st.includes('veto')).length;
+    const open = S.anomalies.filter(a => a.status === 'new' || a.status === 'report').length;
+    return reply(`У роботі <b>${inWork}</b> задач. На апруві <b>${pending().length}</b>: ${pending().map(a => a.id).join(', ') || '—'}.<br>PPC: $${S.budgetUsed.toLocaleString('uk')} з $${S.budget.toLocaleString('uk')} за тиждень. Аномалій без рішення: ${open}.<br>Кампанії в роботі: ${S.cmps.filter(c => c.status === 'running').length}; групові пакети в тесті: ${S.gps.filter(g => ['test', 'rollout'].includes(g.status)).length}; швидкі виправлення: ${S.hotfixes.filter(h => !['new', 'done'].includes(h.status)).length}; записи ${S.writesOff ? 'вимкнено' : 'дозволені'}.`, pending().length ? [{ label: 'Відкрити апруви', action: 'nav-to', screen: 'approvals' }] : []);
+  }
+  if (sub === 'brief') {
+    if (!arg) return reply('Додайте мету: <code>/orchestra brief Вебінар для CFO</code>');
+    return setTimeout(() => {
+      const c = cmpFromBrief({ title: arg, chs: ['Контент', 'SMM', 'Email'], budget: 0, icp: 'з brand-context.md' });
+      slack(`Прийняв бриф <b>${esc(arg)}</b>. Оркестратор кампаній розклав його на ${c.packets.length} пакетів: ${c.id}.`, [{ label: 'Відкрити кампанію', action: 'nav-to', screen: 'cmps' }], ch);
+    }, 450);
+  }
+  if (sub === 'approve') {
+    const a = S.approvals.find(x => x.id === arg.toUpperCase());
+    if (!a) return reply(`Не знайшов апрув <b>${esc(arg) || '—'}</b>. Відкриті: ${pending().map(x => x.id).join(', ') || 'немає'}.`);
+    if (a.status !== 'pending') return reply(`${a.id} уже вирішено.`);
+    if (!canApprove(a)) return reply(esc(denyReason(a)));
+    return setTimeout(() => { approve(a.id, true); if (chOf(a.ch) !== ch) slack(`Готово. Деталі в #${chOf(a.ch)}.`, [], ch); }, 450);
+  }
+  if (sub === 'why') {
+    const a = arg && S.anomalies.find(x => x.page === arg || x.page.includes(arg));
+    if (!a) return reply(`Вкажіть сторінку: ${S.anomalies.map(x => `<code>${x.page}</code>`).join(', ')}`);
+    if (a.status === 'new') { reply(`${a.page} ще не діагностовано. Запускаю діагностику, результат прийде в #seo.`); return setTimeout(() => diagnose(a), 500); }
+    if (a.status === 'diag') return reply(`${a.page}: діагностика триває.`);
+    return reply(`<b>${a.page}</b>: ${esc(a.cause)} (впевненість ${a.conf}%).${a.chosen ? '<br>Рішення: ' + esc(a.chosen) : ''}`, [{ label: 'Відкрити звіт', action: 'open-an', id: a.id }]);
+  }
+  if (sub === 'pause' || sub === 'resume') {
+    if (!r.crons) return reply(`Роль ${r.name} не змінює розклад.`);
+    const q = arg.toLowerCase(), c = q && S.crons.find(x => x.id === q || x.name.toLowerCase().includes(q));
+    if (!c) return reply(`Вкажіть цикл: ${S.crons.map(x => `<code>${x.id}</code>`).join(', ')}`);
+    c.on = sub === 'resume';
+    ev('h', r.name, `${c.on ? 'увімкнув' : 'поставив на паузу'} «${c.name}» зі Slack`);
+    return reply(`${c.on ? 'Увімкнено' : 'На паузі'}: <b>${c.name}</b> (${c.human}).`);
+  }
+  if (sub === 'report') return setTimeout(() => { slack('Тижневий звіт про зміни готовий. Повна версія в Google Docs.', [], ch); ev('ok', 'Marketing Data Storyteller', 'тижневий звіт надіслано в Slack'); }, 450);
+  reply(`Команди:<br><code>/orchestra brief &lt;мета&gt;</code> — новий бриф<br><code>/orchestra status</code> — стан конвеєрів<br><code>/orchestra approve AP-…</code> — затвердити<br><code>/orchestra why &lt;сторінка&gt;</code> — причина аномалії<br><code>/orchestra pause|resume &lt;цикл&gt;</code> — розклад<br><code>/orchestra report</code> — тижневий звіт`);
+}
+
+/* ---------- tour ---------- */
+const TOUR = [
+  { screen: 'hud', sel: null, h: 'Orca9: як влаштовано', p: 'Агенти пропонують. Канальні оркестратори SEO, PPC і AI Visibility погоджують. Координатор збирає один пакет на ресурс, O2 перевіряє докази, O3 — політики, людина вирішує важливе, а записує лише gateway. Це симуляція без реальних підключень.' },
+  { screen: 'hud', sel: '[data-tour=role]', h: 'Ролі і права', p: 'Роль визначає, що ви затверджуєте: свої канали, бюджет у межах тижневого ліміту, розгортання. Спробуйте Editor або Channel manager на екрані «Апруви».' },
+  { screen: 'hud', sel: '[data-tour=score]', h: 'Один пайплайн', p: 'План → агенти → канали → O2 → Координатор і O3 → людина → тест-гейт → gateway. Перемикач над схемою показує ті самі задачі як партитуру, картки або колонки етапів.' },
+  { screen: 'cmps', sel: '[data-tour=cmp-dag]', h: 'Кампанія розкладається на пакети', p: 'Оркестратор кампаній ділить бриф на лендинг, статті, рекламу, листи, пости і зміну наявної сторінки. Кожен пакет блокує лише свій ресурс і йде своїм контуром; граф показує залежності.' },
+  { screen: 'recs', sel: '[data-tour=page-control]', h: 'Один ресурс — один активний пакет', p: 'Сторінки, групи, рекламні кампанії й сегменти розсилок мають своє блокування і чергу. Блокування без рішення живе 48 годин — «Перемотати 48 год» покаже, як черга рушає.' },
+  { screen: 'recs', sel: '#rec-REC-3', h: 'Конфлікт PPC, SEO та AI', p: 'PPC хоче коротший перший екран. SEO захищає тему H1, AI Visibility — визначення. Після туру натисніть «Узгодити єдиний пакет»: кожен канал пояснить свій вердикт.' },
+  { screen: 'recs', sel: '#rec-REC-3', h: 'Компроміс або ризик Owner', p: 'Компроміс створює v2 і скидає старі погодження. Якщо компромісу немає, лише Owner може свідомо прийняти ризик: тоді тест суворіший, а розгортання — окремим рішенням.' },
+  { screen: 'recs', sel: '#rec-REC-3', h: 'Тест і розгортання', p: 'Дозвіл на тест змінює лише тестову групу. Шкода каналу — відкат, неповні дані — висновок не визначено. Після тесту можна розгорнути або відмовитись; ресурс звільняється в обох випадках.' },
+  { screen: 'groups', sel: '[data-tour=gp-list]', h: 'Група сторінок замість 46 пакетів', p: 'Одна ідея на сторінках одного шаблону — одне правило. Канали погоджують правило і вибірку, O2 рендерить усі сторінки, винятки йдуть окремо. Тест 50/50, далі хвилі 10/50/100% з guardrail.' },
+  { screen: 'hotfix', sel: '[data-tour=hf-flow]', h: 'Швидка смуга', p: 'Помилкова ціна не чекає три тижні. Значення лише з реєстру фактів, мінімальний diff, пріоритет над чергою, одне рішення Owner або Lead. Тести на цих сторінках стають на паузу й перезапускаються.' },
+  { screen: 'analytics', pre: () => { S.anTab = 'traffic'; }, sel: '[data-tour=traffic-kpi]', h: 'Трафік, реєстрації, гроші', p: 'Звідки приходять люди і скільки коштує клієнт: SEO, PPC, Email, AI-реферали. Фільтр періоду і каналу змінює всі графіки разом; поруч — оцінка кожного каналу проти цілей і атрибуція.' },
+  { screen: 'seo', sel: '[data-tour=seo-kw]', h: 'SEO: пропозиції, не прямі правки', p: 'SEO-агенти аналізують позиції й структуру. Зміни сторінки проходять спільний контур із PPC та AI Visibility.' },
+  { screen: 'ppc', sel: '[data-tour=ppc-camp]', h: 'PPC: сторінка і гроші окремо', p: 'Лендінг змінюється через Координатора. Бюджет і ставки — R3: ліміт ролі рахується сукупно за тиждень, а O3 не пропускає перевищення тижневого бюджету.' },
+  { screen: 'aiv', sel: '[data-tour=aiv-prompts]', h: 'AI Visibility', p: 'Под знаходить прогалини в AI-відповідях і готує рекомендації. Сайт сам не змінює; його оркестратор захищає визначення й факти в спільному пакеті.' },
+  { screen: 'pm', sel: '[data-tour=pm-kan]', h: 'PM бачить блокування', p: 'Дедлайни, SLA апрувів і блокери. PM нагадує й ескалює, але не підміняє канал, редактора чи власника бюджету.' },
+  { screen: 'crons', sel: '[data-tour=kill]', h: 'Пауза ≠ аварійна зупинка', p: 'Пауза крона лише не ставить нові задачі. Аварійний вимикач блокує будь-який запис у gateway, навіть у задачах, що вже йдуть; після увімкнення відкладене продовжується.' },
+  { screen: 'slackdemo', sel: '[data-tour=sl-demo]', h: 'Slack — той самий контур', p: 'Кнопки в Slack мають ті самі права, версії пакетів і ліміти. Старий апрув не підходить до зміненого варіанта.' },
+  { screen: 'roles', sel: '[data-tour=role-table]', h: 'Безпека поза моделлю', p: 'У production права, поля, бюджет і незмінність пакета перевіряє незалежний серверний policy engine. Демо показує процес, а не доводить захист інфраструктури.' },
+  { screen: 'recs', sel: '#rec-REC-3', h: 'Спробуйте повний сценарій', p: 'REC-3: узгодити → конфлікт → компроміс → дозволити тест → три тижні → розгорнути. Далі «Кампанії», «Групи сторінок» і «Швидкі виправлення». Архітектура зі схемами — посилання внизу меню.' }
+];
+let TI = -1;
+function tour(i) {
+  TI = i; const s = TOUR[i];
+  if (s.pre) s.pre();
+  if (S.screen !== s.screen || s.pre) go(s.screen);
+  const L = $('#tour'); L.classList.add('on');
+  $('#tour-h').textContent = s.h; $('#tour-p').textContent = s.p;
+  $('#tour-st').textContent = `${i + 1} з ${TOUR.length}`;
+  $('#tour-next').textContent = i === TOUR.length - 1 ? 'Завершити' : 'Далі';
+  $('[data-action=tour-prev]').style.visibility = i ? 'visible' : 'hidden';
+  requestAnimationFrame(() => {
+    const spot = $('#tour .spot'), pop = $('#tour .pop');
+    const el = s.sel && $(s.sel);
+    if (el) {
+      const tall = el.getBoundingClientRect().height > innerHeight * 0.55;
+      el.scrollIntoView({ block: tall ? 'start' : 'nearest', behavior: 'smooth' });
+      setTimeout(() => {
+        const r = el.getBoundingClientRect(), pad = 6;
+        const top0 = Math.max(r.top, 8), bottom0 = Math.min(r.bottom, innerHeight - 8);
+        Object.assign(spot.style, { left: r.left - pad + 'px', top: top0 - pad + 'px', width: r.width + pad * 2 + 'px', height: Math.max(0, bottom0 - top0) + pad * 2 + 'px', display: 'block' });
+        const pw = pop.offsetWidth, ph = pop.offsetHeight;
+        let top, left = Math.min(Math.max(12, r.left), innerWidth - pw - 12);
+        if (bottom0 + 14 + ph <= innerHeight - 12) top = bottom0 + 14;
+        else if (top0 - ph - 14 >= 12) top = top0 - ph - 14;
+        else { top = innerHeight - ph - 20; left = Math.max(12, innerWidth - pw - 24); }
+        top = Math.min(Math.max(12, top), innerHeight - ph - 12);
+        Object.assign(pop.style, { top: top + 'px', left: left + 'px' });
+      }, 420);
+    } else {
+      Object.assign(spot.style, { left: innerWidth / 2 + 'px', top: innerHeight / 2 + 'px', width: '0px', height: '0px' });
+      Object.assign(pop.style, { top: (innerHeight - pop.offsetHeight) / 2 + 'px', left: (innerWidth - pop.offsetWidth) / 2 + 'px' });
+    }
+    $('#tour-next').focus();
+  });
+}
+function endTour() { $('#tour').classList.remove('on'); TI = -1; }
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const nav = e.target.closest('.nav'); if (nav) { go(nav.dataset.screen); return; }
+  const b = e.target.closest('[data-action]'); if (!b) return;
+  const id = b.dataset.id, A = b.dataset.action;
+  const map = {
+    'toggle-hints': () => { const off = document.body.classList.toggle('no-hints'); b.textContent = off ? 'Показати підказки' : 'Сховати підказки'; },
+    tour: () => tour(0), 'tour-next': () => TI < TOUR.length - 1 ? tour(TI + 1) : endTour(), 'tour-prev': () => tour(Math.max(0, TI - 1)), 'tour-end': endTour,
+    sim: simulate,
+    'feed-tab': () => { S.feedTab = b.dataset.tab; $$('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === S.feedTab)); renderFeed(); },
+    'open-pl': () => openPipeline(S.pipelines.find(p => p.id === id)),
+    'fix-pl': () => { closeModal(); const p = S.pipelines.find(x => x.id === id); p.out[3] = 'Після виправлень — ок'; runPipeline(p, 1, false); },
+    'close-modal': closeModal,
+    'nav-to': () => { closeModal(); go(b.dataset.screen || 'approvals'); },
+    approve: () => approve(id), 'approve-slack': () => approve(id, true),
+    'return-ap': () => decide(id, 'returned'), reject: () => decide(id, 'rejected'),
+    'brief-plan': () => { const d = briefData(); if (validBrief(d)) showPlan(d); },
+    'brief-launch': () => {
+      const d = briefData(); if (!validBrief(d)) return;
+      const c = cmpFromBrief(d);
+      slack(`Новий бриф: <b>${esc(d.title)}</b>. Оркестратор кампаній розклав його на ${c.packets.length} пакетів.`, [{ label: 'Відкрити кампанію', action: 'nav-to', screen: 'cmps', primary: true }]);
+      toast('Бриф розкладено на пакети. Граф — на екрані «Кампанії».');
+      go('cmps');
+    },
+    'sel-an': () => { S.selAn = id; render(); },
+    'open-an': () => { S.selAn = id; S.anTab = 'anom'; go('analytics'); },
+    'an-tab': () => { S.anTab = id; render(); },
+    'vz-anom': () => { S.anTab = 'anom'; render(); },
+    'vz-weeks': () => { vzState().weeks = +id; render(); },
+    'vz-grp': () => { vzState().grp = id; render(); },
+    'vz-table': () => { vzState().table = !vzState().table; render(); },
+    diag: () => diagnose(S.anomalies.find(a => a.id === id)),
+    'approve-report': () => approveReport(S.anomalies.find(a => a.id === id)),
+    'reject-report': () => { const a = S.anomalies.find(x => x.id === id); a.status = 'closed'; a.chosen = 'Відхилено людиною'; ev('h', ROLES[S.role].name, `відхилив план для ${a.page}`); render(); },
+    week: () => weekForward(S.tests.find(t => t.id === id)),
+    deploy: () => deploy(S.tests.find(t => t.id === id)),
+    weekly, 'weekly-send': () => { closeModal(); slack('Тижневий звіт про зміни готовий. Повна версія в Google Docs.'); ev('ok', 'Marketing Data Storyteller', 'тижневий звіт надіслано в Slack'); toast('Звіт надіслано в Slack.'); },
+    'cron-toggle': () => { if (!ROLES[S.role].crons) { toast(`Роль ${ROLES[S.role].name} не змінює розклад.`); return; } const c = S.crons.find(x => x.id === id); c.on = !c.on; ev('h', ROLES[S.role].name, `${c.on ? 'увімкнув' : 'поставив на паузу'} «${c.name}»`); render(); },
+    ex: () => (EX[id] || SCALE_ACTIONS[id])?.(id),
+    'score-view': () => { S.scoreView = id; try { localStorage.setItem('orca9-score-view', id); } catch (e) {} render(); },
+    'open-rec': () => { closeModal(); openRec(id); },
+    'rec-review': () => reviewRec(S.recs.find(r => r.id === id)),
+    'rec-approve': () => recApprove(S.recs.find(r => r.id === id)),
+    'rec-reject': () => rejectPacket(S.recs.find(x => x.id === id)),
+    'packet-comp': () => changePacketVariant(S.recs.find(x => x.id === id), 'comp'),
+    'packet-orig': () => changePacketVariant(S.recs.find(x => x.id === id), 'orig'),
+    'packet-end': () => pcEndTest(S.recs.find(x => x.id === id)),
+    'page-queue': demoPageQueue,
+    'rec-week': () => recWeek(S.recs.find(r => r.id === id)),
+    'rec-deploy': () => recDeploy(S.recs.find(r => r.id === id)),
+    'seo-jira': () => seoJira(id),
+    nudge: () => nudge(id),
+    'sl-ch': () => { S.slCh = id; render(); },
+    'sl-send': sendSlash,
+    'sl-fill': () => { S.slDraft = id; S.slFocus = true; render(); },
+    'cron-run': () => runCron(S.crons.find(x => x.id === id))
+  };
+  if (b.getAttribute('aria-disabled') === 'true' && ['approve', 'return-ap', 'reject', 'approve-report', 'cron-toggle', 'rec-approve', 'rec-reject'].includes(A)) { map[A](); return; }
+  if (map[A]) map[A](); else if (SCALE_ACTIONS[A]) SCALE_ACTIONS[A](id, b);
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'role') { S.role = e.target.value; ev('h', 'Демо', `роль змінено на ${ROLES[S.role].name}`); render(); }
+  if (e.target.id === 'audit-f') { S.auditF = e.target.value; render(); }
+  if (e.target.id === 'ev-f') { S.evF = e.target.value; render(); }
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'sl-in') S.slDraft = e.target.value;
+  if (e.target.id === 'ag-q') { S.agentQ = e.target.value; const pos = e.target.selectionStart; render(); const i = $('#ag-q'); i.focus(); i.setSelectionRange(pos, pos); }
+  if (e.target.closest('#view') && e.target.closest('[data-tour=brief-form]')) $('#b-err') && ($('#b-err').textContent = '');
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.id === 'sl-in') { e.preventDefault(); sendSlash(); return; }
+  if (e.key === 'Escape') { if (TI >= 0) endTour(); closeModal(); }
+  if (TI >= 0 && e.key === 'ArrowRight') TI < TOUR.length - 1 ? tour(TI + 1) : endTour();
+  if (TI >= 0 && e.key === 'ArrowLeft' && TI > 0) tour(TI - 1);
+});
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+/* tooltips */
+const tip = $('#tip');
+function showTip(el) {
+  tip.textContent = el.dataset.hint; tip.classList.add('on');
+  const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+  let left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), innerWidth - w - 8);
+  let top = r.bottom + 8; if (top + h > innerHeight - 8) top = r.top - h - 8;
+  tip.style.left = left + 'px'; tip.style.top = top + 'px';
+}
+const hideTip = () => tip.classList.remove('on');
+document.addEventListener('mouseover', e => { const h = e.target.closest('[data-hint]'); h ? showTip(h) : hideTip(); });
+document.addEventListener('focusin', e => { const h = e.target.closest('[data-hint]'); h ? showTip(h) : hideTip(); });
+document.addEventListener('scroll', hideTip, true);
+addEventListener('resize', () => { if (TI >= 0) tour(TI); });
+
+scaleInit();
+seedPipelinePackets();
+render(); renderFeed();
+setTimeout(() => tour(0), 700);
+</script>
+</body>
+</html>

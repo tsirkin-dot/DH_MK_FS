@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orca9 — архітектура і пайплайн</title>
+<script src="orca9-pin.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#182033; --ink-2:#55607A; --ink-3:#8A93A8;
+  --rail:#1B2140; --mist:#EDF0F5; --paper:#FFFFFF; --line:#D9DEE8; --line-2:#C3CAD8;
+  --brass:#B8891A; --brass-soft:#F4EAD1;
+  --pass:#1E8A6E; --pass-soft:#DDF1EA;
+  --hold:#B86E00; --hold-soft:#FBEBD2;
+  --veto:#B9382A; --veto-soft:#F8DEDA;
+  --act:#3442A8; --act-soft:#E2E5F7;
+  --ui:'Onest', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --disp:'Unbounded', 'Onest', system-ui, sans-serif;
+  --mono:ui-monospace, Menlo, Consolas, monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--ui);font-size:15px;line-height:1.55;color:var(--ink);background:var(--mist)}
+a{color:var(--act)}
+.wrap{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh}
+nav.toc{background:var(--rail);color:#C9CEE0;padding:22px 14px;position:sticky;top:0;height:100vh;overflow:auto}
+nav.toc .logo{font-family:var(--disp);font-weight:600;font-size:20px;color:#fff;padding:0 8px 4px}
+nav.toc .logo small{display:block;font-family:var(--ui);font-weight:400;font-size:12px;color:#C9CEE0;margin-top:2px}
+nav.toc a{display:block;color:inherit;text-decoration:none;padding:6px 8px;border-radius:6px;font-size:14px}
+nav.toc a:hover{background:rgba(255,255,255,.08);color:#fff}
+nav.toc .back{margin:14px 0 18px;border:1px solid rgba(255,255,255,.2);color:#fff;font-weight:600}
+nav.toc .n{color:#8E95B3;font-size:12px;margin-right:6px}
+main{padding:32px 40px 80px;max-width:1180px;min-width:0}
+h1{font-family:var(--disp);font-weight:500;font-size:28px;margin:0 0 8px}
+.lead{font-size:16px;color:var(--ink-2);max-width:75ch;margin:0 0 24px}
+section{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:24px 26px;margin:0 0 20px;scroll-margin-top:16px}
+section h2{font-family:var(--disp);font-weight:500;font-size:19px;margin:0 0 6px;display:flex;gap:10px;align-items:baseline}
+section h2 .n{font-family:var(--ui);font-size:13px;color:var(--brass);font-weight:600}
+section h3{font-size:15px;margin:20px 0 8px}
+section > p{max-width:80ch}
+.muted{color:var(--ink-2)} .small{font-size:13px}
+.dia{overflow-x:auto;margin:14px 0 6px;border:1px solid var(--line);border-radius:10px;background:#FBFCFE;padding:8px}
+.dia svg{display:block;width:100%;min-width:780px;height:auto}
+.cap{font-size:13px;color:var(--ink-2);margin:4px 0 0}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;color:var(--ink-2);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line-2);background:var(--mist)}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl{overflow-x:auto;margin:10px 0}
+.tbl table{min-width:720px}
+.chip{display:inline-block;font-size:12px;font-weight:500;padding:1px 8px;border-radius:6px;background:var(--mist);color:var(--ink-2);white-space:nowrap}
+.chip.h{background:var(--act-soft);color:var(--act)} .chip.o{background:var(--brass-soft);color:#7A5A0C} .chip.a{background:var(--pass-soft);color:var(--pass)} .chip.s{background:var(--mist);color:var(--ink-2);border:1px solid var(--line-2)} .chip.b{background:var(--veto-soft);color:var(--veto)} .chip.w{background:var(--hold-soft);color:var(--hold)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--paper)}
+.card h4{margin:0 0 6px;font-size:14px}
+.card ul{margin:0;padding-left:18px;font-size:14px}
+.card li{margin:3px 0}
+pre{background:var(--rail);color:#E6E9F5;border-radius:10px;padding:14px 16px;font-size:12.5px;line-height:1.55;overflow:auto;font-family:var(--mono);margin:10px 0}
+code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px 5px;border-radius:4px}
+.sm{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 14px}
+.sm .arr{color:var(--ink-3)}
+.rule{border-left:4px solid var(--brass);background:var(--brass-soft);border-radius:8px;padding:12px 16px;margin:12px 0;font-size:14px}
+.rule b{color:#5E450A}
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr}
+  nav.toc{position:static;height:auto;display:flex;flex-wrap:wrap;gap:4px;padding:12px 16px}
+  nav.toc .logo{width:100%}
+  nav.toc a:not(.back){display:none}
+  nav.toc .back{margin:8px 0 0}
+  main{padding:20px 16px 60px}
+  section{padding:18px 16px}
+}
+.heat{min-width:860px}
+.heat td,.heat th{text-align:center;font-size:12.5px}
+.heat td:first-child,.heat th:first-child{text-align:left;font-size:14px}
+.heat td.own{background:var(--act);color:#fff;font-weight:600}
+.heat td.part{background:var(--act-soft);color:var(--act)}
+.heat td.no{color:var(--ink-3)}
+.thesis{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:12px 0}
+.thesis div{border-left:3px solid var(--brass);background:var(--brass-soft);border-radius:6px;padding:10px 12px;font-size:14px}
+.thesis b{display:block;margin-bottom:2px}
+</style>
+<link rel="stylesheet" href="orca9-premium.css">
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Зміст">
+  <div class="logo">Orca9<small>архітектура і пайплайн</small></div>
+  <a class="back" href="orca9-demo.html">← Назад до демо</a>
+  <a href="#overview"><span class="n">01</span>Архітектура системи</a>
+  <a href="#raci"><span class="n">02</span>Хто що робить</a>
+  <a href="#control"><span class="n">03</span>Хто керує чим</a>
+  <a href="#pipeline"><span class="n">04</span>Пайплайн задачі</a>
+  <a href="#sources"><span class="n">05</span>Звідки беруться задачі</a>
+  <a href="#crons"><span class="n">06</span>Крони і черга</a>
+  <a href="#review"><span class="n">07</span>Спільне керування сторінкою</a>
+  <a href="#campaigns"><span class="n">08</span>Оркестратор кампаній</a>
+  <a href="#groups"><span class="n">09</span>Групи сторінок</a>
+  <a href="#hotfix"><span class="n">10</span>Швидка смуга</a>
+  <a href="#locks"><span class="n">11</span>Ресурси і блокування</a>
+  <a href="#gate"><span class="n">12</span>Тест-гейт</a>
+  <a href="#anomaly"><span class="n">13</span>Аномалії і діагностика</a>
+  <a href="#aiv"><span class="n">14</span>AI Visibility</a>
+  <a href="#risk"><span class="n">15</span>Ризики і права</a>
+  <a href="#tracking"><span class="n">16</span>Події і відстеження</a>
+  <a href="#states"><span class="n">17</span>Стани і модель даних</a>
+  <a href="#security"><span class="n">18</span>Безпека</a>
+</nav>
+<main>
+  <h1>Orca9: як це працює</h1>
+  <p class="lead">Технічний опис для розробника й архітектора: хто ставить задачі, хто їх виконує, хто перевіряє, хто контролює і хто затверджує. Цільовий принцип: канал не змінює сторінку сам. Три канальні оркестратори й Координатор узгоджують єдиний пакет. Кожна дія проходить ворота, а кожна зміна сторінки — тест-гейт.</p>
+  <div class="legend">
+    <span class="chip h">Люди</span><span class="chip o">Оркестратори і ворота</span><span class="chip a">Агенти</span><span class="chip s">Інфраструктура</span><span class="chip">Сховища</span><span class="chip b">Вето, відкат</span>
+  </div>
+  <p></p>
+
+  <section id="overview">
+    <h2><span class="n">01</span>Архітектура системи</h2>
+    <p>Шари зверху вниз. Люди працюють через HUD або Slack, обидва йдуть через один API з RBAC. Ядро — O1/O2/O3, канальні оркестратори SEO/PPC/AI Visibility, Координатор сторінки й черга задач. У цільовій архітектурі агенти не мають прямого доступу до зовнішніх систем: усі дії проходять через tool gateway, який знає, що саме дозволено кожному агенту.</p>
+    <div class="dia"><svg id="d-overview" role="img" aria-label="Схема архітектури Orca9"></svg></div>
+    <p class="cap">Агенти отримують інструмент, але не токен: секрети лежать у Vault і підставляються в gateway. Будь-яка дія породжує подію, яка йде в аудит.</p>
+    <div class="grid2" style="margin-top:14px">
+      <div class="card"><h4>O1 Planner (CATALYST)</h4><ul><li>Розкладає бриф, алерт чи рекомендацію на підзадачі</li><li>Призначає агентів і канальних оркестраторів-погоджувачів</li><li>Робить тріаж: агенти чи людина</li><li>Планує роботу; конфлікти сторінки передає її Координатору</li></ul></div>
+      <div class="card"><h4>O2 Verifier</h4><ul><li>Кожна цифра й висновок мають джерело в даних</li><li>Математика прогнозів, UTM, довжини, формати</li><li>Статистична значущість тестів</li><li>Не схвалює — лише пропускає або повертає</li></ul></div>
+      <div class="card"><h4>O3 Auditor</h4><ul><li>Бренд, тон, політики платформ</li><li>Бюджети, ліміти ролей, крок ставки</li><li>Фіксує авто-апрув, запускає тест-гейт</li><li>Має право вето і авто-відкату</li></ul></div>
+      <div class="card"><h4>Поди агентів</h4><ul><li>SEO, PPC, AI Visibility, Контент, SMM, Email, Аналітика і CRO</li><li>Готують пропозиції й докази; канальні оркестратори погоджують</li><li>Виконавець не схвалює власний результат; оркестратор каналу — окрема роль</li><li>Пишуть лише через gateway в межах allow-list</li></ul></div>
+    </div>
+  </section>
+
+  <section id="raci">
+    <h2><span class="n">02</span>Хто що робить</h2>
+    <p>Матриця відповідальності. Одна функція — один власник, щоб не було «перевірив сам себе».</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Функція</th><th>Хто</th><th>Як і де</th></tr></thead>
+      <tbody>
+        <tr><td><b>Дає завдання</b></td><td><span class="chip h">Люди</span> <span class="chip s">Scheduler</span> <span class="chip a">Детектори</span></td><td>Бриф у HUD або <code>/orchestra brief</code>, крон за розкладом, аномалія, PPC-алерт, рекомендація агента</td></tr>
+        <tr><td><b>Планує</b></td><td><span class="chip o">O1 Planner</span></td><td>Декомпозиція на підзадачі, вибір агентів і погоджувачів, рівень ризику R0–R3</td></tr>
+        <tr><td><b>Виконує</b></td><td><span class="chip a">Агенти</span></td><td>Пишуть, аналізують, готують зміни; дії назовні — лише через gateway</td></tr>
+        <tr><td><b>Рев’ює</b></td><td><span class="chip a">Канальні оркестратори</span></td><td>SEO, PPC та AI Visibility погоджують одну версію; Координатор оцінює цілу сторінку</td></tr>
+        <tr><td><b>Перевіряє</b></td><td><span class="chip o">O2 Verifier</span></td><td>Факти, докази, розрахунки, значущість</td></tr>
+        <tr><td><b>Контролює</b></td><td><span class="chip o">O3 Auditor</span></td><td>Бренд, політики, бюджет, ліміти ролей, вето, тест-гейт, відкат</td></tr>
+        <tr><td><b>Затверджує</b></td><td><span class="chip o">Координатор + O3</span> або <span class="chip h">Люди</span></td><td>Авто-дозвіл — лише низький вплив і актуальні погодження всіх каналів. Люди — R3, високий вплив, конфлікт каналів</td></tr>
+        <tr><td><b>Тестує</b></td><td><span class="chip a">CRO, SEO, AI Visibility</span></td><td>A/B тест, SEO-тест і AI Visibility тест на тестовій групі проти контролю</td></tr>
+        <tr><td><b>Розгортає і відкочує</b></td><td><span class="chip o">O3</span> <span class="chip h">Люди</span></td><td>Авто для низького впливу, людина для високого. Відкат — завжди автоматичний</td></tr>
+        <tr><td><b>Відстежує</b></td><td><span class="chip s">Event bus</span></td><td>Кожен крок — подія: стрічка HUD, аудит, Slack, вебхуки, трейси</td></tr>
+        <tr><td><b>Задає правила</b></td><td><span class="chip h">Owner</span></td><td>Ліміти бюджетів, пороги тріажу, політики O3, список дозволених дій</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="control">
+    <h2><span class="n">03</span>Хто керує чим</h2>
+    <p>Ієрархія рішень. Людина ставить мету і вирішує важливе. O1 перетворює мету на план. Оркестратор кампаній ділить план на пакети за типом ресурсу. Кожен пакет має свого власника цілісності: Координатора сторінки, Координатора групи, власника бюджету або редактора. Канальні оркестратори погоджують, O2 і O3 перевіряють, записує тільки gateway.</p>
+    <div class="dia"><svg id="d-hier" role="img" aria-label="Ієрархія керування"></svg></div>
+    <div class="thesis">
+      <div><b>Один ресурс — один власник</b>Сторінка, група, кампанія чи сегмент мають одного координатора і одну чергу.</div>
+      <div><b>Погодження ≠ дозвіл</b>Канал погоджує вимоги, але записати може лише gateway за дозволом на точну версію.</div>
+      <div><b>Виконавець не схвалює себе</b>Агент робить, інші ролі погоджують, перевіряють і затверджують.</div>
+      <div><b>Масштаб через правило</b>Одна ідея на багатьох сторінках — одне правило для групи, а не десятки пакетів.</div>
+    </div>
+    <h3>Карта відповідальності</h3>
+    <p class="small muted">Темна клітинка — головна відповідальність, світла — участь, риска — не бере участі.</p>
+    <div class="tbl"><table class="heat"><thead><tr><th>Хто</th><th>Ставить задачу</th><th>Розкладає</th><th>Виконує</th><th>Погоджує</th><th>Перевіряє</th><th>Контролює</th><th>Затверджує</th><th>Записує</th></tr></thead><tbody><tr><td><b>Людина</b></td><td class="own">бриф</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="part">політики Owner</td><td class="own">важливе, гроші</td><td class="no">—</td></tr><tr><td><b>Детектори і крони</b></td><td class="own">алерт, аномалія</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr><tr><td><b>O1 Planner</b></td><td class="part">з алерту</td><td class="own">мета → план</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr><tr><td><b>Оркестратор кампаній</b></td><td class="no">—</td><td class="own">кампанія → пакети</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="part">порядок, залежності</td><td class="no">—</td><td class="no">—</td></tr><tr><td><b>Координатор сторінки / групи</b></td><td class="no">—</td><td class="part">пакет, правило</td><td class="no">—</td><td class="own">зводить погодження</td><td class="no">—</td><td class="part">черга, TTL</td><td class="part">авто-дозвіл з O3</td><td class="no">—</td></tr><tr><td><b>SEO-, PPC-, AIV-оркестратори</b></td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="own">свій канал</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr><tr><td><b>Агенти подів</b></td><td class="part">рекомендації</td><td class="no">—</td><td class="own">роблять</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr><tr><td><b>O2 Verifier</b></td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="own">докази, тести</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr><tr><td><b>O3 Auditor</b></td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="part">політики</td><td class="own">бренд, бюджет, вето</td><td class="part">фіксує авто-дозвіл</td><td class="no">—</td></tr><tr><td><b>Gateway</b></td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="part">версія, дозвіл</td><td class="part">kill switch</td><td class="no">—</td><td class="own">єдиний запис</td></tr></tbody></table></div>
+  </section>
+
+  <section id="pipeline">
+    <h2><span class="n">04</span>Пайплайн задачі</h2>
+    <p>Вісім етапів одного пакета на один ресурс — ті самі колонки, що в партитурі на HUD. Кампанія породжує кілька таких пакетів (розділ 08), група сторінок — один пакет на всю групу (розділ 09). Латунні — ворота: задача не пройде далі, поки ворота не відкриті. Повернення не обнуляє задачу: вона повертається на етап «Агенти» з коментарем.</p>
+    <div class="dia"><svg id="d-pipeline" role="img" aria-label="Пайплайн задачі"></svg></div>
+    <p class="cap">Тест-гейт обов’язковий для будь-якої зміни сторінки. Задачі без зміни сторінки (бюджет, пост, лист) після апруву йдуть одразу в «Дію».</p>
+    <div class="tbl"><table>
+      <thead><tr><th>#</th><th>Етап</th><th>Хто</th><th>Вхід</th><th>Вихід</th><th>Може повернути</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>O1 план</td><td>O1</td><td>бриф, алерт, рекомендація</td><td>підзадачі, агенти, рев’юери, R0–R3, вплив</td><td>—</td></tr>
+        <tr><td>1</td><td>Агенти</td><td>под-виконавець</td><td>підзадачі + brand-context</td><td>чернетка зміни з доказами</td><td>—</td></tr>
+        <tr><td>2</td><td>Канальні погодження</td><td>SEO-, PPC-, AI Visibility-оркестратори</td><td>єдиний пакет від актуальної бази</td><td>три погодження на одну версію</td><td>Координатору для компромісу; нова версія — нові погодження</td></tr>
+        <tr><td>3</td><td>O2 перевірка</td><td>O2</td><td>незмінний пакет + канальні погодження</td><td>пропуск або повернення</td><td>агентам</td></tr>
+        <tr><td>4</td><td>O3 аудит</td><td>O3</td><td>перевірений пакет</td><td>Координатор: спільне рішення; O3: політики, вето, тріаж</td><td>вето (кінець)</td></tr>
+        <tr><td>5</td><td>Людина</td><td>роль з правом</td><td>картка «до/після» + вердикти</td><td>апрув, повернення, відхилення</td><td>агентам</td></tr>
+        <tr><td>6</td><td>Обмежений тест пакета</td><td>CRO, SEO, AIV + Координатор/O2/O3</td><td>дозвіл на тест незмінного пакета</td><td>пройдено, відкат або inconclusive</td><td>основна сторінка незмінна; важливий rollout — окреме рішення людини</td></tr>
+        <tr><td>7</td><td>Дія</td><td>gateway</td><td>дозвіл на незмінний пакет + актуальна база</td><td>зміна у зовнішній системі + подія</td><td>—</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="sources">
+    <h2><span class="n">05</span>Звідки беруться задачі</h2>
+    <p>Усі джерела пишуть в одну чергу з однаковою структурою. Для O1 немає різниці, хто поставив задачу, — різниця лише в тегах і пріоритеті.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Джерело</th><th>Хто створює</th><th>Приклад</th><th>Пріоритет</th></tr></thead>
+      <tbody>
+        <tr><td>Бриф</td><td>Людина в HUD або Slack</td><td>«Запуск інтеграції з QuickBooks», канали, бюджет, дедлайн</td><td>звичайний</td></tr>
+        <tr><td>Крон</td><td>Scheduler</td><td>Щопонеділка 10:00 — один AEO-матеріал</td><td>низький</td></tr>
+        <tr><td>Аномалія</td><td>Детектор аномалій</td><td>/pricing-analytics: покази −38% при прогнозі −5%</td><td>високий</td></tr>
+        <tr><td>Алерт</td><td>PPC pacing, моніторинг тестів</td><td>Brand UA перевитрачає 18%</td><td>високий</td></tr>
+        <tr><td>Рекомендація</td><td>Будь-який агент</td><td>Narrative Strategist: визначення і таблиця на /pricing-analytics</td><td>звичайний</td></tr>
+        <tr><td>Кампанія</td><td>Оркестратор кампаній з брифу</td><td>CMP-482: лендинг, статті, реклама, листи, пости — окремі пакети</td><td>за брифом</td></tr>
+        <tr><td>Швидке виправлення</td><td>Citation Analyst, сканер, моніторинг</td><td>Ціна $49 замість $79 на 3 сторінках</td><td>найвищий, поза чергою</td></tr>
+        <tr><td>Повернення</td><td>O2, канальний оркестратор, людина</td><td>Немає джерела для «−30% часу закриття місяця»</td><td>успадковує</td></tr>
+      </tbody>
+    </table></div>
+<pre>// Задача в черзі
+{
+  "id": "MKT-477",
+  "source": "brief | cron | anomaly | alert | recommendation | return | hotfix",
+  "resource": "/smart-reports | group:G-FEATURES | ppc:Brand UA",  // обов’язково для змін
+  "dedupe_key": "cron:seo-rank:2026-10-13",
+  "title": "SEO: нові title для 12 продуктових лендингів",
+  "channels": ["SEO"],
+  "risk": "R2",            // R0..R3, ставить O1, може підняти O3
+  "impact": "high",        // low | high, правила тріажу
+  "changes_page": true,    // true → обов’язковий тест-гейт
+  "budget_usd": 0,
+  "deadline": "2026-11-03",
+  "epic": "EP-09"          // синхронізація з Jira
+}</pre>
+  </section>
+
+  <section id="crons">
+    <h2><span class="n">06</span>Крони і черга</h2>
+    <p>Крон ніколи не запускає агента напряму. Він лише кладе задачу в чергу. Так з’являються повтори, дедуплікація, ліміти паралельності на под і пауза однією кнопкою.</p>
+    <div class="dia"><svg id="d-crons" role="img" aria-label="Крони і черга"></svg></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Цикл</th><th>Cron</th><th>Що робить</th><th>Ризик</th><th>Хто отримує результат</th></tr></thead>
+      <tbody>
+        <tr><td>AI Visibility run</td><td><code>0 4 * * *</code></td><td>120 промптів × 6 AI-систем × 3 прогони</td><td>R0</td><td>Citation Analyst, #ai-visibility</td></tr>
+        <tr><td>Збір даних</td><td><code>0 5 * * *</code></td><td>GSC, Bing WMT, GA4, краул</td><td>R0</td><td>сховище метрик</td></tr>
+        <tr><td>SEO rank tracking</td><td><code>0 6 * * *</code></td><td>Позиції в Google і Bing</td><td>R0</td><td>#seo, детектор</td></tr>
+        <tr><td>Пошук аномалій</td><td><code>30 6 * * *</code></td><td>Факт проти сезонного прогнозу</td><td>R0</td><td>O1 → діагностика</td></tr>
+        <tr><td>News watch</td><td><code>0 7 * * *</code></td><td>Апдейти Google, новини ніші</td><td>R0</td><td>діагностика аномалій</td></tr>
+        <tr><td>Моніторинг тестів</td><td><code>0 8 * * *</code></td><td>Тест проти контролю, аварійний відкат</td><td>R2</td><td>O2, O3</td></tr>
+        <tr><td>Тест-гейт</td><td><code>0 9 * * *</code></td><td>Рішення по тестах, що завершились</td><td>R2</td><td>O3, людина для високого впливу</td></tr>
+        <tr><td>PPC pacing</td><td><code>0 * * * *</code></td><td>Витрати проти плану</td><td>R3</td><td>#ppc, власник бюджету</td></tr>
+        <tr><td>SMM calendar</td><td><code>0 9 * * 1</code></td><td>Контент-план на тиждень</td><td>R2</td><td>Editor</td></tr>
+        <tr><td>Content engine</td><td><code>0 10 * * 1</code></td><td>Один AEO-матеріал і дистрибуція</td><td>R2</td><td>Editor</td></tr>
+        <tr><td>Тижневий звіт</td><td><code>0 16 * * 5</code></td><td>Звіт про зміни</td><td>R1</td><td>Google Docs, Slack</td></tr>
+        <tr><td>Tech SEO audit</td><td><code>0 3 1 * *</code></td><td>Повний краул, задачі в Jira</td><td>R1</td><td>#seo, Jira</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="review">
+    <h2><span class="n">07</span>Канальні погодження та спільна сторінка</h2>
+    <div class="rule"><b>Правило.</b> SEO-, PPC- та AI Visibility-оркестратори погоджують вимоги своїх каналів. Канальний апрув не є дозволом на запис. Координатор сторінки збирає одну версію, захищає спільну мету й оцінює взаємний вплив.</div>
+    <div class="dia"><svg id="d-review" role="img" aria-label="Три канальні оркестратори та єдиний координатор сторінки"></svg></div>
+    <div class="tbl"><table><thead><tr><th>Учасник</th><th>Що погоджує</th><th>Чого не може робити</th></tr></thead><tbody>
+      <tr><td>SEO-оркестратор</td><td>Тема H1, ключі, індексація, канібалізація</td><td>Самостійно застосувати SEO-правку</td></tr>
+      <tr><td>PPC-оркестратор</td><td>Message match, CTA, рекламний трафік</td><td>Переписати сторінку під рекламу без інших каналів</td></tr>
+      <tr><td>AI Visibility-оркестратор</td><td>Визначення, перевірені факти, структура для цитування</td><td>Замінити конверсійні блоки під власну метрику</td></tr>
+      <tr><td>Координатор сторінки</td><td>Один пакет і версія, компроміс, конфлікт, тріаж</td><td>Обійти O2/O3, policy engine або людину за обов’язкового апруву</td></tr>
+      <tr><td>O2 / O3</td><td>Докази та результати / політики й ризики</td><td>Підмінити незалежні серверні перевірки відповіддю моделі</td></tr>
+      <tr><td>Gateway</td><td>Ідентичність, дозволені поля, fingerprint, актуальна база</td><td>Виконати новий payload за старим дозволом</td></tr>
+    </tbody></table></div>
+    <h3>Один активний пакет на ресурс</h3>
+    <p>Ресурс: tenant + account + page. Координатор утримує його від початку узгодження до завершення тесту та рішення про розгортання. Інша пропозиція чекає в черзі. Після звільнення вона перебудовується від останньої версії сторінки, зберігає попередні зміни й проходить нові погодження. Суперечливі зміни одного поля повертаються на узгодження, а не перезаписують одна одну.</p>
+    <h3>Версії та апруви</h3>
+    <p>Кожне погодження прив’язане до версії пакета та fingerprint точного diff. Вибір компромісу створює v2 й скидає попередні погодження. Змінилася база сторінки — застосування зупиняється. У production потрібні lease/fencing і атомарні серверні переходи; клієнтська Map у демо лише ілюструє правило.</p>
+    <h3>Автоматично чи з людиною</h3>
+    <p>Низький вплив, достатні докази й усі три канали погодили — Координатор та O3 фіксують авто-дозвіл на обмежений тест. Конфлікт, високий вплив або недостатня впевненість — до людини. Людина обирає варіант; він повторно погоджується. Непогоджений пакет або порушення політики не проходять за натисканням кнопки.</p>
+    <p>Після конфлікту чи високого впливу успішний тест потребує окремого дозволу на розгортання. Основна сторінка лишається незмінною до цього рішення. Неповні дані ведуть до inconclusive, а не до перемоги.</p>
+  </section>
+
+  <section id="campaigns">
+    <h2><span class="n">08</span>Оркестратор кампаній</h2>
+    <p>Кампанія — не один пакет. Оркестратор кампаній розкладає бриф на пакети за типом ресурсу, будує граф залежностей і запускає пакети хвилями: кожен стартує, щойно готові його залежності. Сам він нічого не затверджує і не записує.</p>
+    <div class="dia"><svg id="d-cmp" role="img" aria-label="Граф пакетів кампанії"></svg></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Тип пакета</th><th>Ресурс і блокування</th><th>Погоджують</th><th>Затверджує</th><th>Як виходить у світ</th></tr></thead>
+      <tbody>
+        <tr><td><b>Наявна сторінка</b></td><td>сторінка</td><td>SEO, PPC, AI Visibility → Координатор</td><td>за тріажем</td><td>тест-гейт: A/B, SEO, AI Visibility</td></tr>
+        <tr><td><b>Нова сторінка</b></td><td>нова адреса</td><td>SEO, PPC, AI Visibility</td><td>Editor</td><td>контролю немає, тому A/B неможливий: м’який запуск (noindex, частка трафіку), моніторинг, потім індексація</td></tr>
+        <tr><td><b>Статті</b></td><td>нові сторінки</td><td>SEO, AI Visibility, Бренд; O2 — факти</td><td>Editor</td><td>публікація, внутрішні посилання</td></tr>
+        <tr><td><b>Реклама</b></td><td>рекламна кампанія</td><td>SEO, Аналітика</td><td>власник бюджету, R3</td><td>резерв у ліміті ролі, O3 — тижневий бюджет</td></tr>
+        <tr><td><b>Листи</b></td><td>сегмент розсилки</td><td>Бренд, AI Visibility</td><td>Editor, завжди</td><td>тестова розсилка, відписки, потім відправка — незворотно</td></tr>
+        <tr><td><b>Пости</b></td><td>акаунти соцмереж</td><td>Бренд, AI Visibility</td><td>Editor</td><td>прев’ю, публікація за розкладом</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="groups">
+    <h2><span class="n">09</span>Групи сторінок і масштаб</h2>
+    <p>Якщо одна ідея або одна помилка повторюється на сторінках одного шаблону, агент не ходить по кожній сторінці. Він пише одне правило для групи. Координатор групи блокує всі сторінки атомарно, канали погоджують правило і три сторінки-вибірки, O2 рендерить і перевіряє кожну сторінку. Де правило не підходить, сторінка стає винятком і йде окремою чергою.</p>
+    <div class="dia"><svg id="d-groups" role="img" aria-label="Груповий пакет"></svg></div>
+    <div class="thesis">
+      <div><b>1 сторінка</b>Унікальна ідея — пакет сторінки через Координатора.</div>
+      <div><b>3+ сторінки одного шаблону</b>Одна ідея чи помилка — груповий пакет: правило + вибірка.</div>
+      <div><b>Тест 50/50</b>Половина групи — тест, половина — контроль, підібрані за трафіком.</div>
+      <div><b>Хвилі 10 → 50 → 100%</b>Guardrail між хвилями; шкода на будь-якій хвилі відкочує всю групу.</div>
+    </div>
+  </section>
+
+  <section id="hotfix">
+    <h2><span class="n">10</span>Швидка смуга</h2>
+    <p>Перевірена помилка — неправильна ціна, дата, зламаний checkout, noindex на ключовій сторінці — не чекає тритижневого тесту. Швидка смуга обходить чергу, але не ворота: значення лише з реєстру фактів, мінімальний diff, швидкі погодження каналів, одне рішення Owner або Marketing lead.</p>
+    <div class="dia"><svg id="d-hotfix" role="img" aria-label="Швидка смуга"></svg></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Що</th><th>Через швидку смугу</th><th>Чому</th></tr></thead>
+      <tbody>
+        <tr><td>Ціна, дата, назва, цифра з реєстру фактів</td><td>так</td><td>значення вже перевірене власником факту</td></tr>
+        <tr><td>Зламане посилання на checkout або форму</td><td>так</td><td>технічна перевірка і read-back, без статистики</td></tr>
+        <tr><td>noindex або 5xx на ключовій сторінці</td><td>так</td><td>технічний сигнал, шкода росте щогодини</td></tr>
+        <tr><td>Нове формулювання, оффер, дизайн</td><td>ні</td><td>це покращення, а не виправлення — звичайний контур і тест-гейт</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small muted">Після виправлення пакети на цих сторінках перебудовуються: якщо їхні поля не перетинаються з виправленим, Координатор робить авто-rebase на нову версію; якщо перетинаються — потрібні нові погодження. Вікно тесту перезапускається, бо дані під час виправлення не порівнювані.</p>
+  </section>
+
+  <section id="locks">
+    <h2><span class="n">11</span>Ресурси, блокування і аварійний вимикач</h2>
+    <p>Блокується ресурс, а не задача. Сторінка, група сторінок, рекламна кампанія, сегмент розсилки і соцакаунти мають по одному активному пакету і чергу. Група блокує всі свої сторінки одночасно; сторінка всередині заблокованої групи чекає.</p>
+    <div class="dia"><svg id="d-locks" role="img" aria-label="Блокування ресурсів"></svg></div>
+    <div class="thesis">
+      <div><b>TTL 48 годин</b>Пакет, що чекає людину довше, втрачає блокування; тестова група відновлюється, черга рушає.</div>
+      <div><b>Явна адреса</b>Пакет без сторінки чи групи відхиляється на вході: Координатор не вгадує ресурс.</div>
+      <div><b>Конфлікт без вічного глухого кута</b>Компроміс, або Owner свідомо приймає ризик: тоді тест суворіший, розгортання — окремо.</div>
+      <div><b>Пауза ≠ аварійна зупинка</b>Пауза крона не ставить нові задачі. Вимикач у gateway блокує будь-який запис, навіть у задачах, що вже йдуть.</div>
+    </div>
+  </section>
+
+  <section id="gate">
+    <h2><span class="n">12</span>Тест-гейт</h2>
+    <p>Будь-яка зміна лендингу чи сторінки, навіть затверджена людиною, спершу йде на тестову групу сторінок. Тестова версія — обмежений зовнішній запис після дозволу; основна сторінка зберігається. Вимірюємо спільний ефект і захисні показники каналів. У демо пороги й три тижні умовні; у production потрібні достатня вибірка й довірчі інтервали.</p>
+    <div class="dia"><svg id="d-gate" role="img" aria-label="Тест-гейт"></svg></div>
+    <div class="rule"><b>Правило розгортання.</b> Жоден із трьох тестів не гірший за контроль більш ніж на 2%, і хоча б один значуще кращий (≥ +2%, O2 перевіряє значущість). Шкода каналу — відновлення тестової групи. Неповні дані або недостатні докази ефекту — inconclusive без розгортання. Зміна пакета чи бази скидає чинність рішення.</div>
+    <div class="grid2">
+      <div class="card"><h4>A/B тест · Conversion Rate Optimizer</h4><ul><li>Спліт трафіку або сторінок</li><li>Метрика: конверсія в реєстрацію чи клік CTA</li><li>Мінімум: розмір вибірки з power-аналізу</li></ul></div>
+      <div class="card"><h4>SEO-тест · Keyword Researcher</h4><ul><li>Тестова група сторінок проти контрольної</li><li>Подібні за трафіком і сезонністю</li><li>Метрика: кліки і позиції, 3 тижні</li></ul></div>
+      <div class="card"><h4>AI Visibility тест · AI Visibility Tracker</h4><ul><li>Промпти, які ведуть на тестові сторінки</li><li>Кожен промпт × 6 AI-систем × 3 прогони</li><li>Метрика: цитування і точність фактів</li></ul></div>
+    </div>
+    <p class="small muted" style="margin-top:12px">Аварійний запобіжник: якщо будь-яка метрика тесту гірша за контроль на 10% п’ять днів поспіль, O3 відкочує зміну, не чекаючи кінця тесту.</p>
+  </section>
+
+  <section id="anomaly">
+    <h2><span class="n">13</span>Аномалії і діагностика</h2>
+    <p>Детектор порівнює факт із прогнозом, що вже враховує сезонність. Те, що вийшло за довірчий інтервал, стає задачею. O1 будує гіпотези і запускає лише потрібних аналізаторів паралельно.</p>
+    <div class="dia"><svg id="d-anomaly" role="img" aria-label="Діагностика аномалій"></svg></div>
+    <p class="cap">Якщо причина — сезонність, аномалія закривається автоматично і людину не турбують. Решта йде звітом із варіантами рішень, а обраний варіант — у тест-гейт.</p>
+  </section>
+
+  <section id="aiv">
+    <h2><span class="n">14</span>AI Visibility</h2>
+    <p>Окремий под, який вимірює, як AI-системи згадують і цитують бренд. Він лише рекомендує: записувати на сайт не може взагалі.</p>
+    <div class="dia"><svg id="d-aiv" role="img" aria-label="Цикл AI Visibility"></svg></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Агент</th><th>Що робить</th><th>Вихід</th></tr></thead>
+      <tbody>
+        <tr><td>Prompt Research Agent</td><td>Тримає промпт-сет: ICP, Search Console, Reddit, дзвінки продажів</td><td>120 промптів з етапом воронки</td></tr>
+        <tr><td>AI Visibility Tracker</td><td>Проганяє промпти в ChatGPT, Perplexity, Gemini, AI Overviews, Claude, Copilot</td><td>згадка, цитування, позиція, тональність</td></tr>
+        <tr><td>Citation Analyst</td><td>Хто цитується замість нас і чому; неточні факти і їх джерела</td><td>gap-звіт, список неточностей</td></tr>
+        <tr><td>Narrative Strategist</td><td>Який наратив дописати на сторінку</td><td>рекомендація «до/після» з доказами</td></tr>
+        <tr><td>AI Search Optimizer (SEO)</td><td>Структура: визначення, таблиці, FAQ, schema</td><td>рекомендація</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="risk">
+    <h2><span class="n">15</span>Ризики і права</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>Рівень</th><th>Що це</th><th>Ворота</th></tr></thead>
+      <tbody>
+        <tr><td><span class="chip">R0</span></td><td>Ресерч, збір даних, чернетки</td><td>O2</td></tr>
+        <tr><td><span class="chip">R1</span></td><td>Внутрішнє: Jira, Google Docs, звіти</td><td>O2</td></tr>
+        <tr><td><span class="chip h">R2</span></td><td>Публічне: сторінка, пост, лист, meta</td><td>погодження каналів + O2 + O3 + тріаж (+ тест-гейт для сторінки)</td></tr>
+        <tr><td><span class="chip w">R3</span></td><td>Гроші: ставки, бюджети, нові кампанії</td><td>погодження каналів + O2 + O3 + людина в межах тижневого ліміту</td></tr>
+      </tbody>
+    </table></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Роль</th><th>Бачить</th><th>R2</th><th>R3</th><th>Крони</th><th>Ключі</th></tr></thead>
+      <tbody>
+        <tr><td><b>Owner</b></td><td>усе</td><td>так</td><td>без ліміту</td><td>так</td><td>так</td></tr>
+        <tr><td><b>Marketing lead</b></td><td>усі канали</td><td>так</td><td>до $5 000/тиж. сукупно</td><td>так</td><td>ні</td></tr>
+        <tr><td><b>Channel manager</b></td><td>SEO, PPC, AI Visibility</td><td>так</td><td>до $500/тиж. сукупно</td><td>ні</td><td>ні</td></tr>
+        <tr><td><b>Project manager</b></td><td>усі проєкти, SLA</td><td>ні</td><td>ні</td><td>так</td><td>ні</td></tr>
+        <tr><td><b>Editor</b></td><td>контент, SMM, Email, SEO-тексти, кампанії</td><td>так</td><td>ні</td><td>ні</td><td>ні</td></tr>
+        <tr><td><b>Analyst, Viewer</b></td><td>дані, звіти</td><td>ні</td><td>ні</td><td>ні</td><td>ні</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="tracking">
+    <h2><span class="n">16</span>Події і відстеження</h2>
+    <p>Кожен крок агента, оркестратора, крона чи людини — подія з однаковою схемою. Подія незмінна (append-only) і має посилання на задачу та докази.</p>
+    <div class="dia"><svg id="d-events" role="img" aria-label="Потік подій"></svg></div>
+<pre>{
+  "id": "evt_01J9...",
+  "time": "2026-10-13T06:31:04Z",
+  "actor": "O2 Verifier",
+  "actor_type": "human | orchestrator | agent | system",
+  "pipeline": "MKT-477",
+  "stage": "verify",          // plan | agents | review | verify | audit | human | test | action
+  "action": "verify.pass",    // review.object, audit.veto, test.rollback, approve.auto ...
+  "risk": "R2",
+  "text": "пропустив «SEO: нові title для 12 сторінок»",
+  "evidence": ["gsc://query/pricing-analytics", "brand-context.md#tone"],
+  "trace": { "prompt_version": "o2-verifier@1.8", "model": "claude", "tokens": 4120, "latency_ms": 2300 }
+}</pre>
+    <div class="tbl"><table>
+      <thead><tr><th>Куди йде подія</th><th>Що потрапляє</th><th>Навіщо</th></tr></thead>
+      <tbody>
+        <tr><td>Стрічка HUD</td><td>усі</td><td>видно роботу в реальному часі</td></tr>
+        <tr><td>Журнал аудиту</td><td>усі, 12 місяців</td><td>хто, що, коли і на якій підставі</td></tr>
+        <tr><td>Slack</td><td>апруви, алерти, вето, відкати, звіти</td><td>люди отримують лише важливе</td></tr>
+        <tr><td>Вебхуки, BigQuery</td><td>усі</td><td>власна аналітика, BI</td></tr>
+        <tr><td>Трейси</td><td>виклики моделей і інструментів</td><td>дебаг, вартість, якість промптів</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="states">
+    <h2><span class="n">17</span>Стани і модель даних</h2>
+    <h3>Задача</h3>
+    <div class="sm"><span class="chip">wait</span><span class="arr">→</span><span class="chip o">plan</span><span class="arr">→</span><span class="chip a">agents</span><span class="arr">→</span><span class="chip o">review</span><span class="arr">→</span><span class="chip o">verify</span><span class="arr">→</span><span class="chip o">audit</span><span class="arr">→</span><span class="chip h">human | auto</span><span class="arr">→</span><span class="chip o">test</span><span class="arr">→</span><span class="chip a">done</span><span class="arr">·</span><span class="chip w">return → agents</span><span class="chip b">veto</span><span class="chip b">rolledback | inconclusive</span></div>
+    <h3>Рекомендація</h3>
+    <div class="sm"><span class="chip">new | queued</span><span class="arr">→</span><span class="chip o">review</span><span class="arr">→</span><span class="chip h">human</span><span class="arr">або</span><span class="chip a">auto</span><span class="arr">→</span><span class="chip o">test</span><span class="arr">→</span><span class="chip a">won → rollout approval → deployed</span><span class="arr">·</span><span class="chip b">rolledback</span><span class="chip b">rejected</span></div>
+    <h3>Пакет кампанії</h3>
+    <div class="sm"><span class="chip">plan</span><span class="arr">→</span><span class="chip">wait (залежності)</span><span class="arr">→</span><span class="chip a">work</span><span class="arr">→</span><span class="chip o">review → verify</span><span class="arr">→</span><span class="chip h">human</span><span class="arr">→</span><span class="chip o">launch</span><span class="arr">→</span><span class="chip a">done</span><span class="arr">·</span><span class="chip w">queued</span><span class="chip b">rejected</span><span class="chip b">blocked (kill switch)</span></div>
+    <h3>Груповий пакет</h3>
+    <div class="sm"><span class="chip">new | queued</span><span class="arr">→</span><span class="chip o">review</span><span class="arr">→</span><span class="chip h">human</span><span class="arr">або</span><span class="chip a">auto</span><span class="arr">→</span><span class="chip o">test 50/50</span><span class="arr">→</span><span class="chip o">rollout 10/50/100</span><span class="arr">→</span><span class="chip a">deployed</span><span class="arr">·</span><span class="chip b">rolledback</span><span class="chip w">expired</span></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Сутність</th><th>Ключові поля</th></tr></thead>
+      <tbody>
+        <tr><td><b>Task</b></td><td>id, source, title, channels, risk, impact, changes_page, stage, epic, deadline</td></tr>
+        <tr><td><b>Subtask</b></td><td>task_id, agent, input, output, evidence[]</td></tr>
+        <tr><td><b>Review</b></td><td>task_id | rec_id, package_version, channel, orchestrator_id, verdict, evidence, iteration</td></tr>
+        <tr><td><b>Approval</b></td><td>task_id, package_version, fingerprint, base_version, scope (test | rollout), risk, amount, approver_role, status, decided_by, expires_at</td></tr>
+        <tr><td><b>Recommendation</b></td><td>id, page, author_pod, author_agent, before, after, why, confidence, impact, compromise, status</td></tr>
+        <tr><td><b>Test</b></td><td>id, change_id, test_pages[], control_pages[], kind (ab | seo | aiv), metric, values[], verdict</td></tr>
+        <tr><td><b>Event</b></td><td>див. схему в розділі 11</td></tr>
+        <tr><td><b>Cron</b></td><td>id, expression, task_template, enabled, last_run, risk</td></tr>
+        <tr><td><b>Campaign</b></td><td>id, brief, epic, budget, status, packets[]</td></tr>
+        <tr><td><b>CampaignPacket</b></td><td>campaign_id, kind (landing | articles | ads | emails | posts | update), resource, deps[], status, approval_id</td></tr>
+        <tr><td><b>PageGroup</b></td><td>id, template, pattern, members[], traffic_share</td></tr>
+        <tr><td><b>GroupPacket</b></td><td>group_id, field, rule, sample[], exceptions[], test_set[], control_set[], wave, version</td></tr>
+        <tr><td><b>Lock</b></td><td>resource_key, holder_id, since, ttl_hours, queue[]</td></tr>
+        <tr><td><b>Fact</b></td><td>key, value, source, verified_at, owner</td></tr>
+        <tr><td><b>Hotfix</b></td><td>fact_key, field, pages[], preempted[], approved_by, log[]</td></tr>
+        <tr><td><b>Policy</b></td><td>budget_limits, role_limits, triage_rules, allowed_actions per identity/resource/field, forbidden_actions, kill_switch</td></tr>
+      </tbody>
+    </table></div>
+<pre>POST /tasks                    // бриф або рекомендація → черга
+GET  /tasks/:id                // стан і всі етапи
+POST /approvals/:id/approve    // RBAC: роль і ліміт перевіряються на сервері
+POST /approvals/:id/return     { comment }
+POST /recommendations/:id/review
+POST /tests/:id/decide         // лише O3 або людина з правом R2
+PATCH /crons/:id               { enabled }
+GET  /events?pipeline=MKT-477  // аудит
+Slack: /orchestra brief | status | approve | why | pause | resume | report</pre>
+  </section>
+
+  <section id="security">
+    <h2><span class="n">18</span>Безпека</h2>
+    <div class="grid2">
+      <div class="card"><h4>Доступи</h4><ul><li>Секрети у Vault, ротація кожні 90 днів</li><li>Агент бачить інструмент, але не токен</li><li>Gateway: identity + ресурс + допустимі поля + версія пакета; єдиний виконавець запису</li><li>SSO і MFA для всіх ролей з правом публікації або бюджету</li></ul></div>
+      <div class="card"><h4>Дані і промпти</h4><ul><li>Недовірений текст не надає прав. Незалежний policy engine, typed tools, egress allow-list і sandbox обмежують дії; промпт сам не гарантує захисту</li><li>PII маскується перед передачею в модель</li><li>Версія промпту і модель пишуться в кожну подію</li></ul></div>
+      <div class="card"><h4>Ніколи без людини</h4><ul><li>robots.txt, редиректи, видалення сторінок</li><li>Спосіб оплати, ключі доступу</li><li>Нова кампанія або платформа</li><li>Пости від імені бренду, щоб накрутити згадки в AI</li></ul></div>
+    </div>
+    <p class="small muted">Демо не містить production backend, Vault чи справжнього policy engine. Агентам заборонено змінювати дозволи, політики й аудит; kill switch перевіряється перед кожним записом у цільовій реалізації.</p>
+  </section>
+</main>
+</div>
+
+<script>
+const C = {
+  human: ['#E2E5F7', '#3442A8'], orch: ['#F4EAD1', '#B8891A'], agent: ['#DDF1EA', '#1E8A6E'],
+  sys: ['#FFFFFF', '#8A93A8'], store: ['#FFFFFF', '#55607A'], ext: ['#EDF0F5', '#8A93A8'],
+  gate: ['#FBEBD2', '#B86E00'], bad: ['#F8DEDA', '#B9382A']
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function draw(id, spec) {
+  const svg = document.getElementById(id);
+  const { w, h, nodes, edges } = spec;
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  const N = {}; nodes.forEach(n => N[n.id] = n);
+  const pt = (n, s, o = 0) => s === 'l' ? [n.x, n.y + n.h / 2 + o] : s === 'r' ? [n.x + n.w, n.y + n.h / 2 + o] : s === 't' ? [n.x + n.w / 2 + o, n.y] : [n.x + n.w / 2 + o, n.y + n.h];
+  const H = s => s === 'l' || s === 'r';
+  let out = `<defs><marker id="${id}-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#55607A"/></marker><marker id="${id}-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#B9382A"/></marker><marker id="${id}-w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#B86E00"/></marker></defs>`;
+  let labels = '';
+  edges.forEach(e => {
+    const a = N[e.f], b = N[e.t];
+    const p1 = pt(a, e.fs, e.fo || 0), p2 = pt(b, e.ts, e.to || 0);
+    let P;
+    if (e.via) P = [p1, ...e.via, p2];
+    else if (H(e.fs) && H(e.ts)) { const mx = e.mx ?? (p1[0] + p2[0]) / 2; P = [p1, [mx, p1[1]], [mx, p2[1]], p2]; }
+    else if (!H(e.fs) && !H(e.ts)) { const my = e.my ?? (p1[1] + p2[1]) / 2; P = [p1, [p1[0], my], [p2[0], my], p2]; }
+    else if (H(e.fs)) P = [p1, [p2[0], p1[1]], p2];
+    else P = [p1, [p1[0], p2[1]], p2];
+    const col = e.k === 'bad' ? '#B9382A' : e.k === 'warn' ? '#B86E00' : '#55607A';
+    const mk = e.k === 'bad' ? 'b' : e.k === 'warn' ? 'w' : 'a';
+    out += `<path d="M${P.map(p => p.join(' ')).join(' L')}" fill="none" stroke="${col}" stroke-width="1.6" ${e.dash ? 'stroke-dasharray="5 4"' : ''} marker-end="url(#${id}-${mk})"/>`;
+    if (e.label) {
+      let lx, ly;
+      if (e.lx != null) { lx = e.lx; ly = e.ly; } else { const i = Math.floor((P.length - 1) / 2); lx = (P[i][0] + P[i + 1][0]) / 2; ly = (P[i][1] + P[i + 1][1]) / 2; }
+      const lines = e.label.split('\n'); const lw = Math.max(...lines.map(l => l.length)) * 6.3 + 12; const lh = lines.length * 14 + 6;
+      labels += `<rect x="${lx - lw / 2}" y="${ly - lh / 2}" width="${lw}" height="${lh}" rx="4" fill="#FBFCFE" opacity=".94"/>` + lines.map((l, i) => `<text x="${lx}" y="${ly - lh / 2 + 15 + i * 14}" text-anchor="middle" font-size="11.5" fill="${col}" font-weight="500">${esc(l)}</text>`).join('');
+    }
+  });
+  nodes.forEach(n => {
+    const [fill, stroke] = C[n.k || 'sys'];
+    if (n.shape === 'dia') {
+      const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
+      out += `<polygon points="${cx},${n.y} ${n.x + n.w},${cy} ${cx},${n.y + n.h} ${n.x},${cy}" fill="${fill}" stroke="${stroke}" stroke-width="1.6"/>`;
+    } else {
+      out += `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${n.k === 'store' ? 14 : 8}" fill="${fill}" stroke="${stroke}" stroke-width="${n.k === 'store' ? 2.2 : 1.6}" ${n.k === 'ext' ? 'stroke-dasharray="5 4"' : ''}/>`;
+    }
+    const lines = [[n.label, 1], ...(n.sub ? n.sub.split('\n').map(s => [s, 0]) : [])];
+    const lh = 15, tot = lines.length * lh;
+    const cx = n.x + n.w / 2, y0 = n.y + n.h / 2 - tot / 2 + 11;
+    out += lines.map((l, i) => `<text x="${cx}" y="${y0 + i * lh}" text-anchor="middle" font-size="${l[1] ? 13 : 11.5}" font-weight="${l[1] ? 600 : 400}" fill="${l[1] ? '#182033' : '#55607A'}">${esc(l[0])}</text>`).join('');
+  });
+  svg.innerHTML = out + labels;
+  svg.style.fontFamily = "'Onest', system-ui, sans-serif";
+}
+
+/* 01 overview */
+draw('d-overview', { w: 1000, h: 720, nodes: [
+  { id: 'people', x: 340, y: 8, w: 320, h: 58, k: 'human', label: 'Люди', sub: 'Owner · Marketing lead · Channel manager\nEditor · PM · Analyst · Viewer' },
+  { id: 'hud', x: 250, y: 106, w: 220, h: 52, label: 'HUD (веб)', sub: 'партитура, апруви, рекомендації' },
+  { id: 'slack', x: 530, y: 106, w: 220, h: 52, label: 'Slack-бот', sub: 'алерти, кнопки апруву, /orchestra' },
+  { id: 'api', x: 300, y: 196, w: 400, h: 52, label: 'API + RBAC', sub: 'роль → права R2/R3 і ліміти · SSO, 2FA' },
+  { id: 'sched', x: 20, y: 300, w: 170, h: 60, label: 'Scheduler', sub: 'крони → задачі в черзі' },
+  { id: 'queue', x: 20, y: 400, w: 170, h: 64, label: 'Черга задач', sub: 'ретраї, дедуплікація,\nліміти паралельності' },
+  { id: 'o1', x: 240, y: 296, w: 160, h: 64, k: 'orch', label: 'O1 Planner', sub: 'план і підзадачі,\nпризначення ролей' },
+  { id: 'o2', x: 420, y: 296, w: 160, h: 64, k: 'orch', label: 'O2 Verifier', sub: 'факти, докази,\nматематика' },
+  { id: 'o3', x: 600, y: 296, w: 160, h: 64, k: 'orch', label: 'O3 Auditor', sub: 'політики, бюджет,\nтест-гейт, вето' },
+  { id: 'bus', x: 810, y: 296, w: 170, h: 64, k: 'store', label: 'Event bus', sub: 'кожен крок = подія' },
+  { id: 'pods', x: 240, y: 410, w: 520, h: 72, k: 'agent', label: 'Поди агентів (85 заплановано)', sub: 'SEO · PPC · AI Visibility · Контент · SMM · Email · Аналітика і CRO\nпропозиції → канальні оркестратори → Координатор сторінки' },
+  { id: 'audit', x: 810, y: 410, w: 170, h: 64, k: 'store', label: 'Аудит і трейси', sub: '12 міс., версія промпту,\nмодель, токени' },
+  { id: 'brand', x: 20, y: 516, w: 170, h: 56, k: 'store', label: 'brand-context.md', sub: 'ICP, тон, факти' },
+  { id: 'gw', x: 240, y: 524, w: 520, h: 56, label: 'Єдиний виконавець + policy gateway', sub: 'погоджений пакет · версія бази · scope · kill switch · read-back' },
+  { id: 'vault', x: 810, y: 524, w: 170, h: 56, k: 'store', label: 'Vault', sub: 'секрети, ротація 90 днів' },
+  { id: 'state', x: 20, y: 612, w: 170, h: 56, k: 'store', label: 'Стан і метрики', sub: 'Postgres + BigQuery' },
+  { id: 'ext', x: 240, y: 626, w: 520, h: 72, k: 'ext', label: 'Зовнішні системи', sub: 'GSC · Bing WMT · GA4 · Google, LinkedIn, Meta Ads · CMS · Jira · Google Docs\nChatGPT · Perplexity · Gemini · AI Overviews · Claude · Copilot' }
+], edges: [
+  { f: 'people', fs: 'b', t: 'hud', ts: 't' }, { f: 'people', fs: 'b', t: 'slack', ts: 't' },
+  { f: 'hud', fs: 'b', t: 'api', ts: 't', to: -90 }, { f: 'slack', fs: 'b', t: 'api', ts: 't', to: 90 },
+  { f: 'api', fs: 'b', t: 'o1', ts: 't', fo: -120, label: 'бриф' },
+  { f: 'o3', fs: 't', t: 'api', ts: 'b', to: 150, label: 'запит апруву' },
+  { f: 'sched', fs: 'b', t: 'queue', ts: 't', label: 'задача' },
+  { f: 'queue', fs: 'r', t: 'o1', ts: 'l', mx: 215 },
+  { f: 'o1', fs: 'b', t: 'pods', ts: 't', to: -170, label: 'підзадачі' },
+  { f: 'pods', fs: 't', t: 'o2', ts: 'b', label: 'результати' },
+  { f: 'o2', fs: 'r', t: 'o3', ts: 'l' },
+  { f: 'o3', fs: 'r', t: 'bus', ts: 'l' },
+  { f: 'bus', fs: 'b', t: 'audit', ts: 't' },
+  { f: 'pods', fs: 'b', t: 'gw', ts: 't', label: 'дії лише тут' },
+  { f: 'gw', fs: 'b', t: 'ext', ts: 't' },
+  { f: 'gw', fs: 'r', t: 'vault', ts: 'l', label: 'токен' },
+  { f: 'brand', fs: 'r', t: 'pods', ts: 'l', mx: 215 },
+  { f: 'gw', fs: 'l', t: 'state', ts: 'r', mx: 215, label: 'дані' }
+] });
+
+/* 03 control */
+draw('d-hier', { w: 1000, h: 600, nodes: [
+  { id: 'hum', x: 380, y: 8, w: 240, h: 52, k: 'human', label: 'Людина', sub: 'бриф і рішення за роллю' },
+  { id: 'o1', x: 380, y: 88, w: 240, h: 52, k: 'orch', label: 'O1 Planner', sub: 'мета → план' },
+  { id: 'hf', x: 740, y: 86, w: 230, h: 56, k: 'gate', label: 'Швидка смуга', sub: 'факт з реєстру, пріоритет' },
+  { id: 'cmp', x: 340, y: 168, w: 320, h: 56, k: 'orch', label: 'Оркестратор кампаній', sub: 'кампанія → пакети за типом ресурсу' },
+  { id: 'cp', x: 10, y: 266, w: 230, h: 64, k: 'orch', label: 'Координатор сторінки', sub: 'одна сторінка, черга,\nкомпроміс' },
+  { id: 'cg', x: 260, y: 266, w: 230, h: 64, k: 'orch', label: 'Координатор групи', sub: 'правило на шаблон,\nвинятки, хвилі' },
+  { id: 'rp', x: 510, y: 266, w: 230, h: 64, label: 'Ресурс PPC', sub: 'бюджет і ставки, R3,\nліміт ролі за тиждень' },
+  { id: 'rm', x: 760, y: 266, w: 230, h: 64, label: 'Листи і пости', sub: 'Бренд + AIV, Editor,\nтестова розсилка' },
+  { id: 'ch', x: 10, y: 370, w: 480, h: 56, k: 'orch', label: 'SEO-, PPC-, AI Visibility-оркестратори', sub: 'погоджують одну версію пакета сторінки чи групи' },
+  { id: 'ag', x: 510, y: 370, w: 480, h: 56, k: 'agent', label: 'Агенти подів', sub: 'виконують: тексти, правила, оголошення, листи' },
+  { id: 'o23', x: 260, y: 462, w: 480, h: 50, k: 'gate', label: 'O2 докази · O3 політики, вето, тест-гейт' },
+  { id: 'gw', x: 260, y: 540, w: 480, h: 52, label: 'Gateway', sub: 'єдиний запис: дозвіл + версія бази + аварійний вимикач' }
+], edges: [
+  { f: 'hum', fs: 'b', t: 'o1', ts: 't' }, { f: 'o1', fs: 'b', t: 'cmp', ts: 't' },
+  { f: 'o1', fs: 'r', t: 'hf', ts: 'l', label: 'помилка факту' },
+  { f: 'cmp', fs: 'b', t: 'cp', ts: 't', fo: -120 }, { f: 'cmp', fs: 'b', t: 'cg', ts: 't', fo: -40 }, { f: 'cmp', fs: 'b', t: 'rp', ts: 't', fo: 40 }, { f: 'cmp', fs: 'b', t: 'rm', ts: 't', fo: 120 },
+  { f: 'cp', fs: 'b', t: 'ch', ts: 't', to: -125 }, { f: 'cg', fs: 'b', t: 'ch', ts: 't', to: 125 },
+  { f: 'rp', fs: 'b', t: 'ag', ts: 't', to: -125 }, { f: 'rm', fs: 'b', t: 'ag', ts: 't', to: 125 },
+  { f: 'ch', fs: 'b', t: 'o23', ts: 't', to: -120 }, { f: 'ag', fs: 'b', t: 'o23', ts: 't', to: 120 },
+  { f: 'o23', fs: 'b', t: 'gw', ts: 't' },
+  { f: 'hf', fs: 'r', t: 'gw', ts: 'r', via: [[995, 114], [995, 566]], dash: 1, k: 'warn', label: 'обходить чергу, не ворота', lx: 880, ly: 448 }
+] });
+
+/* 08 campaigns */
+draw('d-cmp', { w: 1000, h: 300, nodes: [
+  { id: 'L', x: 10, y: 118, w: 200, h: 64, k: 'agent', label: 'L · Лендінг', sub: 'нова сторінка:\nм’який запуск' },
+  { id: 'A', x: 270, y: 20, w: 200, h: 60, k: 'agent', label: 'A · 3 статті', sub: 'O2 факти · Editor' },
+  { id: 'AD', x: 270, y: 120, w: 200, h: 60, label: 'AD · Реклама', sub: 'R3 · ліміт ролі' },
+  { id: 'U', x: 270, y: 220, w: 200, h: 60, k: 'orch', label: 'U · Наявна сторінка', sub: 'Координатор + тест-гейт' },
+  { id: 'E', x: 530, y: 50, w: 200, h: 60, k: 'agent', label: 'E · 4 листи', sub: 'тестова розсилка, людина' },
+  { id: 'P', x: 530, y: 170, w: 200, h: 60, k: 'agent', label: 'P · 6 постів', sub: 'прев’ю · Editor' },
+  { id: 'rep', x: 790, y: 118, w: 200, h: 64, k: 'orch', label: 'Звіт кампанії', sub: 'статус пакетів,\nхто затвердив' }
+], edges: [
+  { f: 'L', fs: 'r', t: 'A', ts: 'l', mx: 240 }, { f: 'L', fs: 'r', t: 'AD', ts: 'l', mx: 240 }, { f: 'L', fs: 'r', t: 'U', ts: 'l', mx: 240 },
+  { f: 'A', fs: 'r', t: 'E', ts: 'l', mx: 500 }, { f: 'A', fs: 'r', t: 'P', ts: 'l', mx: 500 },
+  { f: 'E', fs: 'r', t: 'rep', ts: 'l', mx: 760 }, { f: 'P', fs: 'r', t: 'rep', ts: 'l', mx: 760 },
+  { f: 'AD', fs: 'r', t: 'rep', ts: 'l', mx: 760, dash: 1 }, { f: 'U', fs: 'r', t: 'rep', ts: 'b', via: [[890, 250]], dash: 1 }
+] });
+
+/* 09 groups */
+draw('d-groups', { w: 1000, h: 290, nodes: [
+  { id: 'rule', x: 10, y: 110, w: 150, h: 60, k: 'agent', label: 'Правило', sub: 'одне поле шаблону' },
+  { id: 'ch', x: 190, y: 110, w: 160, h: 60, k: 'orch', label: 'Канали', sub: 'правило + 3 вибірки' },
+  { id: 'o2', x: 380, y: 110, w: 160, h: 60, k: 'gate', label: 'O2: усі N сторінок', sub: 'рендер і перевірки' },
+  { id: 'ex', x: 380, y: 220, w: 160, h: 52, label: 'Винятки', sub: 'окрема черга' },
+  { id: 'test', x: 570, y: 110, w: 150, h: 60, k: 'gate', label: 'Тест 50/50', sub: 'половина проти половини' },
+  { id: 'waves', x: 750, y: 14, w: 230, h: 60, k: 'orch', label: 'Хвилі 10 → 50 → 100%', sub: 'guardrail між хвилями' },
+  { id: 'dep', x: 750, y: 118, w: 230, h: 52, k: 'agent', label: 'Розгорнуто', sub: 'усі сторінки, крім винятків' },
+  { id: 'rb', x: 750, y: 214, w: 230, h: 56, k: 'bad', label: 'Відкат усієї групи', sub: 'шкода в тесті чи на хвилі' }
+], edges: [
+  { f: 'rule', fs: 'r', t: 'ch', ts: 'l' }, { f: 'ch', fs: 'r', t: 'o2', ts: 'l' }, { f: 'o2', fs: 'b', t: 'ex', ts: 't', label: 'не підходить' },
+  { f: 'o2', fs: 'r', t: 'test', ts: 'l' }, { f: 'test', fs: 'r', t: 'waves', ts: 'l', mx: 735 }, { f: 'waves', fs: 'b', t: 'dep', ts: 't' },
+  { f: 'test', fs: 'b', t: 'rb', ts: 'l', k: 'bad', label: 'шкода', lx: 680, ly: 242 },
+  { f: 'waves', fs: 'r', t: 'rb', ts: 'r', via: [[994, 44], [994, 242]], k: 'bad', dash: 1 }
+] });
+
+/* 10 hotfix */
+draw('d-hotfix', { w: 1000, h: 240, nodes: [
+  { id: 's1', x: 10, y: 24, w: 126, h: 70, k: 'agent', label: 'Сигнал', sub: 'аналітик,\nсканер сторінок' },
+  { id: 's2', x: 150, y: 24, w: 126, h: 70, k: 'gate', label: 'Реєстр фактів', sub: 'O2: значення,\nджерело' },
+  { id: 's3', x: 290, y: 24, w: 126, h: 70, k: 'gate', label: 'Мінімальний diff', sub: 'O3: одне поле' },
+  { id: 's4', x: 430, y: 24, w: 126, h: 70, k: 'orch', label: 'Пріоритет', sub: 'утримувачі\nна паузі' },
+  { id: 's5', x: 570, y: 24, w: 126, h: 70, k: 'human', label: 'Owner / Lead', sub: 'одне рішення,\nSLA 1 год' },
+  { id: 's6', x: 710, y: 24, w: 126, h: 70, label: 'Gateway', sub: 'усі версії,\nread-back' },
+  { id: 's7', x: 850, y: 24, w: 140, h: 70, k: 'agent', label: 'Моніторинг', sub: '24 год, регресії' },
+  { id: 'p', x: 430, y: 150, w: 266, h: 56, k: 'gate', label: 'Тести на паузі', sub: 'дані під час виправлення не рахуються' },
+  { id: 'rb', x: 710, y: 146, w: 280, h: 66, k: 'orch', label: 'Rebase і рестарт вікна', sub: 'інші поля — авто,\nте саме поле — нові погодження' }
+], edges: [
+  { f: 's1', fs: 'r', t: 's2', ts: 'l' }, { f: 's2', fs: 'r', t: 's3', ts: 'l' }, { f: 's3', fs: 'r', t: 's4', ts: 'l' }, { f: 's4', fs: 'r', t: 's5', ts: 'l' }, { f: 's5', fs: 'r', t: 's6', ts: 'l' }, { f: 's6', fs: 'r', t: 's7', ts: 'l' },
+  { f: 's4', fs: 'b', t: 'p', ts: 't', fo: 0, to: -70, dash: 1 }, { f: 's6', fs: 'b', t: 'rb', ts: 't', to: -67 }, { f: 'p', fs: 'r', t: 'rb', ts: 'l', dash: 1 }
+] });
+
+/* 11 locks */
+draw('d-locks', { w: 1000, h: 300, nodes: [
+  { id: 'r1', x: 10, y: 10, w: 220, h: 46, label: 'Сторінка', sub: '/smart-reports' },
+  { id: 'r2', x: 10, y: 66, w: 220, h: 46, label: 'Група = набір сторінок', sub: 'group:G-FEATURES (12)' },
+  { id: 'r3', x: 10, y: 122, w: 220, h: 46, label: 'Рекламна кампанія', sub: 'ppc:Brand UA' },
+  { id: 'r4', x: 10, y: 178, w: 220, h: 46, label: 'Сегмент розсилки', sub: 'email:segment-finance' },
+  { id: 'r5', x: 10, y: 234, w: 220, h: 46, label: 'Соцакаунти', sub: 'social:linkedin+x' },
+  { id: 'lock', x: 300, y: 96, w: 210, h: 96, k: 'orch', label: 'Таблиця блокувань', sub: 'один активний пакет\nгрупа — атомарно\nчерга FIFO' },
+  { id: 'ttl', x: 570, y: 14, w: 200, h: 62, k: 'gate', label: 'TTL 48 год', sub: 'без рішення людини —\nблокування знято' },
+  { id: 'q', x: 570, y: 114, w: 200, h: 62, k: 'agent', label: 'Черга', sub: 'наступний пакет —\nвід нової версії' },
+  { id: 'hf', x: 570, y: 220, w: 200, h: 58, k: 'bad', label: 'Швидка смуга', sub: 'пріоритет, пауза, rebase' },
+  { id: 'gw', x: 810, y: 96, w: 180, h: 96, label: 'Gateway', sub: 'аварійний вимикач\nверсія бази\nдозвіл на пакет' }
+], edges: [
+  { f: 'r1', fs: 'r', t: 'lock', ts: 'l', mx: 265, to: -30 }, { f: 'r2', fs: 'r', t: 'lock', ts: 'l', mx: 265, to: -15 }, { f: 'r3', fs: 'r', t: 'lock', ts: 'l', mx: 265 }, { f: 'r4', fs: 'r', t: 'lock', ts: 'l', mx: 265, to: 15 }, { f: 'r5', fs: 'r', t: 'lock', ts: 'l', mx: 265, to: 30 },
+  { f: 'lock', fs: 'r', t: 'ttl', ts: 'l', mx: 540 }, { f: 'lock', fs: 'r', t: 'q', ts: 'l', mx: 540 },
+  { f: 'ttl', fs: 'b', t: 'q', ts: 't', label: 'звільнено' }, { f: 'hf', fs: 'l', t: 'lock', ts: 'b', k: 'warn' },
+  { f: 'q', fs: 'r', t: 'gw', ts: 'l' }
+] });
+
+/* 04 pipeline */
+draw('d-pipeline', { w: 1000, h: 350, nodes: [
+  { id: 'src', x: 10, y: 44, w: 135, h: 76, k: 'sys', label: 'Джерело', sub: 'бриф · крон\nаномалія · алерт\nрекомендація' },
+  { id: 'o1', x: 170, y: 54, w: 110, h: 56, k: 'orch', label: '0 · O1 план' },
+  { id: 'ag', x: 310, y: 54, w: 110, h: 56, k: 'agent', label: '1 · Агенти' },
+  { id: 'xr', x: 450, y: 54, w: 120, h: 56, k: 'gate', label: '2 · Канали', sub: 'SEO · PPC · AIV' },
+  { id: 'o2', x: 600, y: 54, w: 110, h: 56, k: 'gate', label: '3 · O2', sub: 'докази' },
+  { id: 'o3', x: 740, y: 54, w: 110, h: 56, k: 'gate', label: '4 · Координатор', sub: '+ O3: політики' },
+  { id: 'veto', x: 880, y: 60, w: 100, h: 44, k: 'bad', label: 'Вето' },
+  { id: 'tri', x: 730, y: 200, w: 130, h: 90, k: 'gate', shape: 'dia', label: 'Тріаж' },
+  { id: 'hum', x: 540, y: 180, w: 140, h: 50, k: 'human', label: '5 · Людина', sub: 'апрув у HUD / Slack' },
+  { id: 'auto', x: 540, y: 262, w: 140, h: 50, k: 'agent', label: '5 · Авто-апрув', sub: 'координатор + O3' },
+  { id: 'gate', x: 340, y: 200, w: 140, h: 90, k: 'gate', shape: 'dia', label: '6 · Тест-гейт' },
+  { id: 'act', x: 150, y: 220, w: 130, h: 50, k: 'agent', label: '7 · Gateway', sub: 'один пакет' },
+  { id: 'rb', x: 150, y: 296, w: 130, h: 40, k: 'bad', label: 'Відкат' }
+], edges: [
+  { f: 'src', fs: 'r', t: 'o1', ts: 'l' }, { f: 'o1', fs: 'r', t: 'ag', ts: 'l' }, { f: 'ag', fs: 'r', t: 'xr', ts: 'l' },
+  { f: 'xr', fs: 'r', t: 'o2', ts: 'l' }, { f: 'o2', fs: 'r', t: 'o3', ts: 'l' },
+  { f: 'o3', fs: 'r', t: 'veto', ts: 'l', k: 'bad' },
+  { f: 'xr', fs: 't', t: 'ag', ts: 't', via: [[510, 24], [365, 24]], k: 'warn', dash: 1, label: 'заперечення', lx: 437, ly: 24 },
+  { f: 'o2', fs: 'b', t: 'ag', ts: 'b', via: [[655, 140], [365, 140]], k: 'warn', dash: 1, label: 'немає доказу', lx: 510, ly: 140 },
+  { f: 'o3', fs: 'b', t: 'tri', ts: 't' },
+  { f: 'tri', fs: 'l', t: 'hum', ts: 'r', label: 'R3 · високий вплив · конфлікт', lx: 610, ly: 166 },
+  { f: 'tri', fs: 'b', t: 'auto', ts: 'r', label: 'низький вплив, усі за', lx: 610, ly: 330 },
+  { f: 'hum', fs: 'l', t: 'gate', ts: 't' },
+  { f: 'auto', fs: 'l', t: 'gate', ts: 'b' },
+  { f: 'gate', fs: 'l', t: 'act', ts: 'r', label: 'пройдено' },
+  { f: 'gate', fs: 'b', t: 'rb', ts: 'r', k: 'bad', via: [[410, 316]], label: 'гірше −2%', lx: 345, ly: 316 }
+] });
+
+/* 05 crons */
+draw('d-crons', { w: 1000, h: 232, nodes: [
+  { id: 'trig', x: 220, y: 6, w: 200, h: 46, label: 'Інші джерела', sub: 'бриф, аномалія, алерт, Slack' },
+  { id: 'sched', x: 10, y: 84, w: 170, h: 60, label: 'Scheduler', sub: '12 кронів, таймзона\nкоманди' },
+  { id: 'queue', x: 220, y: 84, w: 200, h: 60, label: 'Черга', sub: 'dedupe_key = крон + дата\nпріоритет, дедлайн' },
+  { id: 'wk', x: 460, y: 84, w: 190, h: 60, label: 'Воркери', sub: 'ліміт паралельності\nна под і на API' },
+  { id: 'pipe', x: 690, y: 84, w: 150, h: 60, k: 'orch', label: 'Пайплайн', sub: 'O1 → … → Дія' },
+  { id: 'bus', x: 870, y: 84, w: 120, h: 60, k: 'store', label: 'Event bus' },
+  { id: 'pause', x: 10, y: 174, w: 170, h: 50, k: 'human', label: 'Пауза / ручний запуск', sub: 'Owner, Lead, PM' },
+  { id: 'dlq', x: 460, y: 174, w: 190, h: 50, k: 'bad', label: 'Dead-letter', sub: '3 ретраї з backoff → алерт' },
+  { id: 'sl', x: 690, y: 174, w: 150, h: 50, label: 'Slack', sub: '#mkt-orchestra' }
+], edges: [
+  { f: 'sched', fs: 'r', t: 'queue', ts: 'l' }, { f: 'trig', fs: 'b', t: 'queue', ts: 't' },
+  { f: 'queue', fs: 'r', t: 'wk', ts: 'l' }, { f: 'wk', fs: 'r', t: 'pipe', ts: 'l' }, { f: 'pipe', fs: 'r', t: 'bus', ts: 'l' },
+  { f: 'pause', fs: 't', t: 'sched', ts: 'b' },
+  { f: 'wk', fs: 'b', t: 'dlq', ts: 't', k: 'bad', label: 'помилка' },
+  { f: 'dlq', fs: 'r', t: 'sl', ts: 'l', k: 'bad' }
+] });
+
+/* 06 review */
+draw('d-review', { w: 1000, h: 560, nodes: [
+  { id: 'author', x: 365, y: 12, w: 270, h: 60, k: 'agent', label: 'Пропозиція агента', sub: 'без права змінити сторінку' },
+  { id: 'seo', x: 30, y: 120, w: 280, h: 68, k: 'orch', label: 'SEO-оркестратор', sub: 'H1 · тема · індексація' },
+  { id: 'ppc', x: 360, y: 120, w: 280, h: 68, k: 'orch', label: 'PPC-оркестратор', sub: 'message match · CTA' },
+  { id: 'aiv', x: 690, y: 120, w: 280, h: 68, k: 'orch', label: 'AI Visibility-оркестратор', sub: 'визначення · факти · цитування' },
+  { id: 'coord', x: 340, y: 250, w: 320, h: 78, k: 'orch', label: 'Координатор сторінки', sub: 'єдиний пакет · взаємний вплив\nверсія · черга · компроміс' },
+  { id: 'checks', x: 30, y: 258, w: 250, h: 62, k: 'gate', label: 'O2 + O3', sub: 'докази · політики · ризик' },
+  { id: 'human', x: 720, y: 258, w: 250, h: 62, k: 'human', label: 'Людина', sub: 'конфлікт або високий вплив\nновий варіант → нові погодження' },
+  { id: 'test', x: 340, y: 392, w: 320, h: 60, k: 'gate', label: 'Дозвіл → тест пакета', sub: 'основна сторінка незмінна' },
+  { id: 'out', x: 340, y: 492, w: 320, h: 54, label: 'Gateway: один запис', sub: 'rollout-дозвіл · відкат · inconclusive' }
+], edges: [
+  { f: 'author', fs: 'b', t: 'seo', ts: 't' }, { f: 'author', fs: 'b', t: 'ppc', ts: 't' }, { f: 'author', fs: 'b', t: 'aiv', ts: 't' },
+  { f: 'seo', fs: 'b', t: 'coord', ts: 't', to: -90 }, { f: 'ppc', fs: 'b', t: 'coord', ts: 't' }, { f: 'aiv', fs: 'b', t: 'coord', ts: 't', to: 90 },
+  { f: 'checks', fs: 'r', t: 'coord', ts: 'l' }, { f: 'coord', fs: 'r', t: 'human', ts: 'l', k: 'warn' },
+  { f: 'coord', fs: 'b', t: 'test', ts: 't' }, { f: 'test', fs: 'b', t: 'out', ts: 't' }
+] });
+
+/* 07 gate */
+draw('d-gate', { w: 1000, h: 300, nodes: [
+  { id: 'in', x: 10, y: 120, w: 140, h: 58, k: 'human', label: 'Затверджена зміна', sub: 'людиною або агентами' },
+  { id: 'split', x: 185, y: 114, w: 175, h: 70, k: 'orch', label: 'Розподіл', sub: 'тест і контроль: схожі\nза трафіком і сезонністю' },
+  { id: 'ab', x: 400, y: 18, w: 240, h: 56, k: 'agent', label: 'A/B тест · CRO', sub: 'конверсія, p-value' },
+  { id: 'seo', x: 400, y: 121, w: 240, h: 56, k: 'agent', label: 'SEO-тест', sub: 'кліки і позиції, тест проти контролю' },
+  { id: 'aiv', x: 400, y: 224, w: 240, h: 56, k: 'agent', label: 'AI Visibility тест', sub: 'цитування, 6 AI-систем × 3 прогони' },
+  { id: 'dec', x: 680, y: 94, w: 160, h: 110, k: 'gate', shape: 'dia', label: 'Жоден < −2%', sub: 'і один ≥ +2%?' },
+  { id: 'dep', x: 862, y: 50, w: 128, h: 58, k: 'agent', label: 'Розгортання', sub: 'low — авто\nhigh — людина' },
+  { id: 'inc', x: 862, y: 120, w: 128, h: 58, k: 'gate', label: 'Невизначено', sub: 'без розгортання' },
+  { id: 'rb', x: 862, y: 190, w: 128, h: 58, k: 'bad', label: 'Відкат', sub: 'рекомендація\nавтору' }
+], edges: [
+  { f: 'in', fs: 'r', t: 'split', ts: 'l' },
+  { f: 'split', fs: 'r', t: 'ab', ts: 'l', mx: 380 }, { f: 'split', fs: 'r', t: 'seo', ts: 'l', mx: 380 }, { f: 'split', fs: 'r', t: 'aiv', ts: 'l', mx: 380 },
+  { f: 'ab', fs: 'r', t: 'dec', ts: 'l', mx: 660 }, { f: 'seo', fs: 'r', t: 'dec', ts: 'l', mx: 660 }, { f: 'aiv', fs: 'r', t: 'dec', ts: 'l', mx: 660 },
+  { f: 'dec', fs: 't', t: 'dep', ts: 'l', label: 'так', lx: 800, ly: 79 }, { f: 'dec', fs: 'b', t: 'rb', ts: 'l', k: 'bad', label: 'шкода', lx: 800, ly: 219 },
+  { f: 'dec', fs: 'r', t: 'inc', ts: 'l', k: 'warn' }
+] });
+
+/* 08 anomaly */
+draw('d-anomaly', { w: 1000, h: 270, nodes: [
+  { id: 'det', x: 10, y: 100, w: 120, h: 70, k: 'agent', label: 'Детектор', sub: 'факт проти\nсезонного прогнозу' },
+  { id: 'o1', x: 150, y: 100, w: 120, h: 70, k: 'orch', label: 'O1', sub: 'гіпотези,\nвибір аналізаторів' },
+  { id: 'an', x: 290, y: 10, w: 295, h: 250, k: 'agent', label: 'Аналізатори паралельно', sub: 'Сезонність · Аналізатор сезонності\nТехніка · Technical SEO Auditor\nПозиції Google/Bing · Keyword Researcher\nЗміна SERP · AI Search Optimizer\nКонкуренти · Competitive Intelligence\nАпдейти · News & Algorithm Watcher\nТрекінг · Marketing Ops Architect\nAI-відповіді · AI Visibility Tracker' },
+  { id: 'o2', x: 605, y: 100, w: 125, h: 70, k: 'orch', label: 'O2 · звіт', sub: 'кожен висновок\nмає доказ' },
+  { id: 'o3', x: 750, y: 100, w: 115, h: 70, k: 'orch', label: 'O3', sub: 'варіанти\nу межах політик' },
+  { id: 'hum', x: 885, y: 100, w: 105, h: 70, k: 'human', label: 'Людина', sub: 'обирає варіант\n→ тест-гейт' },
+  { id: 'cls', x: 605, y: 205, w: 260, h: 44, k: 'sys', label: 'Сезонність → закрито автоматично' }
+], edges: [
+  { f: 'det', fs: 'r', t: 'o1', ts: 'l' }, { f: 'o1', fs: 'r', t: 'an', ts: 'l' }, { f: 'an', fs: 'r', t: 'o2', ts: 'l' },
+  { f: 'o2', fs: 'r', t: 'o3', ts: 'l' }, { f: 'o3', fs: 'r', t: 'hum', ts: 'l' }, { f: 'o2', fs: 'b', t: 'cls', ts: 't', fo: 0, to: -70, dash: 1 }
+] });
+
+/* 09 aiv */
+draw('d-aiv', { w: 1000, h: 250, nodes: [
+  { id: 'pr', x: 10, y: 30, w: 150, h: 64, k: 'agent', label: 'Промпт-сет', sub: 'Prompt Research\n120 промптів' },
+  { id: 'run', x: 190, y: 30, w: 160, h: 64, k: 'agent', label: 'Прогін 04:00', sub: '6 AI-систем × 3 прогони' },
+  { id: 'gap', x: 380, y: 30, w: 160, h: 64, k: 'agent', label: 'Gap-аналіз', sub: 'Citation Analyst' },
+  { id: 'rec', x: 570, y: 30, w: 170, h: 64, k: 'agent', label: 'Рекомендація', sub: 'Narrative Strategist\n«до / після» + докази' },
+  { id: 'xr', x: 770, y: 30, w: 220, h: 64, k: 'gate', label: 'Спільний пакет', sub: 'SEO · PPC · AIV → Координатор' },
+  { id: 'tri', x: 770, y: 150, w: 220, h: 64, k: 'gate', label: 'Тріаж', sub: 'агенти або людина' },
+  { id: 'gate', x: 480, y: 150, w: 260, h: 64, k: 'orch', label: 'Тест-гейт', sub: 'AI Visibility тест + A/B + SEO' },
+  { id: 'dep', x: 190, y: 150, w: 260, h: 64, k: 'agent', label: 'Розгортання і новий прогін', sub: 'ефект видно в наступних прогонах' }
+], edges: [
+  { f: 'pr', fs: 'r', t: 'run', ts: 'l' }, { f: 'run', fs: 'r', t: 'gap', ts: 'l' }, { f: 'gap', fs: 'r', t: 'rec', ts: 'l' }, { f: 'rec', fs: 'r', t: 'xr', ts: 'l' },
+  { f: 'xr', fs: 'b', t: 'tri', ts: 't' }, { f: 'tri', fs: 'l', t: 'gate', ts: 'r' }, { f: 'gate', fs: 'l', t: 'dep', ts: 'r' },
+  { f: 'dep', fs: 'l', t: 'run', ts: 'b', via: [[160, 182], [160, 122], [270, 122]], dash: 1, label: 'цикл', lx: 140, ly: 150 }
+] });
+
+/* 11 events */
+draw('d-events', { w: 1000, h: 280, nodes: [
+  { id: 'a1', x: 10, y: 14, w: 200, h: 46, k: 'agent', label: 'Агенти', sub: 'робота, рев’ю' },
+  { id: 'a2', x: 10, y: 80, w: 200, h: 46, k: 'orch', label: 'Оркестратори', sub: 'план, перевірка, вето' },
+  { id: 'a3', x: 10, y: 146, w: 200, h: 46, k: 'sys', label: 'Крони і детектори' },
+  { id: 'a4', x: 10, y: 212, w: 200, h: 46, k: 'human', label: 'Люди', sub: 'апрув, пауза, бриф' },
+  { id: 'bus', x: 340, y: 96, w: 200, h: 80, k: 'store', label: 'Event bus', sub: 'append-only,\nсхема з розділу 11' },
+  { id: 's1', x: 680, y: 6, w: 300, h: 42, label: 'Стрічка HUD', sub: 'усі події' },
+  { id: 's2', x: 680, y: 60, w: 300, h: 42, k: 'store', label: 'Журнал аудиту', sub: '12 місяців' },
+  { id: 's3', x: 680, y: 114, w: 300, h: 42, label: 'Slack', sub: 'апрув, алерт, вето, відкат, звіт' },
+  { id: 's4', x: 680, y: 168, w: 300, h: 42, k: 'ext', label: 'Вебхуки, BigQuery' },
+  { id: 's5', x: 680, y: 222, w: 300, h: 42, k: 'store', label: 'Трейси', sub: 'промпт, модель, токени, затримка' }
+], edges: [
+  { f: 'a1', fs: 'r', t: 'bus', ts: 'l', to: -24, mx: 280 }, { f: 'a2', fs: 'r', t: 'bus', ts: 'l', to: -8, mx: 280 }, { f: 'a3', fs: 'r', t: 'bus', ts: 'l', to: 8, mx: 280 }, { f: 'a4', fs: 'r', t: 'bus', ts: 'l', to: 24, mx: 280 },
+  { f: 'bus', fs: 'r', t: 's1', ts: 'l', mx: 620 }, { f: 'bus', fs: 'r', t: 's2', ts: 'l', mx: 620 }, { f: 'bus', fs: 'r', t: 's3', ts: 'l', mx: 620, label: 'фільтр', lx: 640, ly: 152 }, { f: 'bus', fs: 'r', t: 's4', ts: 'l', mx: 620 }, { f: 'bus', fs: 'r', t: 's5', ts: 'l', mx: 620 }
+] });
+</script>
+</body>
+</html>
