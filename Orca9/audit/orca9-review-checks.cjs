@@ -8,12 +8,14 @@ const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const controller = fs.readFileSync(path.join(root, 'orca9-page-control.js'), 'utf8');
 const scale = fs.readFileSync(path.join(root, 'orca9-scale.js'), 'utf8');
 const viz = fs.readFileSync(path.join(root, 'orca9-viz.js'), 'utf8');
+const agents = fs.readFileSync(path.join(root, 'orca9-agents.js'), 'utf8');
 new vm.Script(script); new vm.Script(controller); new vm.Script(scale);
 function session(role = 'lead') {
   const c = vm.createContext({ setTimeout: fn => { queueMicrotask(fn); return 0; }, clearTimeout() {}, console });
   vm.runInContext(controller, c);
   vm.runInContext(scale, c);
   vm.runInContext(viz, c);
+  vm.runInContext(agents, c);
   vm.runInContext(script.slice(0, script.indexOf('/* ---------- tour ---------- */')), c);
   vm.runInContext('ev = () => {}; slack = () => {}; render = () => {}; toast = () => {}; go = () => {};', c);
   vm.runInContext(`scaleInit(); seedPipelinePackets(); S.role = '${role}';`, c);
@@ -146,6 +148,12 @@ const ok = msg => checks.push(msg);
     for (const v of ['hud', 'brief', 'analytics', 'approvals', 'seo', 'ppc', 'aiv', 'cmps', 'recs', 'groups', 'hotfix', 'pm', 'events', 'slackdemo', 'agents', 'crons', 'roles', 'audit']) {
       const html = R(s, `VIEWS['${v}']()`); assert.ok(html.length > 300, v); assert.ok(!/NaN|>undefined<|\$undefined|Infinity/.test(html), v + ' has NaN/undefined'); }
     ok('All 18 screens render without NaN or undefined values.'); }
+  { const s = session(); const names = R(s, 'S.pods.flatMap(p => p[1])');
+    for (const n of names) { const sp = R(s, `AG_SPEC[${JSON.stringify(n)}]`); assert.ok(sp, 'no spec: ' + n);
+      for (const k of ['p', 'tr', 'src', 'col', 'how', 'out', 'sample', 'to', 'kpi', 'ex']) assert.ok(String(sp[k] || '').trim(), n + ' missing ' + k);
+      const h = R(s, `agentDetailHTML(${JSON.stringify(n)})`); assert.ok(!/undefined|NaN/.test(h), n + ' renders undefined'); }
+    assert.ok(R(s, `S.agentQ = 'цитування'; VIEWS.agents()`).includes('AI Visibility Tracker'));
+    ok('Every agent (' + names.length + ') has a full passport: trigger, sources, data, steps, output, example run.'); }
   { assert.equal(R(c, `gateEvaluate([{ name: 'A', value: 3 }, { name: 'B', value: NaN }, { name: 'C', value: 1 }]).verdict`), 'inconclusive');
     assert.equal(R(c, `fmtGate('AI Visibility тест', 8)`), '+8 п.');
     ok('One evaluator for pages, groups and pipelines; AI Visibility shown in points, not %.'); }
