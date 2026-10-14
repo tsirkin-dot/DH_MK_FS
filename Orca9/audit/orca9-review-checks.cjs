@@ -11,6 +11,7 @@ const viz = fs.readFileSync(path.join(root, 'orca9-viz.js'), 'utf8');
 const agents = fs.readFileSync(path.join(root, 'orca9-agents.js'), 'utf8');
 const world = fs.readFileSync(path.join(root, 'orca9-world.js'), 'utf8');
 const insight = fs.readFileSync(path.join(root, 'orca9-insight.js'), 'utf8');
+const phase = fs.readFileSync(path.join(root, 'orca9-phase.js'), 'utf8');
 new vm.Script(script); new vm.Script(controller); new vm.Script(scale);
 function session(role = 'lead') {
   const c = vm.createContext({ setTimeout: fn => { queueMicrotask(fn); return 0; }, clearTimeout() {}, console });
@@ -20,9 +21,10 @@ function session(role = 'lead') {
   vm.runInContext(agents, c);
   vm.runInContext(world, c);
   vm.runInContext(insight, c);
+  vm.runInContext(phase, c);
   vm.runInContext(script.slice(0, script.indexOf('/* ---------- tour ---------- */')), c);
   vm.runInContext('ev = () => {}; slack = () => {}; render = () => {}; toast = () => {}; go = () => {};', c);
-  vm.runInContext(`scaleInit(); worldInit(); insightInit(); seedPipelinePackets(); S.role = '${role}';`, c);
+  vm.runInContext(`scaleInit(); worldInit(); insightInit(); phaseInit(); seedPipelinePackets(); S.role = '${role}';`, c);
   return c;
 }
 const R = (c, s) => vm.runInContext(s, c);
@@ -172,6 +174,21 @@ const ok = msg => checks.push(msg);
   { const s = session(); await s.aqRun('RL-7'); await flush(); await s.aqRun('RL-8'); await flush();
     assert.equal(R(s, `S.aq.rel.find(r => r.id === 'RL-7').status`), 'blocked'); assert.equal(R(s, `S.aq.rel.find(r => r.id === 'RL-8').status`), 'live');
     ok('Agent release with a regression is blocked; a clean release goes through shadow and canary.'); }
+  { const s = session('lead'); R(s, `PHASE.mode = 'p1'; syncChannels();`);
+    assert.equal(R(s, 'CHANNEL_OWNERS.join()'), 'SEO');
+    const r6 = rec(s, 'REC-6'); await s.reviewRec(r6); await flush();
+    assert.equal(Object.keys(r6.packet.approvals).join(), 'SEO'); assert.equal(r6.status, 'test');
+    for (let i = 0; i < 3; i++) s.recWeek(r6);
+    assert.equal(r6.status, 'deployed');
+    assert.equal(R(s, `asGate(S.recs.find(r => r.id === 'REC-6').tests).length`), 2);
+    const r1 = rec(s, 'REC-1'); await s.reviewRec(r1); await flush(); assert.equal(r1.status, 'new');
+    const r7 = rec(s, 'REC-7'); await s.reviewRec(r7); await flush(); assert.equal(r7.status, 'human'); s.recApprove(r7); assert.equal(r7.status, 'test');
+    for (const v of ['hud', 'recs', 'approvals', 'seo', 'agents', 'roadmap', 'facts', 'world', 'crons', 'audit']) { const h = R(s, `VIEWS['${v}']()`); assert.ok(!/NaN|>undefined<|\$undefined|Infinity/.test(h), 'p1 ' + v); }
+    for (const v of ['ppc', 'aiv', 'groups', 'cmps', 'agentqa']) assert.ok(R(s, `VIEWS['${v}']()`).includes('ph-card'), 'locked ' + v);
+    assert.ok(!R(s, `VIEWS.recs()`).includes('id="rec-REC-1"'));
+    R(s, `phConnect('PPC')`); assert.equal(R(s, 'CHANNEL_OWNERS.join()'), 'SEO,PPC'); assert.ok(!R(s, `VIEWS.ppc()`).includes('ph-card'));
+    R(s, `phSet('full')`); assert.equal(R(s, 'CHANNEL_OWNERS.length'), 3);
+    ok('Phase 1: only SEO approves, A/B + SEO tests decide, other directions stay visible but inactive; connecting a direction or the full plan restores its channel.'); }
   { assert.equal(R(c, `gateEvaluate([{ name: 'A', value: 3 }, { name: 'B', value: NaN }, { name: 'C', value: 1 }]).verdict`), 'inconclusive');
     assert.equal(R(c, `fmtGate('AI Visibility тест', 8)`), '+8 п.');
     ok('One evaluator for pages, groups and pipelines; AI Visibility shown in points, not %.'); }

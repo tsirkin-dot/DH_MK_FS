@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orca9 — маркетинговий оркестр (демо)</title>
-<script src="orca9-pin.js?v=20261013f"></script>
+<script src="orca9-pin.js?v=20261014a"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
@@ -344,13 +344,13 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
   .diff{grid-template-columns:1fr}
 }
 </style>
-<link rel="stylesheet" href="orca9-premium.css?v=20261013f">
-<link rel="stylesheet" href="orca9-control.css?v=20261013f">
+<link rel="stylesheet" href="orca9-premium.css?v=20261014a">
+<link rel="stylesheet" href="orca9-control.css?v=20261014a">
 </head>
 <body>
 <div class="app">
   <aside class="rail" aria-label="Навігація">
-    <div class="logo">Orca9<small>маркетинговий оркестр</small><span class="build" title="Версія збірки і час останнього оновлення демо">v1.8 · збірка 20261013f<br>оновлено 13.10.2026, 19:10 (UTC+2)</span></div>
+    <div class="logo">Orca9<small>маркетинговий оркестр</small><span class="build" title="Версія збірки і час останнього оновлення демо">v1.9 · збірка 20261014a<br>оновлено 14.10.2026, 12:15 (UTC+2)</span></div>
     <button class="nav" data-screen="hud" data-tour="nav-hud"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>HUD</button>
     <button class="nav" data-screen="brief" data-tour="nav-brief"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M5 12h14"/></svg>Новий бриф</button>
     <button class="nav" data-screen="analytics" data-tour="nav-analytics"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Аналітика<span class="count" id="cnt-an"></span></button>
@@ -376,6 +376,7 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
     <button class="nav" data-screen="crons" data-tour="nav-crons"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Розклад</button>
     <button class="nav" data-screen="roles" data-tour="nav-roles"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>Ролі та доступи</button>
     <button class="nav" data-screen="audit" data-tour="nav-audit"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/></svg>Журнал аудиту</button>
+    <button class="nav" data-screen="roadmap"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2z"/><path d="M9 4v14M15 6v14"/></svg>Дорожня карта</button>
     <div class="foot">Демо-концепт. Дані вигадані, жодних реальних підключень.<a class="archlink" href="orca9-architecture.html" target="_blank" rel="noopener">Архітектура і пайплайн →</a></div>
   </aside>
   <div class="main">
@@ -395,10 +396,12 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
         <button class="hint" data-hint="Роль визначає, що ви бачите і що можете затверджувати. Спробуйте Editor: він не зможе затвердити зміну бюджету.">?</button>
       </div>
       <button class="btn ghost" data-action="toggle-hints" id="hints-btn">Сховати підказки</button>
+      <div class="ph-mode" role="group" aria-label="Режим демо" data-tour="phase-mode"><button data-action="ph-mode" data-id="p1">Фаза 1</button><button data-action="ph-mode" data-id="full">Повний план</button></div>
       <button class="btn ghost" data-action="in-gloss">Глосарій</button>
       <button class="btn" data-action="tour">Тур</button>
       <button class="btn primary" data-action="sim" id="sim-btn" data-tour="sim">Запустити симуляцію</button>
     </header>
+    <div id="phase-strip" class="pstrip" hidden aria-label="Фаза розробки"></div>
     <div id="world-strip" class="wstrip" hidden aria-label="Зовнішні події"></div>
     <div class="body">
       <main id="view" tabindex="-1"></main>
@@ -417,12 +420,13 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
 <div id="modal" role="dialog" aria-modal="true"><div class="box" id="modal-box"></div></div>
 <div id="toast" role="status"></div>
 
-<script src="orca9-page-control.js?v=20261013f"></script>
-<script src="orca9-scale.js?v=20261013f"></script>
-<script src="orca9-viz.js?v=20261013f"></script>
-<script src="orca9-agents.js?v=20261013f"></script>
-<script src="orca9-world.js?v=20261013f"></script>
-<script src="orca9-insight.js?v=20261013f"></script>
+<script src="orca9-page-control.js?v=20261014a"></script>
+<script src="orca9-scale.js?v=20261014a"></script>
+<script src="orca9-viz.js?v=20261014a"></script>
+<script src="orca9-agents.js?v=20261014a"></script>
+<script src="orca9-world.js?v=20261014a"></script>
+<script src="orca9-insight.js?v=20261014a"></script>
+<script src="orca9-phase.js?v=20261014a"></script>
 <script>
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1325,7 +1329,7 @@ async function runPipeline(p, from = 0, withReturn = false) {
     const objections = approvePipelineChannels(p);
     if (objections.length) return pipelineConflict(p, objections);
     p.out[4] = `Координатор: єдиний пакет v${p.packet.version}; O3: політики — ок`;
-    ev('o', 'Координатор сторінки', `${p.id}: погодження трьох каналів зібрано на одну версію; окремі правки заборонені`);
+    ev('o', 'Координатор сторінки', `${p.id}: погодження каналів (${CHANNEL_OWNERS.join(', ')}) зібрано на одну версію; окремі правки заборонені`);
   }
   if (p.risk === 'R1' || !needsHuman(p)) {
     p.st[5] = 'skip';
@@ -1587,7 +1591,7 @@ const fmtP = v => (v >= 0 ? '+' : '') + String(v).replace('.', ',');
 const recVal = (t, w) => Math.round(t[1] * w / 3 * 10) / 10;
 const recTests = r => r.variant === 'orig' ? r.tests : r.variant === 'comp' ? r.testsC : r.tests;
 const REC_ST = { queued: ['у черзі сторінки', 'warn'], ready: ['пакет погоджений', 'ok'], inconclusive: ['висновок не визначено', 'warn'], new: ['нова', ''], review: ['погодження каналів', 'act'], human: ['чекає людину', 'warn'], auto: ['авто-апрув', 'ok'], test: ['у тест-гейті', 'act'], won: ['тест виграв', 'ok'], deployed: ['розгорнуто', 'ok'], rolledback: ['відкочено', 'bad'], rejected: ['відхилено', 'bad'] };
-const recCh = r => r.pod === 'SEO' ? 'seo' : r.pod === 'PPC' ? 'ppc' : 'ai-visibility';
+const recCh = r => r.pod === 'SEO' || r.pod === 'Контент' ? 'seo' : r.pod === 'PPC' ? 'ppc' : 'ai-visibility';
 async function reviewRec(r, variant, revised) { return pcReview(r, variant, revised); }
 function startRecTest(r) { return pcStartTest(r); }
 function recWeek(r) { return pcRecWeek(r); }
@@ -1991,6 +1995,7 @@ addEventListener('resize', () => { if (TI >= 0) tour(TI); });
 scaleInit();
 worldInit();
 insightInit();
+phaseInit();
 seedPipelinePackets();
 render(); renderFeed();
 setTimeout(() => tour(0), 700);

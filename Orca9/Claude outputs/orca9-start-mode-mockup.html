@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Orca9 · режим «Старт»: макет</title>
+<style>
+:root{--ink:#182033;--ink-2:#55607A;--ink-3:#8A93A8;--rail:#1B2140;--rail-ink:#C9CEE0;--mist:#EDF0F5;--paper:#fff;--line:#D9DEE8;--line-2:#C3CAD8;--brass:#B8891A;--brass-soft:#F4EAD1;--pass:#1E8A6E;--pass-soft:#DDF1EA;--hold:#B86E00;--hold-soft:#FBEBD2;--veto:#B9382A;--veto-soft:#F8DEDA;--act:#3442A8;--act-soft:#E2E5F7;--ph:#7B3FA0;--ph-soft:#F1EAF7}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--ink);background:var(--mist)}
+button{font:inherit;cursor:pointer}
+.note{max-width:1200px;margin:16px auto 0;padding:0 16px;font-size:14px;color:var(--ink-2)}
+.note b{color:var(--ink)}
+.tabs{max-width:1200px;margin:10px auto;padding:0 16px;display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line-2);background:var(--paper);border-radius:8px;padding:6px 14px;font-size:14px;color:var(--ink-2)}
+.tabs button[aria-selected=true]{background:var(--act);border-color:var(--act);color:#fff}
+.app{max-width:1200px;margin:0 auto 30px;display:grid;grid-template-columns:230px 1fr;min-height:640px;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(24,32,51,.12);background:var(--mist)}
+.rail{background:var(--rail);color:var(--rail-ink);padding:18px 10px}
+.logo{font-weight:700;font-size:21px;color:#fff;padding:0 10px 14px}.logo small{display:block;font-weight:400;font-size:12px;color:var(--rail-ink)}
+.lab{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8890B0;padding:12px 10px 4px}
+.nav{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;color:var(--rail-ink);text-align:left;padding:7px 10px;border-radius:8px;font-size:14px}
+.nav:hover{background:rgba(255,255,255,.06)}.nav.on{background:rgba(255,255,255,.1);color:#fff}
+.nav .ph{margin-left:auto;font-size:10.5px;padding:1px 7px;border-radius:9px;background:rgba(123,63,160,.35);color:#E6D4F2}
+.nav.later{opacity:.42}.nav.later:hover{opacity:.75}
+.main{display:flex;flex-direction:column;min-width:0}
+.top{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--paper);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.top h1{font-size:19px;margin:0;margin-right:auto}
+.mode{display:inline-flex;background:var(--mist);border-radius:10px;padding:3px;gap:2px}
+.mode button{border:0;background:none;padding:5px 12px;border-radius:8px;font-size:13px;color:var(--ink-2)}
+.mode button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600}
+.banner{background:var(--ph-soft);border-bottom:1px solid #E3D3EF;color:#5B2C7A;padding:8px 20px;font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.banner a{color:#5B2C7A;font-weight:600}
+.view{padding:18px 20px;position:relative;flex:1}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.panel h2{font-size:15px;margin:0 0 10px;display:flex;gap:8px;align-items:center}
+.g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.m{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px}.m .l{font-size:12px;color:var(--ink-2)}.m .v{font-size:24px;font-weight:700}
+.chip{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:6px;background:var(--mist);color:var(--ink-2);font-weight:500}
+.chip.ph{background:var(--ph-soft);color:var(--ph)}.chip.ok{background:var(--pass-soft);color:var(--pass)}.chip.act{background:var(--act-soft);color:var(--act)}.chip.warn{background:var(--hold-soft);color:var(--hold)}
+.row{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14px}.row:first-child{border-top:0}
+.grow{flex:1}
+.fold{display:flex;align-items:center;gap:10px;border:1px dashed #CDB7DF;background:#FBF8FD;border-radius:10px;padding:10px 14px;color:#5B2C7A;font-size:14px;margin-bottom:14px}
+.fold button{margin-left:auto;border:1px solid #CDB7DF;background:#fff;border-radius:8px;padding:4px 10px;font-size:13px;color:#5B2C7A}
+.ghost{opacity:.35;filter:grayscale(1)}
+.score{display:grid;grid-template-columns:200px repeat(7,1fr);gap:0;font-size:12px;align-items:center}
+.score .h{color:var(--ink-3);padding:4px 0;text-align:center}.score .h:first-child{text-align:left}
+.score .t{padding:8px 0;border-top:1px solid var(--line);font-weight:600;font-size:13px}
+.score .c{border-top:1px solid var(--line);height:38px;display:grid;place-items:center}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--pass)}.dot.a{background:var(--act);box-shadow:0 0 0 5px var(--act-soft)}.dot.w{background:#fff;border:2px solid var(--line-2)}.dot.na{background:none;border:2px dashed #CDB7DF}
+.lock{position:absolute;inset:0;background:rgba(237,240,245,.72);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px}
+.lock .card{background:var(--paper);border:1px solid #E3D3EF;border-radius:12px;padding:20px 22px;max-width:520px;box-shadow:0 12px 30px rgba(24,32,51,.15)}
+.lock h3{margin:0 0 6px;font-size:18px}.lock ul{margin:8px 0 14px;padding-left:18px;font-size:14px;color:var(--ink-2)}
+.btn{border:1px solid var(--line-2);background:var(--paper);border-radius:8px;padding:6px 12px;font-size:13px}.btn.primary{background:var(--act);border-color:var(--act);color:#fff}
+.pods{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.pod{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.pod h3{font-size:14px;margin:0 0 6px;display:flex;gap:6px;align-items:center}
+.pod li{list-style:none;font-size:13px;padding:5px 0;border-top:1px solid var(--line)}.pod ul{margin:0;padding:0}
+.pod.later{background:#FBF8FD;border-style:dashed;border-color:#CDB7DF}.pod.later h3{color:#5B2C7A}
+.road{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.ph-col{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px}
+.ph-col.now{border:2px solid var(--act)}
+.ph-col h3{margin:0 0 4px;font-size:15px}.ph-col p{margin:0 0 8px;font-size:13px;color:var(--ink-2)}
+.ph-col li{font-size:13px;margin:3px 0}.ph-col ul{padding-left:18px;margin:6px 0}
+.ph-col h4{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin:12px 0 4px}
+.bar{height:6px;background:var(--mist);border-radius:4px;overflow:hidden;margin:6px 0}.bar i{display:block;height:100%;background:var(--act)}
+.vote{display:inline-flex;gap:4px;align-items:center;font-size:12px;padding:2px 8px;border-radius:6px}
+.hide{display:none!important}
+@media (max-width:760px){.app{grid-template-columns:1fr}.rail{display:none}.road{grid-template-columns:1fr}.score{grid-template-columns:120px repeat(7,1fr)}}
+</style>
+</head>
+<body>
+<p class="note"><b>Макет режиму «Старт: SEO + Контент».</b> Це не робоче демо, лише показ ідеї. Перемикайте режим у шапці і вкладки нижче, щоб побачити різницю між «Старт» і «Повний план».</p>
+<div class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-t="hud">1. HUD і меню</button>
+  <button role="tab" aria-selected="false" data-t="lock">2. Екран наступної фази</button>
+  <button role="tab" aria-selected="false" data-t="agents">3. Агенти</button>
+  <button role="tab" aria-selected="false" data-t="pkt">4. Пакет: хто погоджує</button>
+  <button role="tab" aria-selected="false" data-t="road">5. Дорожня карта</button>
+</div>
+
+<div class="app">
+  <aside class="rail">
+    <div class="logo">Orca9<small>маркетинговий оркестр</small></div>
+    <button class="nav on">HUD</button><button class="nav">Новий бриф</button><button class="nav">Аналітика <span class="ph s-only" style="background:rgba(30,138,110,.35);color:#CFEFE3">читання</span></button><button class="nav">Апруви</button>
+    <div class="lab">Напрями</div>
+    <button class="nav">SEO</button>
+    <button class="nav">Контент</button>
+    <button class="nav p2" data-lock="PPC">PPC <span class="ph s-only">фаза 2</span></button>
+    <button class="nav p2" data-lock="AI Visibility">AI Visibility <span class="ph s-only">фаза 2</span></button>
+    <button class="nav p3" data-lock="Кампанії">Кампанії <span class="ph s-only">фаза 3</span></button>
+    <button class="nav">Рекомендації</button>
+    <button class="nav p2" data-lock="Групи сторінок">Групи сторінок <span class="ph s-only">фаза 2</span></button>
+    <button class="nav">Швидкі виправлення</button>
+    <div class="lab">Контроль</div>
+    <button class="nav">Реєстр фактів</button><button class="nav">Світ і події</button><button class="nav">Якість агентів</button>
+    <div class="lab">Система</div>
+    <button class="nav">Агенти</button><button class="nav">Розклад</button><button class="nav">Дорожня карта <span class="ph s-only" style="background:rgba(52,66,168,.45);color:#DDE1FF">нове</span></button>
+  </aside>
+  <div class="main">
+    <header class="top"><h1 id="ttl">HUD</h1>
+      <div class="mode" role="group" aria-label="Режим"><button class="on" data-m="start">Старт: SEO + Контент</button><button data-m="full">Повний план</button></div>
+    </header>
+    <div class="banner s-only">Режим «Старт»: працюють SEO і Контент. PPC, AI Visibility, групи й кампанії — у наступних фазах, їх видно бляклими. <a href="#" data-go="road">Дорожня карта →</a></div>
+    <div class="view" id="v"></div>
+  </div>
+</div>
+
+<script>
+let mode = 'start', tab = 'hud';
+const S = () => mode === 'start';
+const views = {
+  hud: () => `
+    <div class="g4"><div class="m"><div class="l">Задач у роботі</div><div class="v">${S() ? 2 : 4}</div></div>
+      <div class="m"><div class="l">Пакетів чекає людину</div><div class="v">${S() ? 1 : 3}</div></div>
+      <div class="m ${S() ? 'ghost' : ''}"><div class="l">Бюджет PPC, тиждень ${S() ? '<span class="chip ph">фаза 2</span>' : ''}</div><div class="v">${S() ? '—' : '$4 120'}</div></div>
+      <div class="m"><div class="l">Активних агентів</div><div class="v">${S() ? '15' : '87'}</div><div class="l">${S() ? 'з 87 за планом' : 'усі поди'}</div></div></div>
+    <div class="panel"><h2>Партитура конвеєрів</h2>
+      <div class="score"><div class="h">Задача</div>${['План', 'Агенти', 'Канали', 'O2', 'Коорд.+O3', 'Людина', 'Тест-гейт'].map(x => `<div class="h">${x}</div>`).join('')}
+        ${[['SEO: нові title для 12 лендингів', 'SEO', 5], ['Контент: стаття «Закриття місяця»', 'Контент', 3], ['LinkedIn Ads: перерозподіл бюджету', 'PPC', 4], ['AI Visibility: визначення на /pricing-analytics', 'AIV', 2]]
+          .filter(r => !S() || ['SEO', 'Контент'].includes(r[1]))
+          .map(r => `<div class="t">${r[0]} <span class="chip">${r[1]}</span></div>` + Array.from({ length: 7 }, (_, i) => `<div class="c"><span class="dot ${i < r[2] ? '' : i === r[2] ? 'a' : 'w'}"></span></div>`).join('')).join('')}
+      </div></div>
+    ${S() ? `<div class="fold">◌ Ще 2 конвеєри наступних фаз (PPC, AI Visibility) приховано<button data-toggle="extra">показати бляклими</button></div>
+      <div id="extra" class="panel ghost hide"><h2>Конвеєри фази 2 <span class="chip ph">фаза 2</span></h2><div class="row">LinkedIn Ads: перерозподіл бюджету</div><div class="row">AI Visibility: визначення на /pricing-analytics</div></div>` : ''}
+    <div class="panel"><h2>Апруви для вас</h2>
+      <div class="row"><span class="grow">Нові title для 12 сторінок</span><span class="chip act">R2</span><span class="chip">SEO</span></div>
+      ${S() ? '' : '<div class="row"><span class="grow">Підняти бюджет LinkedIn Ads на 20%</span><span class="chip warn">R3</span><span class="chip">PPC</span></div><div class="row"><span class="grow">Пост для X: реліз Smart Reports</span><span class="chip act">R2</span><span class="chip">SMM</span></div>'}
+    </div>`,
+  lock: () => `
+    <div class="panel"><h2>PPC <span class="chip ph">фаза 2</span></h2><div class="g4"><div class="m"><div class="l">Витрати, тиждень</div><div class="v">$4 120</div></div><div class="m"><div class="l">CPA</div><div class="v">$38</div></div><div class="m"><div class="l">ROAS</div><div class="v">2,6</div></div></div>
+      <div class="row">Brand UA · перевитрата</div><div class="row">Competitor EN · у плані</div><div class="row">CFO ICP · у плані</div></div>
+    <div class="panel"><div class="row">Запобіжники бюджету</div><div class="row">Задачі PPC</div></div>
+    ${S() ? `<div class="lock"><div class="card"><span class="chip ph">Фаза 2 · не підключено</span><h3>PPC з’явиться в наступній фазі</h3>
+      <p style="margin:0;font-size:14px;color:var(--ink-2)">Екран лишається видимим, щоб план не загубився. Що потрібно, щоб увімкнути:</p>
+      <ul><li>Конектори Google Ads, LinkedIn Ads і Meta (лише читання на старті)</li><li>Ролі власника бюджету і ліміти R3</li><li>PPC-оркестратор у погодженні сторінок</li><li>Еталонні кейси для 7 PPC-агентів</li></ul>
+      <button class="btn primary" data-go="road">Дорожня карта</button> <button class="btn" data-peek>Подивитися екран</button></div></div>` : ''}`,
+  agents: () => {
+    const pods = [['SEO', 7, 1], ['Контент', 8, 1], ['Аналітика', 10, 1, 'лише читання'], ['Координація', 6, 1, 'SEO-оркестратор і Координатор сторінки'], ['Контроль якості', 2, 1], ['PPC', 7, 2], ['AI Visibility', 4, 2], ['SMM', 7, 3], ['Email', 5, 3]];
+    const on = pods.filter(p => !S() || p[2] === 1), off = S() ? pods.filter(p => p[2] > 1) : [];
+    return `<div class="panel"><h2>Агенти ${S() ? '<span class="chip ok">активні у фазі 1</span>' : ''}</h2><div class="pods">${on.map(p => `<div class="pod"><h3>${p[0]} <span class="chip">${p[1]} агентів</span></h3>${p[3] ? `<div style="font-size:12px;color:var(--ink-2)">${p[3]}</div>` : ''}<ul><li>Агент 1 · відкрити паспорт</li><li>Агент 2 · відкрити паспорт</li><li style="color:var(--ink-3)">…</li></ul></div>`).join('')}</div></div>
+      ${off.length ? `<div class="panel"><h2>Наступні фази <span class="chip ph">згорнуто</span></h2><div class="pods">${off.map(p => `<div class="pod later"><h3>${p[0]} <span class="chip ph">фаза ${p[2]}</span></h3><div style="font-size:13px;color:var(--ink-2)">${p[1]} агентів · паспорти вже готові, відкриваються для перегляду</div></div>`).join('')}</div></div>` : ''}`;
+  },
+  pkt: () => `
+    <div class="panel"><h2>Пакет REC-2 · /blog/finance-close · v1</h2>
+      <p style="margin:0 0 10px;font-size:14px">Визначення і FAQ-schema на початку статті. Автор — Content Optimizer.</p>
+      <div class="row"><span class="grow"><b>SEO-оркестратор</b> · ключі й структура</span><span class="vote" style="background:var(--pass-soft);color:var(--pass)">✓ погоджено</span></div>
+      <div class="row"><span class="grow"><b>Редактор</b> · текст і бренд</span><span class="vote" style="background:var(--pass-soft);color:var(--pass)">✓ погоджено</span></div>
+      <div class="row ${S() ? 'ghost' : ''}"><span class="grow"><b>PPC-оркестратор</b> · message match</span><span class="vote" style="background:${S() ? 'var(--ph-soft);color:var(--ph)' : 'var(--pass-soft);color:var(--pass)'}">${S() ? 'канал не підключено · фаза 2' : '✓ погоджено'}</span></div>
+      <div class="row ${S() ? 'ghost' : ''}"><span class="grow"><b>AI Visibility-оркестратор</b> · цитування</span><span class="vote" style="background:${S() ? 'var(--ph-soft);color:var(--ph)' : 'var(--pass-soft);color:var(--pass)'}">${S() ? 'канал не підключено · фаза 2' : '✓ погоджено'}</span></div>
+    </div>
+    <div class="panel"><h2>Тест-гейт</h2>
+      <div class="row"><span class="grow">A/B тест · клік на CTA</span><span class="chip ok">потрібен</span></div>
+      <div class="row"><span class="grow">SEO-тест · кліки до контролю</span><span class="chip ok">потрібен</span></div>
+      <div class="row ${S() ? 'ghost' : ''}"><span class="grow">AI Visibility тест · цитування</span><span class="chip ${S() ? 'ph' : 'ok'}">${S() ? 'вимкнено до фази 2' : 'потрібен'}</span></div>
+      ${S() ? '<p style="font-size:13px;color:var(--ink-2);margin:10px 0 0">На пакеті чесна позначка: «погоджено без PPC і AI Visibility — канали не підключені». Коли канал увімкнуть, нові пакети вже проходитимуть його погодження; розгорнуті зміни можна переглянути заднім числом.</p>' : ''}
+    </div>`,
+  road: () => `
+    <div class="road">
+      <div class="ph-col ${S() ? 'now' : ''}"><span class="chip act">зараз</span><h3>Фаза 1 · SEO + Контент</h3><p>Сторінки й тексти через один контур</p><div class="bar"><i style="width:35%"></i></div>
+        <h4>Агенти</h4><ul><li>SEO — 7, Контент — 8</li><li>Аналітика — 10, лише читання</li><li>Контроль якості — 2</li></ul>
+        <h4>Працює</h4><ul><li>Координатор сторінки, O2, O3, тест-гейт (A/B + SEO)</li><li>Реєстр фактів, Світ і події, швидка смуга</li></ul>
+        <h4>Готовність</h4><ul><li>✓ GSC, GA4, CMS</li><li>◌ еталонні кейси для 15 агентів</li></ul></div>
+      <div class="ph-col"><span class="chip ph">далі</span><h3>Фаза 2 · PPC + AI Visibility</h3><p>Гроші і цитування в AI</p><div class="bar"><i style="width:0"></i></div>
+        <h4>Агенти</h4><ul><li>PPC — 7, AI Visibility — 4</li></ul>
+        <h4>Вмикається</h4><ul><li>Погодження трьох каналів</li><li>AI Visibility тест, R3-ліміти, групи сторінок</li></ul>
+        <h4>Потрібно</h4><ul><li>Ads-конектори, прогони AI-систем</li><li>Власники бюджету</li></ul></div>
+      <div class="ph-col"><span class="chip">потім</span><h3>Фаза 3 · Кампанії + SMM + Email</h3><p>Повний оркестр</p><div class="bar"><i style="width:0"></i></div>
+        <h4>Агенти</h4><ul><li>SMM — 7, Email — 5</li><li>Оркестратор кампаній</li></ul>
+        <h4>Вмикається</h4><ul><li>Декомпозиція брифу на пакети</li><li>Розсилки й публікації</li></ul>
+        <h4>Потрібно</h4><ul><li>ESP, соцмережі, ролі Editor</li></ul></div>
+    </div>`
+};
+const titles = { hud: 'HUD', lock: 'PPC', agents: 'Агенти', pkt: 'Рекомендації', road: 'Дорожня карта' };
+function draw() {
+  document.getElementById('v').innerHTML = views[tab]();
+  document.getElementById('ttl').textContent = titles[tab];
+  document.querySelectorAll('.s-only').forEach(e => e.classList.toggle('hide', !S()));
+  document.querySelectorAll('.nav.p2,.nav.p3').forEach(e => e.classList.toggle('later', S()));
+  document.querySelectorAll('.mode button').forEach(b => b.classList.toggle('on', b.dataset.m === mode));
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-t]'); if (t) { tab = t.dataset.t; draw(); return; }
+  const m = e.target.closest('[data-m]'); if (m) { mode = m.dataset.m; draw(); return; }
+  const g = e.target.closest('[data-go]'); if (g) { e.preventDefault(); tab = g.dataset.go; draw(); return; }
+  const l = e.target.closest('[data-lock]'); if (l) { tab = 'lock'; draw(); return; }
+  const tg = e.target.closest('[data-toggle]'); if (tg) { const x = document.getElementById(tg.dataset.toggle); x.classList.toggle('hide'); tg.textContent = x.classList.contains('hide') ? 'показати бляклими' : 'сховати'; return; }
+  if (e.target.closest('[data-peek]')) { const k = document.querySelector('.lock'); k && k.remove(); }
+});
+draw();
+</script>
+</body>
+</html>

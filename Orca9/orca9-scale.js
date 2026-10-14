@@ -293,7 +293,7 @@ async function gpReview(g) {
   const obj = CHANNEL_OWNERS.filter(c => g.rvState[c] !== 'ok');
   if (obj.length) { g.status = 'human'; g.reason = `Конфлікт: ${obj.join(', ')} проти. Потрібен компроміс або рішення людини.`; }
   else if (g.imp === 'high' || g.conf < 70) { g.status = 'human'; g.reason = `Канали погодили правило й вибірку. Високий вплив: ${n} сторінок, ${GROUPS[g.group].share}. Людина дозволяє тест.`; slack(`<b>${g.id}</b>: груповий пакет на ${n} сторінок чекає дозволу на тест.`, [{ label: 'Відкрити', action: 'nav-to', screen: 'groups', primary: true }], g.pod === 'PPC' ? 'ppc' : 'seo'); }
-  else { g.status = 'auto'; g.reason = `Низький вплив, три канали погодили правило, O2 перевірив усі ${n} сторінок. Авто-дозвіл на тест.`; render(); await wait(300); gpStartTest(g); }
+  else { g.status = 'auto'; g.reason = `Низький вплив, ${chAgreed()} правило, O2 перевірив усі ${n} сторінок. Авто-дозвіл на тест.`; render(); await wait(300); gpStartTest(g); }
   render();
 }
 function gpApprove(g) {

@@ -131,3 +131,48 @@
 .lg-btn:hover{background:var(--mist)} .lg-btn.off{opacity:.4;text-decoration:line-through}
 .lg-btn:focus-visible{outline:2px solid var(--act)}
 .wd-pill[data-action]{cursor:pointer} .wd-pill[data-action]:hover{border-color:#7B3FA0}
+/* phases */
+.ph-mode{display:inline-flex;background:var(--mist);border-radius:10px;padding:3px;gap:2px}
+.ph-mode button{border:0;background:none;padding:5px 11px;border-radius:8px;font-size:13px;color:var(--ink-2)}
+.ph-mode button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600}
+.pstrip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 24px;background:#EEF0FA;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-2)}
+.pstrip[hidden]{display:none}
+.ps-l{font-weight:700;color:var(--act);background:#fff;border:1px solid rgba(52,66,168,.3);border-radius:12px;padding:1px 10px}
+.pstrip .lnk{margin-left:auto}
+.nav.ph-later{opacity:.42}.nav.ph-later:hover{opacity:.8}
+.nav .ph-badge{margin-left:auto;font-size:10.5px;padding:1px 7px;border-radius:9px;background:rgba(123,63,160,.35);color:#E6D4F2;white-space:nowrap}
+.chip.ph{background:#F1EAF7;color:#7B3FA0}
+.ph-ghost{opacity:.5;filter:grayscale(.8)}
+.ph-ghost-row{opacity:.6}
+.channel-approvals .ph-ghost-row{opacity:.55}
+.ph-fold{display:flex;align-items:center;gap:10px;border:1px dashed #CDB7DF;background:#FBF8FD;border-radius:10px;padding:10px 14px;color:#5B2C7A;font-size:14px;margin:0 0 16px}
+.ph-fold .btn{margin-left:auto;white-space:nowrap}
+.ph-lockwrap{position:relative;min-height:520px}
+.ph-under{filter:blur(3px) grayscale(.6);opacity:.55;pointer-events:none;user-select:none}
+.ph-under.peek{filter:none;opacity:1}
+.ph-lock{position:absolute;inset:0;background:rgba(237,240,245,.55)}
+.ph-card{position:sticky;top:30px;margin:40px auto 0;max-width:540px;background:var(--paper);border:1px solid #E3D3EF;border-radius:12px;padding:20px 22px;box-shadow:0 12px 30px rgba(24,32,51,.16)}
+.ph-card h3{margin:8px 0 6px;font-size:18px}.ph-card p{margin:0;font-size:14px;color:var(--ink-2)}
+.ph-card ul{margin:8px 0 14px;padding-left:18px;font-size:14px;color:var(--ink-2)}
+.ph-peekbar{position:sticky;top:0;z-index:5;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#F1EAF7;border:1px solid #E3D3EF;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:14px;color:#5B2C7A}
+.ph-peekbar span{margin-right:auto}
+.ph-later-pod{background:#FBF8FD;border-style:dashed;border-color:#CDB7DF}
+.ph-agents{font-size:12.5px;line-height:1.7}
+.ph-mode-big{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:6px 8px;margin-bottom:16px;font-size:14px}
+.ph-mode-big span{color:var(--ink-2);padding:0 6px}
+.ph-mode-big button{border:1px solid var(--line-2);background:var(--paper);border-radius:8px;padding:5px 12px;font-size:13px}
+.ph-mode-big button.on{background:var(--act);border-color:var(--act);color:#fff}
+.ph-road{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.ph-col{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.ph-col.now{border:2px solid var(--act)}
+.ph-col h3{margin:6px 0 2px;font-size:16px}.ph-col p{margin:0 0 8px}
+.ph-dir{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.ph-steps{margin:0;padding:0;list-style:none;counter-reset:s}
+.ph-steps li{counter-increment:s;position:relative;padding:6px 0 6px 32px;border-top:1px solid var(--line);font-size:14px;display:flex;flex-direction:column}
+.ph-steps li:first-child{border-top:0}
+.ph-steps li::before{content:counter(s);position:absolute;left:0;top:7px;width:22px;height:22px;border-radius:50%;background:var(--act-soft);color:var(--act);display:grid;place-items:center;font-size:12px;font-weight:600}
+.ph-steps span{color:var(--ink-2);font-size:13px}
+.ph-pre{background:var(--rail);color:#E8EAF6;border-radius:8px;padding:10px 12px;font:12px/1.5 ui-monospace,Consolas,monospace;margin:10px 0 0;overflow:auto}
+@media (max-width:760px){.pstrip{padding:7px 16px}.ph-mode button{padding:5px 8px}}
+.nav.ph-later .count{display:none}
+.ph-road{align-items:start}

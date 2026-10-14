@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orca9 — архітектура і пайплайн</title>
-<script src="orca9-pin.js?v=20261013f"></script>
+<script src="orca9-pin.js?v=20261014a"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
@@ -83,14 +83,33 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
 .thesis div{border-left:3px solid var(--brass);background:var(--brass-soft);border-radius:6px;padding:10px 12px;font-size:14px}
 .thesis b{display:block;margin-bottom:2px}
 </style>
-<link rel="stylesheet" href="orca9-premium.css?v=20261013f">
+<link rel="stylesheet" href="orca9-premium.css?v=20261014a">
 <style>.build-a{display:inline-block;font-size:12px;color:#8A93A8;background:#EDF0F5;border:1px solid #D9DEE8;border-radius:12px;padding:3px 10px;margin:-6px 0 14px}</style>
+<style>
+.phm{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:5px 7px;margin:0 0 18px;font-size:14px}
+.phm span{color:var(--ink-2);padding:0 6px}
+.phm button{border:1px solid var(--line-2);background:var(--paper);border-radius:8px;padding:5px 12px;font:inherit;font-size:13px;cursor:pointer}
+.phm button.on{background:var(--act);border-color:var(--act);color:#fff}
+.chip-ph{display:inline-block;font-size:11.5px;font-weight:500;padding:1px 8px;border-radius:6px;background:#F1EAF7;color:#7B3FA0;font-family:var(--ui)}
+nav.toc a .tb{margin-left:6px;font-size:10.5px;padding:0 6px;border-radius:8px;background:rgba(123,63,160,.35);color:#E6D4F2}
+body.p1 nav.toc a.later{opacity:.45}
+body.p1 section.later{background:#FBF8FD;border-style:dashed;border-color:#CDB7DF}
+body.p1 section.later>*:not(h2):not(.later-bar){display:none}
+body.p1 section.later.open>*:not(h2){display:revert}
+.later-bar{display:none;align-items:center;gap:10px;color:#5B2C7A;font-size:14px;margin-top:6px}
+body.p1 section.later .later-bar{display:flex}
+.later-bar button{margin-left:auto;border:1px solid #CDB7DF;background:#fff;border-radius:8px;padding:4px 10px;font:inherit;font-size:13px;color:#5B2C7A;cursor:pointer}
+.p1-only{display:none}
+body.p1 .p1-only{display:block}
+.p1-note{border-left:4px solid #7B3FA0;background:#F1EAF7;border-radius:8px;padding:10px 14px;margin:10px 0;font-size:14px;color:#3E2252}
+</style>
 </head>
 <body>
 <div class="wrap">
 <nav class="toc" aria-label="Зміст">
   <div class="logo">Orca9<small>архітектура і пайплайн</small></div>
   <a class="back" href="orca9-demo.html">← Назад до демо</a>
+  <a href="#phase"><span class="n">00</span>Фази і підключення напрямів</a>
   <a href="#overview"><span class="n">01</span>Архітектура системи</a>
   <a href="#raci"><span class="n">02</span>Хто що робить</a>
   <a href="#control"><span class="n">03</span>Хто керує чим</a>
@@ -98,13 +117,13 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
   <a href="#sources"><span class="n">05</span>Звідки беруться задачі</a>
   <a href="#crons"><span class="n">06</span>Крони і черга</a>
   <a href="#review"><span class="n">07</span>Спільне керування сторінкою</a>
-  <a href="#campaigns"><span class="n">08</span>Оркестратор кампаній</a>
-  <a href="#groups"><span class="n">09</span>Групи сторінок</a>
+  <a href="#campaigns" class="later"><span class="n">08</span>Оркестратор кампаній<span class="tb" style="display:none">фаза 3</span></a>
+  <a href="#groups" class="later"><span class="n">09</span>Групи сторінок<span class="tb" style="display:none">фаза 2</span></a>
   <a href="#hotfix"><span class="n">10</span>Швидка смуга</a>
   <a href="#locks"><span class="n">11</span>Ресурси і блокування</a>
   <a href="#gate"><span class="n">12</span>Тест-гейт</a>
   <a href="#anomaly"><span class="n">13</span>Аномалії і діагностика</a>
-  <a href="#aiv"><span class="n">14</span>AI Visibility</a>
+  <a href="#aiv" class="later"><span class="n">14</span>AI Visibility<span class="tb" style="display:none">фаза 2</span></a>
   <a href="#risk"><span class="n">15</span>Ризики і права</a>
   <a href="#tracking"><span class="n">16</span>Події і відстеження</a>
   <a href="#states"><span class="n">17</span>Стани і модель даних</a>
@@ -119,12 +138,42 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
 </nav>
 <main>
   <h1>Orca9: як це працює</h1>
-  <p class="build-a">v1.8 · збірка 20261013f · оновлено 13.10.2026, 19:10 (UTC+2)</p>
+  <div class="phm" role="group" aria-label="Режим"><span>Режим:</span><button data-ph="p1">Фаза 1: SEO + Контент</button><button data-ph="full">Повний план</button></div>
+  <p class="build-a">v1.9 · збірка 20261014a · оновлено 14.10.2026, 12:15 (UTC+2)</p>
   <p class="lead">Технічний опис для розробника й архітектора: хто ставить задачі, хто їх виконує, хто перевіряє, хто контролює і хто затверджує. Цільовий принцип: канал не змінює сторінку сам. Три канальні оркестратори й Координатор узгоджують єдиний пакет. Кожна дія проходить ворота, а кожна зміна сторінки — тест-гейт.</p>
   <div class="legend">
     <span class="chip h">Люди</span><span class="chip o">Оркестратори і ворота</span><span class="chip a">Агенти</span><span class="chip s">Інфраструктура</span><span class="chip">Сховища</span><span class="chip b">Вето, відкат</span>
   </div>
   <p></p>
+
+  <section id="phase">
+    <h2><span class="n">00</span>Фази і підключення напрямів</h2>
+    <p>Розробку починаємо з фази 1: <b>SEO, Контент і Координація</b>. Пайплайн однаковий для всіх фаз: агенти пропонують, канальні оркестратори погоджують одну версію пакета, Координатор, O2 і O3 перевіряють, людина вирішує важливе, тест-гейт міряє, Gateway пише. Фаза визначає лише, які канали погодження і які тести активні. Інші напрями вже закладені як «розетки»: їх підключення — один запис у реєстрі напрямів, без змін у логіці.</p>
+    <div class="dia"><svg id="d-phase" role="img" aria-label="Пайплайн фази 1 і точки підключення наступних напрямів"></svg></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Напрям</th><th>Фаза</th><th>Под агентів</th><th>Канал погодження</th><th>Тест у тест-гейті</th><th>Екрани</th></tr></thead>
+      <tbody>
+        <tr><td><b>SEO</b></td><td>1</td><td>SEO · 7</td><td>SEO-оркестратор</td><td>SEO-тест</td><td>SEO</td></tr>
+        <tr><td><b>Контент</b></td><td>1</td><td>Контент · 8</td><td>— (людина: Editor)</td><td>—</td><td>Рекомендації</td></tr>
+        <tr><td><b>Координація</b></td><td>1</td><td>6 ролей</td><td>—</td><td>A/B тест (CRO)</td><td>Рекомендації, Апруви</td></tr>
+        <tr><td>PPC</td><td>2</td><td>PPC · 7</td><td>PPC-оркестратор</td><td>—</td><td>PPC</td></tr>
+        <tr><td>AI Visibility</td><td>2</td><td>AI Visibility · 4</td><td>AI Visibility-оркестратор</td><td>AI Visibility тест</td><td>AI Visibility</td></tr>
+        <tr><td>Аналітика</td><td>2</td><td>Аналітика · 10</td><td>—</td><td>—</td><td>дашборди доступні з фази 1</td></tr>
+        <tr><td>Контроль якості</td><td>2</td><td>2</td><td>—</td><td>—</td><td>Якість агентів</td></tr>
+        <tr><td>Групи сторінок</td><td>2</td><td>—</td><td>—</td><td>—</td><td>Групи сторінок</td></tr>
+        <tr><td>Кампанії, SMM, Email</td><td>3</td><td>SMM · 7, Email · 5</td><td>—</td><td>—</td><td>Кампанії</td></tr>
+      </tbody>
+    </table></div>
+    <div class="grid2">
+      <div class="card"><h4>Що змінюється у фазі 1</h4><ul><li>Пакет сторінки погоджує SEO-оркестратор; PPC і AI Visibility на пакеті позначені «не підключено»</li><li>Тест-гейт рахує A/B і SEO-тест; правило шкоди (−2) і виграшу (+2) те саме</li><li>Рекомендації і задачі авторів з інших напрямів видно бляклими, у роботу вони не йдуть</li><li>Координатор, блокування, черга, O2, O3, Gateway, реєстр фактів, швидка смуга — повністю</li></ul></div>
+      <div class="card"><h4>Контракт нового напряму</h4><ul><li>Запис у реєстрі напрямів: фаза, поди, канал, тест, екрани</li><li>Под агентів із паспортами</li><li>Канальний оркестратор: голос за одну версію пакета, без права запису</li><li>Свій тест у тест-гейті — необов’язково</li><li>Конектори і права Gateway: спершу лише читання</li><li>Еталонні кейси і ролі з лімітами</li></ul></div>
+    </div>
+<pre>// orca9-page-control.js — реєстр напрямів
+DIRS['AI Visibility'] = { phase: 2, pods: ['AI Visibility'], channel: 'AI Visibility',
+                          test: 'AI Visibility тест', screens: ['aiv'] };
+CHANNEL_OWNERS  // живий список активних каналів: фаза 1 → ['SEO'], повний план → ['SEO', 'PPC', 'AI Visibility']
+asGate(tests)   // тести вимкнених напрямів не входять в оцінку тест-гейту</pre>
+  </section>
 
   <section id="overview">
     <h2><span class="n">01</span>Архітектура системи</h2>
@@ -254,6 +303,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
 
   <section id="review">
     <h2><span class="n">07</span>Канальні погодження та спільна сторінка</h2>
+    <div class="p1-note p1-only"><b>Фаза 1.</b> Пакет погоджує лише SEO-оркестратор. PPC- і AI Visibility-оркестратори підключаються у фазі 2 тим самим контрактом: вони додаються до списку активних каналів, і нові пакети вже потребують їхніх голосів.</div>
     <div class="rule"><b>Правило.</b> SEO-, PPC- та AI Visibility-оркестратори погоджують вимоги своїх каналів. Канальний апрув не є дозволом на запис. Координатор сторінки збирає одну версію, захищає спільну мету й оцінює взаємний вплив.</div>
     <div class="dia"><svg id="d-review" role="img" aria-label="Три канальні оркестратори та єдиний координатор сторінки"></svg></div>
     <div class="tbl"><table><thead><tr><th>Учасник</th><th>Що погоджує</th><th>Чого не може робити</th></tr></thead><tbody>
@@ -273,8 +323,9 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
     <p>Після конфлікту чи високого впливу успішний тест потребує окремого дозволу на розгортання. Основна сторінка лишається незмінною до цього рішення. Неповні дані ведуть до inconclusive, а не до перемоги.</p>
   </section>
 
-  <section id="campaigns">
+  <section id="campaigns" class="later" data-phase="3">
     <h2><span class="n">08</span>Оркестратор кампаній</h2>
+    <div class="later-bar"><span class="chip-ph">фаза 3</span><span>Розділ наступної фази згорнуто. Механізм уже закладено.</span><button data-open="campaigns">Показати</button></div>
     <p>Кампанія — не один пакет. Оркестратор кампаній розкладає бриф на пакети за типом ресурсу, будує граф залежностей і запускає пакети хвилями: кожен стартує, щойно готові його залежності. Сам він нічого не затверджує і не записує.</p>
     <div class="dia"><svg id="d-cmp" role="img" aria-label="Граф пакетів кампанії"></svg></div>
     <div class="tbl"><table>
@@ -290,8 +341,9 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
     </table></div>
   </section>
 
-  <section id="groups">
+  <section id="groups" class="later" data-phase="2">
     <h2><span class="n">09</span>Групи сторінок і масштаб</h2>
+    <div class="later-bar"><span class="chip-ph">фаза 2</span><span>Розділ наступної фази згорнуто. Механізм уже закладено.</span><button data-open="groups">Показати</button></div>
     <p>Якщо одна ідея або одна помилка повторюється на сторінках одного шаблону, агент не ходить по кожній сторінці. Він пише одне правило для групи. Координатор групи блокує всі сторінки атомарно, канали погоджують правило і три сторінки-вибірки, O2 рендерить і перевіряє кожну сторінку. Де правило не підходить, сторінка стає винятком і йде окремою чергою.</p>
     <div class="dia"><svg id="d-groups" role="img" aria-label="Груповий пакет"></svg></div>
     <div class="thesis">
@@ -304,6 +356,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
 
   <section id="hotfix">
     <h2><span class="n">10</span>Швидка смуга</h2>
+    <div class="p1-note p1-only"><b>Фаза 1.</b> Швидка смуга працює повністю; швидке погодження дає SEO-оркестратор.</div>
     <p>Перевірена помилка — неправильна ціна, дата, зламаний checkout, noindex на ключовій сторінці — не чекає тритижневого тесту. Швидка смуга обходить чергу, але не ворота: значення лише з реєстру фактів, мінімальний diff, швидкі погодження каналів, одне рішення Owner або Marketing lead.</p>
     <div class="dia"><svg id="d-hotfix" role="img" aria-label="Швидка смуга"></svg></div>
     <div class="tbl"><table>
@@ -332,6 +385,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
 
   <section id="gate">
     <h2><span class="n">12</span>Тест-гейт</h2>
+    <div class="p1-note p1-only"><b>Фаза 1.</b> Тест-гейт рахує A/B тест і SEO-тест. AI Visibility тест вимкнено до фази 2; правило оцінки не змінюється.</div>
     <p>Будь-яка зміна лендингу чи сторінки, навіть затверджена людиною, спершу йде на тестову групу сторінок. Тестова версія — обмежений зовнішній запис після дозволу; основна сторінка зберігається. Вимірюємо спільний ефект і захисні показники каналів. У демо пороги й три тижні умовні; у production потрібні достатня вибірка й довірчі інтервали.</p>
     <div class="dia"><svg id="d-gate" role="img" aria-label="Тест-гейт"></svg></div>
     <div class="rule"><b>Правило розгортання.</b> Жоден із трьох тестів не гірший за контроль більш ніж на 2%, і хоча б один значуще кращий (≥ +2%, O2 перевіряє значущість). Шкода каналу — відновлення тестової групи. Неповні дані або недостатні докази ефекту — inconclusive без розгортання. Зміна пакета чи бази скидає чинність рішення.</div>
@@ -355,8 +409,9 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
     <p class="cap">Якщо причина — сезонність, аномалія закривається автоматично і людину не турбують. Решта йде звітом із варіантами рішень, а обраний варіант — у тест-гейт.</p>
   </section>
 
-  <section id="aiv">
+  <section id="aiv" class="later" data-phase="2">
     <h2><span class="n">14</span>AI Visibility</h2>
+    <div class="later-bar"><span class="chip-ph">фаза 2</span><span>Розділ наступної фази згорнуто. Механізм уже закладено.</span><button data-open="aiv">Показати</button></div>
     <p>Окремий под, який вимірює, як AI-системи згадують і цитують бренд. Він лише рекомендує: записувати на сайт не може взагалі.</p>
     <div class="dia"><svg id="d-aiv" role="img" aria-label="Цикл AI Visibility"></svg></div>
     <div class="tbl"><table>
@@ -1039,6 +1094,39 @@ draw('d-lineage', { w: 1000, h: 270, nodes: [
   { f: 'cn', fs: 'r', t: 'wh', ts: 'l' }, { f: 'wh', fs: 'r', t: 'mt', ts: 'l', mx: 565 }, { f: 'wh', fs: 'r', t: 'ag', ts: 'l', mx: 565 },
   { f: 'mt', fs: 'r', t: 'dc', ts: 'l' }, { f: 'ag', fs: 'r', t: 'dc', ts: 'l', mx: 775 }, { f: 'dc', fs: 'b', t: 'gw', ts: 't' }
 ] });
+
+/* 00 phases */
+draw('d-phase', { w: 1000, h: 330, nodes: [
+  { id: 'ag', x: 10, y: 40, w: 160, h: 66, k: 'agent', label: 'Агенти фази 1', sub: 'SEO · 7\nКонтент · 8' },
+  { id: 'seo', x: 210, y: 40, w: 170, h: 66, k: 'orch', label: 'SEO-оркестратор', sub: 'єдиний активний\nканал погодження' },
+  { id: 'co', x: 420, y: 40, w: 170, h: 66, k: 'orch', label: 'Координатор + O2/O3', sub: 'один пакет на ресурс' },
+  { id: 'hu', x: 630, y: 0, w: 150, h: 54, k: 'human', label: 'Людина', sub: 'Editor · Channel mgr' },
+  { id: 'tg', x: 630, y: 86, w: 150, h: 60, k: 'gate', label: 'Тест-гейт', sub: 'A/B + SEO-тест' },
+  { id: 'gw', x: 820, y: 86, w: 170, h: 60, label: 'Gateway', sub: 'запис і read-back' },
+  { id: 'p', x: 210, y: 200, w: 170, h: 52, k: 'ext', label: 'PPC-оркестратор', sub: 'фаза 2 · розетка' },
+  { id: 'a', x: 210, y: 266, w: 170, h: 52, k: 'ext', label: 'AI Visibility-оркестратор', sub: 'фаза 2 · розетка' },
+  { id: 'at', x: 630, y: 200, w: 150, h: 52, k: 'ext', label: 'AI Visibility тест', sub: 'фаза 2' },
+  { id: 'cg', x: 420, y: 200, w: 170, h: 52, k: 'ext', label: 'Групи сторінок', sub: 'фаза 2' },
+  { id: 'cm', x: 420, y: 266, w: 170, h: 52, k: 'ext', label: 'Оркестратор кампаній', sub: 'фаза 3' },
+  { id: 'reg', x: 820, y: 210, w: 170, h: 90, k: 'store', label: 'Реєстр напрямів', sub: 'фаза · поди · канал\nтест · екрани\nпідключення = запис' }
+], edges: [
+  { f: 'ag', fs: 'r', t: 'seo', ts: 'l', label: 'пакет' }, { f: 'seo', fs: 'r', t: 'co', ts: 'l', label: 'ok' },
+  { f: 'co', fs: 'r', t: 'hu', ts: 'l', mx: 610 }, { f: 'co', fs: 'r', t: 'tg', ts: 'l', mx: 610 }, { f: 'hu', fs: 'b', t: 'tg', ts: 't' }, { f: 'tg', fs: 'r', t: 'gw', ts: 'l' },
+  { f: 'p', fs: 't', t: 'seo', ts: 'b', dash: 1, fo: -40, to: -40 }, { f: 'a', fs: 'r', t: 'seo', ts: 'b', dash: 1, via: [[395, 292], [395, 150], [335, 150]], to: 40 },
+  { f: 'at', fs: 't', t: 'tg', ts: 'b', dash: 1 }, { f: 'cg', fs: 't', t: 'co', ts: 'b', dash: 1 }, { f: 'reg', fs: 'l', t: 'at', ts: 'r', dash: 1 }
+] });
+/* phase toggle (shared with the demo via localStorage) */
+(function () {
+  const K = 'orca9-phase';
+  const get = () => { try { const r = localStorage.getItem(K); if (r === null) return { mode: 'p1', extra: [] }; const v = JSON.parse(r); return { mode: v.mode === 'full' ? 'full' : 'p1', extra: Array.isArray(v.extra) ? v.extra : [] }; } catch (e) { return { mode: 'full', extra: [] }; } };
+  const apply = () => { const v = get(); document.body.classList.toggle('p1', v.mode === 'p1'); document.querySelectorAll('[data-ph]').forEach(b => b.classList.toggle('on', b.dataset.ph === v.mode)); document.querySelectorAll('nav.toc .tb').forEach(t => t.style.display = v.mode === 'p1' ? '' : 'none'); };
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-ph]'); if (b) { const v = get(); v.mode = b.dataset.ph; try { localStorage.setItem(K, JSON.stringify(v)); } catch (x) {} apply(); return; }
+    const o = e.target.closest('[data-open]'); if (o) { const sct = document.getElementById(o.dataset.open); sct.classList.toggle('open'); o.textContent = sct.classList.contains('open') ? 'Згорнути' : 'Показати'; }
+  });
+  addEventListener('storage', e => { if (e.key === K) apply(); });
+  apply();
+})();
 </script>
 </body>
 </html>

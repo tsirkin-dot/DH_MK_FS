@@ -1,17 +1,47 @@
 /* Prototype coordination only: no external systems or real model calls. */
 const PAGE_CONTROL = new Map();
-const CHANNEL_OWNERS = ['SEO', 'PPC', 'AI Visibility'];
+const CHANNEL_ALL = ['SEO', 'PPC', 'AI Visibility'];
+/* Активні канальні оркестратори. Масив «живий»: у фазі 1 тут лише SEO, у повному плані — усі три.
+   Уся логіка погоджень (пакети, групи, конвеєри, швидка смуга) ітерує саме його, тому не потребує окремих гілок. */
+const CHANNEL_OWNERS = [...CHANNEL_ALL];
+/* Реєстр напрямів. Новий напрям підключається одним записом: фаза, под агентів, канал погодження, тест у тест-гейті, екрани. */
+const DIRS = {
+  'SEO':             { phase: 1, pods: ['SEO'], channel: 'SEO', test: 'SEO-тест', screens: ['seo'], what: 'позиції, технічний стан, оптимізація сторінок' },
+  'Контент':         { phase: 1, pods: ['Контент'], screens: [], what: 'статті, тексти лендингів, кейси' },
+  'Координація':     { phase: 1, pods: ['Координація'], screens: [], what: 'Координатор сторінки, SEO-оркестратор, черга і блокування' },
+  'PPC':             { phase: 2, pods: ['PPC'], channel: 'PPC', screens: ['ppc'], what: 'реклама, бюджети R3, message match' },
+  'AI Visibility':   { phase: 2, pods: ['AI Visibility'], channel: 'AI Visibility', test: 'AI Visibility тест', screens: ['aiv'], what: 'цитування в AI-системах, наратив' },
+  'Аналітика':       { phase: 2, pods: ['Аналітика'], screens: [], what: 'агенти аналітики; дашборди доступні з фази 1' },
+  'Контроль якості': { phase: 2, pods: ['Контроль якості'], screens: ['agentqa'], what: 'еталонні кейси, дрейф, релізи агентів' },
+  'Групи сторінок':  { phase: 2, pods: [], screens: ['groups'], what: 'одне правило на шаблон, хвилі 10/50/100%' },
+  'Кампанії':        { phase: 3, pods: [], screens: ['cmps'], what: 'декомпозиція брифу на пакети' },
+  'SMM':             { phase: 3, pods: ['SMM'], screens: [], what: 'органічні пости, спільнота' },
+  'Email':           { phase: 3, pods: ['Email'], screens: [], what: 'розсилки, ланцюжки, доставлюваність' }
+};
+const PHASE = { mode: 'full', extra: [] };   // mode: 'p1' | 'full'; extra — напрями, підключені достроково
+function dirOn(k) { const d = DIRS[k]; return !d || PHASE.mode === 'full' || d.phase === 1 || PHASE.extra.includes(k); }
+const dirOfPod = pod => Object.keys(DIRS).find(k => DIRS[k].pods.includes(pod));
+const dirOfScreen = sc => Object.keys(DIRS).find(k => DIRS[k].screens.includes(sc));
+const dirOfCh = ch => ({ 'SEO': 'SEO', 'Контент': 'Контент', 'PPC': 'PPC', 'AI Visibility': 'AI Visibility', 'SMM': 'SMM', 'Email': 'Email', 'Аналітика': 'Аналітика', 'Кампанія': 'Кампанії' }[ch]);
+function podOn(pod) { const k = dirOfPod(pod); return !k || dirOn(k); }
+function screenOn(sc) { const k = dirOfScreen(sc); return !k || dirOn(k); }
+function chOn(ch) { const k = dirOfCh(ch); return !k || dirOn(k); }
+function testOn(name) { const k = Object.keys(DIRS).find(x => DIRS[x].test && String(name).startsWith(DIRS[x].test)); return !k || dirOn(k); }
+function syncChannels() { CHANNEL_OWNERS.length = 0; CHANNEL_ALL.filter(c => dirOn(c)).forEach(c => CHANNEL_OWNERS.push(c)); }
+const chAgreed = () => CHANNEL_OWNERS.length === 1 ? `${CHANNEL_OWNERS[0]}-оркестратор погодив` : `Канали ${CHANNEL_OWNERS.join(', ')} погодили`;
+const chList = () => CHANNEL_OWNERS.length === 3 ? 'Три канали' : CHANNEL_OWNERS.length === 1 ? `${CHANNEL_OWNERS[0]}-оркестратор` : `Канали ${CHANNEL_OWNERS.join(' і ')}`;
 /* Groups of pages (filled by orca9-scale.js), the single test evaluator, locks with TTL and the write kill switch. */
 const GROUPS = {};
 const HF_WRONG = ['/smart-reports', '/compare/baremetrics', '/blog/saas-pricing-guide'];
 const GATE = { harm: -2, win: 2, overrideHarm: -1, lockTtlH: 48 };
 function unitOf(name) { return /AI Visibility/i.test(name) ? ' п.' : '%'; }
 function fmtGate(name, v) { return Number.isFinite(v) ? (v >= 0 ? '+' : '') + String(v).replace('.', ',') + unitOf(name) : 'немає даних'; }
-const asGate = arr => (arr || []).map(t => ({ name: t[0], value: typeof t[1] === 'number' ? t[1] : t[2] }));
+/* Тести вимкнених напрямів (у фазі 1 — AI Visibility тест) не входять в оцінку. */
+const asGate = arr => (arr || []).filter(t => testOn(t[0])).map(t => ({ name: t[0], value: typeof t[1] === 'number' ? t[1] : t[2] }));
 /* One evaluator for pages, groups and pipelines: harm → rollback, no clear win or bad data → inconclusive, otherwise pass. */
 function gateEvaluate(results, opts = {}) {
   const harmAt = opts.strict ? GATE.overrideHarm : GATE.harm;
-  if (!Array.isArray(results) || results.length !== 3 || results.some(r => !r || !Number.isFinite(r.value))) return { verdict: 'inconclusive', why: 'неповні або нечислові результати' };
+  if (!Array.isArray(results) || !results.length || results.some(r => !r || !Number.isFinite(r.value))) return { verdict: 'inconclusive', why: 'неповні або нечислові результати' };
   const harm = results.filter(r => r.value < harmAt);
   if (harm.length) return { verdict: 'harm', why: harm.map(r => `${r.name} ${fmtGate(r.name, r.value)}`).join(', ') };
   if (!results.some(r => r.value >= GATE.win)) return { verdict: 'inconclusive', why: 'немає достатнього покращення' };
@@ -164,8 +194,8 @@ function packetHTML(r) {
   const page = pageState(r.page), p = r.packet;
   if (!p) return `<p class="small muted">До узгодження це лише пропозиція. Сторінка v${page.version} не змінена; жодних погоджень ще немає.</p><div class="preview-grid">${pagePreview(page.content, 'Поточна сторінка v' + page.version)}${pagePreview({ ...page.content, ...packetPatch(r, 'base') }, 'Чернетка автора')}</div>`;
   return `<div class="packet" data-tour="page-packet"><div class="packet-head"><b>Єдиний пакет ${esc(r.id)} · v${p.version}</b><span class="chip">база сторінки v${p.baseVersion}</span></div>
-    <div class="channel-approvals">${CHANNEL_OWNERS.map(c => { const a = p.approvals[c]; return `<div><b>${esc(c)}-оркестратор</b><span class="chip ${a?.verdict === 'ok' ? 'ok' : a?.verdict === 'no' ? 'bad' : ''}">${a ? (a.verdict === 'ok' ? 'погодив' : 'заперечив') + ' · v' + a.version : 'очікує'}</span><p>${esc(a?.reason || 'Оцінює вплив на свій канал.')}</p></div>`; }).join('')}</div>
-    <div class="reason ${p.coordinated ? 'ok' : ''}"><b>Координатор сторінки:</b> ${esc(p.coordinated ? 'Три канали погодили одну версію. Далі — правила ризику та дозвіл на обмежений тест.' : 'Збирає спільне рішення; канальні погодження не дозволяють окремі правки.')}</div>
+    <div class="channel-approvals">${CHANNEL_ALL.map(c => { if (!CHANNEL_OWNERS.includes(c)) return `<div class="ph-ghost-row"><b>${esc(c)}-оркестратор</b><span class="chip ph">не підключено · фаза ${DIRS[c].phase}</span><span class="small muted">канал з’явиться разом із напрямом; нові пакети тоді проходитимуть і його погодження</span></div>`; const a = p.approvals[c]; return `<div><b>${esc(c)}-оркестратор</b><span class="chip ${a?.verdict === 'ok' ? 'ok' : a?.verdict === 'no' ? 'bad' : ''}">${a ? (a.verdict === 'ok' ? 'погодив' : 'заперечив') + ' · v' + a.version : 'очікує'}</span><p>${esc(a?.reason || 'Оцінює вплив на свій канал.')}</p></div>`; }).join('')}</div>
+    <div class="reason ${p.coordinated ? 'ok' : ''}"><b>Координатор сторінки:</b> ${esc(p.coordinated ? chAgreed() + ' одну версію. Далі — правила ризику та дозвіл на обмежений тест.' : 'Збирає спільне рішення; канальні погодження не дозволяють окремі правки.')}</div>
     <div class="preview-grid">${pagePreview(p.before, 'Поточна сторінка')}${pagePreview(p.after, r.variant === 'comp' ? 'Узгоджений компроміс' : 'Пропозиція для тесту')}</div>
     <div class="small muted">Поля пакета: ${Object.keys(p.patch).map(esc).join(', ')}. Зміна варіанта створює нову версію й скидає всі погодження. Тест не є публікацією на весь сайт.</div></div>`;
 }
@@ -247,7 +277,7 @@ async function pcReview(r, variant = 'base', revised = false) {
     r.reason = `${r.requiresHuman ? 'Компроміс повторно погоджений усіма каналами.' : 'Канали погодили пакет.'} ${r.conf < 70 ? 'Недостатньо впевненості.' : r.imp === 'high' ? 'Високий вплив.' : 'Після конфлікту потрібне рішення людини.'} Людина дозволяє обмежений тест саме цієї версії.`;
   } else {
     r.status = 'auto'; r.reason = 'Координатор узгодив єдиний пакет. Низький вплив: O3 фіксує дозвіл на обмежений тест, а не на весь сайт.';
-    ev('ok', 'Координатор сторінки', `${r.id}: три канали погодили v${p.version}; авто-дозвіл на тест`);
+    ev('ok', 'Координатор сторінки', `${r.id}: ${chAgreed()} v${p.version}; авто-дозвіл на тест`);
   }
   render();
   if (r.status === 'auto') { await wait(300); pcStartTest(r); }
@@ -267,7 +297,7 @@ function pcStartTest(r) {
 function pcApprove(r) {
   if (!r || r.status !== 'human') return;
   if (!ROLES[S.role].r2) { toast('Ваша роль не дозволяє тест публічної зміни.'); return; }
-  if (!packetReady(r)) { toast('Спершу узгодьте варіант з усіма трьома каналами.'); return; }
+  if (!packetReady(r)) { toast('Спершу узгодьте варіант з усіма активними каналами: ' + CHANNEL_OWNERS.join(', ') + '.'); return; }
   r.packet.humanApproved = true;
   ev('h', ROLES[S.role].name, `дозволив обмежений тест ${r.id} v${r.packet.version}`);
   pcStartTest(r);
@@ -281,7 +311,7 @@ function pcRecWeek(r) {
   if (!pcTestValid(r)) { r.status = 'inconclusive'; r.reason = 'Пакет або база змінилися. Розгортання заблоковане; завершіть тест і погодьте нову версію.'; render(); return; }
   const T = recTests(r);
   r.week = Math.min(3, r.week + 1);
-  ev('', 'Моніторинг пакета', `${r.id}: тиждень ${r.week}; оцінюємо три канали разом`);
+  ev('', 'Моніторинг пакета', `${r.id}: тиждень ${r.week}; оцінюємо активні тести разом`);
   const pre = gateEvaluate(asGate(T));
   if (pre.verdict === 'inconclusive' && pre.why.startsWith('неповні')) { r.status = 'inconclusive'; r.reason = 'Неповні або нечислові результати. Висновок не визначено; публікація заборонена.'; render(); return; }
   if (r.week === 3) {
@@ -330,7 +360,7 @@ function pcCard(r) {
     ${r.status === 'new' ? `<button class="btn small primary" data-action="rec-review" data-id="${r.id}">Узгодити єдиний пакет</button>` : ''}
     ${r.status === 'human' ? `${r.compromise ? `<div class="acts sec-gap"><button class="btn small ${r.variant === 'comp' ? 'primary' : ''}" data-action="packet-comp" data-id="${r.id}">Компроміс · повторно погодити</button><button class="btn small" data-action="packet-orig" data-id="${r.id}">Оригінал · перевірити наслідки</button></div>` : ''}<div class="acts sec-gap"><button class="btn small primary" data-action="rec-approve" data-id="${r.id}" ${!can || !packetReady(r) ? 'disabled' : ''}>Дозволити тест v${p.version}</button><button class="btn small danger" data-action="rec-reject" data-id="${r.id}" ${!can ? 'disabled' : ''}>Відхилити пакет</button>${p && !p.coordinated ? (S.role === 'owner' ? `<button class="btn small" data-action="packet-override" data-id="${r.id}">Прийняти ризик (Owner)</button>` : '<span class="small muted">Конфлікт знімає компроміс або Owner, свідомо прийнявши ризик.</span>') : ''}</div>` : ''}
     ${r.status === 'expired' ? `<div class="acts sec-gap"><button class="btn small primary" data-action="packet-resubmit" data-id="${r.id}">Подати знову</button></div>` : ''}
-    ${['test', 'won', 'deployed', 'rolledback', 'inconclusive'].includes(r.status) ? `<div class="tbl-wrap sec-gap"><table><thead><tr><th>Спільний тест · ${r.week || 0}/3 тижні</th><th>Метрика</th><th>Ефект у демо</th></tr></thead><tbody>${T.map(t => `<tr><td>${esc(t[0])}</td><td>${esc(t[2])}</td><td>${fmtGate(t[0], recVal(t, r.week || 0))}</td></tr>`).join('')}</tbody></table></div><p class="small muted">Результати змодельовані. Пороги −2%/+2% і три тижні ілюструють маршрут; реальний evaluator потребує вибірки, довірчих інтервалів та окремих одиниць метрик.</p><div class="acts">${r.status === 'test' ? `<button class="btn small" data-action="rec-week" data-id="${r.id}">Наступний тиждень</button>` : ''}${r.status === 'won' ? `<button class="btn small primary" data-action="rec-deploy" data-id="${r.id}" ${!can ? 'disabled' : ''}>Дозволити розгортання пакета</button><button class="btn small" data-action="packet-end" data-id="${r.id}" ${!can ? 'disabled' : ''}>Не розгортати</button>` : ''}${r.status === 'inconclusive' ? `<button class="btn small" data-action="packet-end" data-id="${r.id}" ${!can ? 'disabled' : ''}>Завершити без розгортання</button>` : ''}</div>` : ''}
+    ${['test', 'won', 'deployed', 'rolledback', 'inconclusive'].includes(r.status) ? `<div class="tbl-wrap sec-gap"><table><thead><tr><th>Спільний тест · ${r.week || 0}/3 тижні</th><th>Метрика</th><th>Ефект у демо</th></tr></thead><tbody>${T.map(t => testOn(t[0]) ? `<tr><td>${esc(t[0])}</td><td>${esc(t[2])}</td><td>${fmtGate(t[0], recVal(t, r.week || 0))}</td></tr>` : `<tr class="ph-ghost-row"><td>${esc(t[0])}</td><td>${esc(t[2])}</td><td><span class="chip ph">вимкнено до фази 2</span></td></tr>`).join('')}</tbody></table></div><p class="small muted">Результати змодельовані. Пороги −2%/+2% і три тижні ілюструють маршрут; реальний evaluator потребує вибірки, довірчих інтервалів та окремих одиниць метрик.</p><div class="acts">${r.status === 'test' ? `<button class="btn small" data-action="rec-week" data-id="${r.id}">Наступний тиждень</button>` : ''}${r.status === 'won' ? `<button class="btn small primary" data-action="rec-deploy" data-id="${r.id}" ${!can ? 'disabled' : ''}>Дозволити розгортання пакета</button><button class="btn small" data-action="packet-end" data-id="${r.id}" ${!can ? 'disabled' : ''}>Не розгортати</button>` : ''}${r.status === 'inconclusive' ? `<button class="btn small" data-action="packet-end" data-id="${r.id}" ${!can ? 'disabled' : ''}>Завершити без розгортання</button>` : ''}</div>` : ''}
   </div>`;
 }
 function pipelinePage(p) { return p.page || null; }

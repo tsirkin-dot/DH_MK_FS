@@ -71,7 +71,7 @@ function inStuck() {
   inPackets().filter(p => p.st === 'inconclusive').forEach(p => L.push({ sev: 0.7, t: `${p.id}: немає висновку`, d: p.why || 'тест не показав ні виграшу, ні шкоди', scr: p.scr }));
   inPackets().filter(p => p.st === 'return').forEach(p => L.push({ sev: 0.6, t: `${p.id} повернуто`, d: p.why || 'O2 повернув автору', scr: p.scr }));
   if (S.frTrial === 'conflict') L.push({ sev: 1.2, t: 'Реєстр фактів: розбіжність trial.days', d: 'нові тексти з цим фактом блокуються', scr: 'facts', bad: true });
-  if (S.aq?.drift === 'alert') L.push({ sev: 1.1, t: 'Citation Analyst нижче порогу якості', d: 'людина перевіряє 100% висновків', scr: 'agentqa', bad: true });
+  if (S.aq?.drift === 'alert' && (typeof dirOn !== 'function' || dirOn('Контроль якості'))) L.push({ sev: 1.1, t: 'Citation Analyst нижче порогу якості', d: 'людина перевіряє 100% висновків', scr: 'agentqa', bad: true });
   L.sort((a, b) => b.sev - a.sev);
   return L.length ? L.slice(0, 5).map(x => `<div class="row"><span class="dot-s ${x.bad ? 'bad' : 'warn'}"></span><span class="grow"><b>${esc(x.t)}</b><br><span class="small muted">${esc(x.d)}</span></span><button class="btn small" data-action="nav-to" data-screen="${x.scr}">Відкрити</button></div>`).join('') : '<p class="empty">Нічого не застрягло.</p>';
 }
