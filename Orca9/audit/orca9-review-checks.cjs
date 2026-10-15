@@ -13,6 +13,7 @@ const world = fs.readFileSync(path.join(root, 'orca9-world.js'), 'utf8');
 const insight = fs.readFileSync(path.join(root, 'orca9-insight.js'), 'utf8');
 const phase = fs.readFileSync(path.join(root, 'orca9-phase.js'), 'utf8');
 const briefJs = fs.readFileSync(path.join(root, 'orca9-brief.js'), 'utf8');
+const pageTours = fs.readFileSync(path.join(root, 'orca9-pagetours.js'), 'utf8');
 new vm.Script(script); new vm.Script(controller); new vm.Script(scale);
 function session(role = 'lead') {
   const c = vm.createContext({ setTimeout: fn => { queueMicrotask(fn); return 0; }, clearTimeout() {}, console });
@@ -24,9 +25,10 @@ function session(role = 'lead') {
   vm.runInContext(insight, c);
   vm.runInContext(phase, c);
   vm.runInContext(briefJs, c);
+  vm.runInContext(pageTours, c);
   vm.runInContext(script.slice(0, script.indexOf('/* ---------- tour ---------- */')), c);
   vm.runInContext('ev = () => {}; slack = () => {}; render = () => {}; toast = () => {}; go = () => {};', c);
-  vm.runInContext(`scaleInit(); worldInit(); insightInit(); briefInit(); phaseInit(); seedPipelinePackets(); S.role = '${role}';`, c);
+  vm.runInContext(`scaleInit(); worldInit(); insightInit(); briefInit(); phaseInit(); pageToursInit(); seedPipelinePackets(); S.role = '${role}';`, c);
   return c;
 }
 const R = (c, s) => vm.runInContext(s, c);
@@ -218,6 +220,14 @@ const ok = msg => checks.push(msg);
     R(b, `takePage('/integrations', { id: 'T-9' }, 'test')`);
     assert.ok(R(b, `BF.ctx('title', { page: '/integrations' })`).some(c => c[4] === 'XQ' && /T-9/.test(c[2])));
     ok('Brief context checks read live demo state: phase decides who approves an ad landing and who publishes social/email; page locks come from the Coordinator.'); }
+
+  { const t = session();
+    const keys = R(t, 'Object.keys(PAGE_TOURS)');
+    for (const k of keys) { assert.ok(R(t, `typeof VIEWS['${k}'] === 'function'`), 'view ' + k);
+      const L = R(t, `PAGE_TOURS['${k}']`); assert.ok(L.length >= 2, 'steps ' + k); L.forEach(s => assert.ok(s.sel && s.h && s.p && s.p.length > 40, k + ': ' + s.h)); }
+    const nav = [...html.matchAll(/data-screen="([a-z]+)"/g)].map(m => m[1]).filter((v, i, a) => a.indexOf(v) === i && !['world', 'facts'].includes(v) || true);
+    nav.forEach(sc => { if (R(t, `typeof VIEWS['${sc}'] === 'function'`)) assert.ok(keys.includes(sc), 'no page tour for ' + sc); });
+    ok(`Every screen in the menu has its own extended page tour (${keys.length} screens, ${keys.reduce((n, k) => n + R(t, `PAGE_TOURS['${k}'].length`), 0)} steps).`); }
 
   console.log(JSON.stringify({ syntax: 'PASS', scope: 'Isolated functions, UI/logging/timers stubbed', passed: checks.length, checks }, null, 2));
 })().catch(e => { console.error(e); process.exitCode = 1; });

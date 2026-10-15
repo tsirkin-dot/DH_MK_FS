@@ -176,3 +176,15 @@
 @media (max-width:760px){.pstrip{padding:7px 16px}.ph-mode button{padding:5px 8px}}
 .nav.ph-later .count{display:none}
 .ph-road{align-items:start}
+
+/* ---------- Тур сторінки (помаранчева кнопка) ---------- */
+.top h1{margin-right:0}
+.pt-btn{margin-right:auto;margin-left:10px;display:inline-flex;align-items:center;gap:4px;border:0;border-radius:999px;background:#E8730C;color:#fff;font:inherit;font-size:13px;font-weight:600;padding:5px 11px;cursor:pointer;box-shadow:0 2px 8px rgba(232,115,12,.35);white-space:nowrap}
+.pt-btn:hover{background:#C85F05}
+.pt-btn:focus-visible{outline:3px solid #FFD2A8;outline-offset:2px}
+.pt-btn span{font-weight:500;opacity:.85;font-size:12px}
+.pt-btn[hidden]{display:none}
+#tour.pt .pop{border-top:4px solid #E8730C}
+#tour.pt .spot{box-shadow:0 0 0 4px #E8730C,0 0 0 9999px rgba(17,22,38,.55)}
+@media (max-width:760px){.pt-btn{margin-right:0}}
+@media (max-width:1560px) and (min-width:761px){.pt-btn span{display:none}.pt-btn{margin-left:4px}.top .ctrl select{max-width:132px}header.top{gap:8px}}

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orca9 — архітектура і пайплайн</title>
-<script src="orca9-pin.js?v=20261015a"></script>
+<script src="orca9-pin.js?v=20261015b"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
@@ -83,7 +83,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
 .thesis div{border-left:3px solid var(--brass);background:var(--brass-soft);border-radius:6px;padding:10px 12px;font-size:14px}
 .thesis b{display:block;margin-bottom:2px}
 </style>
-<link rel="stylesheet" href="orca9-premium.css?v=20261015a">
+<link rel="stylesheet" href="orca9-premium.css?v=20261015b">
 <style>.build-a{display:inline-block;font-size:12px;color:#8A93A8;background:#EDF0F5;border:1px solid #D9DEE8;border-radius:12px;padding:3px 10px;margin:-6px 0 14px}</style>
 <style>
 .phm{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:5px 7px;margin:0 0 18px;font-size:14px}
@@ -140,7 +140,7 @@ body.p1 .p1-only{display:block}
 <main>
   <h1>Orca9: як це працює</h1>
   <div class="phm" role="group" aria-label="Режим"><span>Режим:</span><button data-ph="p1">Фаза 1: SEO + Контент</button><button data-ph="full">Повний план</button></div>
-  <p class="build-a">v1.10 · збірка 20261015a · оновлено 15.10.2026, 17:28 (Київ)</p>
+  <p class="build-a">v1.11 · збірка 20261015b · оновлено 15.10.2026, 18:02 (Київ)</p>
   <p class="lead">Технічний опис для розробника й архітектора: хто ставить задачі, хто їх виконує, хто перевіряє, хто контролює і хто затверджує. Цільовий принцип: канал не змінює сторінку сам. Три канальні оркестратори й Координатор узгоджують єдиний пакет. Кожна дія проходить ворота, а кожна зміна сторінки — тест-гейт.</p>
   <div class="legend">
     <span class="chip h">Люди</span><span class="chip o">Оркестратори і ворота</span><span class="chip a">Агенти</span><span class="chip s">Інфраструктура</span><span class="chip">Сховища</span><span class="chip b">Вето, відкат</span>
@@ -637,6 +637,7 @@ Slack: /orchestra brief | status | approve | why | pause | resume | report</pre>
       <thead><tr><th>Екран</th><th>Візуалізація</th><th>На яке питання відповідає</th></tr></thead>
       <tbody>
         <tr><td>HUD</td><td>потік пакетів, «Застрягло», 8 принципів</td><td>де накопичується робота і що чекає людину</td></tr>
+        <tr><td>Кожен екран</td><td>помаранчева кнопка «Тур сторінки» біля назви: розширений тур по всіх блоках екрана</td><td>що показує кожен блок, звідки дані і що можна натиснути</td></tr>
         <tr><td>Новий бриф</td><td>стадії брифу, карта «тип × розмір», шляхи, дерево задач, хвилі в часі</td><td>що буде зроблено, ким, за скільки і з ким перетинається</td></tr>
         <tr><td>Апруви</td><td>SLA по кожному запиту, вік черги, пакетне погодження R2</td><td>чи не стали люди вузьким місцем</td></tr>
         <tr><td>Рекомендації</td><td>вплив × впевненість, завантаження сторінок, шкала тест-гейту з інтервалами, калькулятор тижнів, стани пакета</td><td>що робити першим, де черга, чому «немає висновку»</td></tr>
