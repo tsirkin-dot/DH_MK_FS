@@ -12,6 +12,7 @@ const agents = fs.readFileSync(path.join(root, 'orca9-agents.js'), 'utf8');
 const world = fs.readFileSync(path.join(root, 'orca9-world.js'), 'utf8');
 const insight = fs.readFileSync(path.join(root, 'orca9-insight.js'), 'utf8');
 const phase = fs.readFileSync(path.join(root, 'orca9-phase.js'), 'utf8');
+const briefJs = fs.readFileSync(path.join(root, 'orca9-brief.js'), 'utf8');
 new vm.Script(script); new vm.Script(controller); new vm.Script(scale);
 function session(role = 'lead') {
   const c = vm.createContext({ setTimeout: fn => { queueMicrotask(fn); return 0; }, clearTimeout() {}, console });
@@ -22,9 +23,10 @@ function session(role = 'lead') {
   vm.runInContext(world, c);
   vm.runInContext(insight, c);
   vm.runInContext(phase, c);
+  vm.runInContext(briefJs, c);
   vm.runInContext(script.slice(0, script.indexOf('/* ---------- tour ---------- */')), c);
   vm.runInContext('ev = () => {}; slack = () => {}; render = () => {}; toast = () => {}; go = () => {};', c);
-  vm.runInContext(`scaleInit(); worldInit(); insightInit(); phaseInit(); seedPipelinePackets(); S.role = '${role}';`, c);
+  vm.runInContext(`scaleInit(); worldInit(); insightInit(); briefInit(); phaseInit(); seedPipelinePackets(); S.role = '${role}';`, c);
   return c;
 }
 const R = (c, s) => vm.runInContext(s, c);
@@ -192,6 +194,30 @@ const ok = msg => checks.push(msg);
   { assert.equal(R(c, `gateEvaluate([{ name: 'A', value: 3 }, { name: 'B', value: NaN }, { name: 'C', value: 1 }]).verdict`), 'inconclusive');
     assert.equal(R(c, `fmtGate('AI Visibility тест', 8)`), '+8 п.');
     ok('One evaluator for pages, groups and pipelines; AI Visibility shown in points, not %.'); }
+
+  { const b = session();
+    const types = R(b, 'BF.types()'); assert.equal(types.length, 26); assert.equal(new Set(types.map(t => t.g)).size, 5);
+    for (const t of types) {
+      assert.ok(t.sizes.every(z => ['XS', 'S', 'M', 'L', 'XL'].includes(z)), 'size ' + t.id);
+      R(b, `BF.demo('${t.id}', { stage: 3 })`);
+      const T = R(b, 'BF.tasks()'), ids = new Set(T.map(x => x.id));
+      assert.ok(T.length >= 3, 'tasks ' + t.id); assert.ok(T.some(x => x.id === 'X0'), 'ctx first ' + t.id);
+      T.forEach(x => x.d.forEach(d => assert.ok(ids.has(d), `dep ${t.id}:${x.id}->${d}`)));
+      const h = R(b, 'VIEWS.brief()'); assert.ok(!/NaN|>undefined<|\$undefined|Infinity/.test(h), 'view ' + t.id);
+    }
+    ok('Brief catalog: 26 task types in 5 groups; every plan starts with context checks, all dependencies resolve, the screen renders cleanly.'); }
+  { const b = session();
+    R(b, `PHASE.mode = 'p1'; syncChannels();`);
+    let C = R(b, `BF.ctx('block', { page: '/pricing-analytics' })`); assert.ok(C.some(c => c[4] === 'XP' && /Channel manager/.test(c[3])));
+    assert.ok(R(b, `BF.ctx('social', {})`).some(c => c[1] === 'Канал не підключено'));
+    R(b, `BF.demo('social', { stage: 3 })`); assert.ok(R(b, 'BF.tasks()').some(x => x.ph3));
+    R(b, `PHASE.mode = 'full'; syncChannels();`);
+    C = R(b, `BF.ctx('block', { page: '/pricing-analytics' })`); assert.ok(C.some(c => c[4] === 'XP' && /PPC-оркестратор/.test(c[3])));
+    assert.ok(!R(b, `BF.ctx('social', {})`).some(c => c[1] === 'Канал не підключено'));
+    R(b, `BF.demo('social', { stage: 3 })`); assert.ok(!R(b, 'BF.tasks()').some(x => x.ph3));
+    R(b, `takePage('/integrations', { id: 'T-9' }, 'test')`);
+    assert.ok(R(b, `BF.ctx('title', { page: '/integrations' })`).some(c => c[4] === 'XQ' && /T-9/.test(c[2])));
+    ok('Brief context checks read live demo state: phase decides who approves an ad landing and who publishes social/email; page locks come from the Coordinator.'); }
 
   console.log(JSON.stringify({ syntax: 'PASS', scope: 'Isolated functions, UI/logging/timers stubbed', passed: checks.length, checks }, null, 2));
 })().catch(e => { console.error(e); process.exitCode = 1; });

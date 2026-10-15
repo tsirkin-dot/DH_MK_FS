@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orca9 — маркетинговий оркестр (демо)</title>
-<script src="orca9-pin.js?v=20261014a"></script>
+<script src="orca9-pin.js?v=20261015a"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
@@ -344,13 +344,14 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
   .diff{grid-template-columns:1fr}
 }
 </style>
-<link rel="stylesheet" href="orca9-premium.css?v=20261014a">
-<link rel="stylesheet" href="orca9-control.css?v=20261014a">
+<link rel="stylesheet" href="orca9-premium.css?v=20261015a">
+<link rel="stylesheet" href="orca9-control.css?v=20261015a">
+<link rel="stylesheet" href="orca9-brief.css?v=20261015a">
 </head>
 <body>
 <div class="app">
   <aside class="rail" aria-label="Навігація">
-    <div class="logo">Orca9<small>маркетинговий оркестр</small><span class="build" title="Версія збірки і час останнього оновлення демо">v1.9 · збірка 20261014a<br>оновлено 14.10.2026, 12:15 (UTC+2)</span></div>
+    <div class="logo">Orca9<small>маркетинговий оркестр</small><span class="build" title="Версія збірки і час останнього оновлення демо">v1.10 · збірка 20261015a<br>оновлено 15.10.2026, 17:28 (Київ)</span></div>
     <button class="nav" data-screen="hud" data-tour="nav-hud"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>HUD</button>
     <button class="nav" data-screen="brief" data-tour="nav-brief"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M5 12h14"/></svg>Новий бриф</button>
     <button class="nav" data-screen="analytics" data-tour="nav-analytics"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Аналітика<span class="count" id="cnt-an"></span></button>
@@ -420,13 +421,14 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background
 <div id="modal" role="dialog" aria-modal="true"><div class="box" id="modal-box"></div></div>
 <div id="toast" role="status"></div>
 
-<script src="orca9-page-control.js?v=20261014a"></script>
-<script src="orca9-scale.js?v=20261014a"></script>
-<script src="orca9-viz.js?v=20261014a"></script>
-<script src="orca9-agents.js?v=20261014a"></script>
-<script src="orca9-world.js?v=20261014a"></script>
-<script src="orca9-insight.js?v=20261014a"></script>
-<script src="orca9-phase.js?v=20261014a"></script>
+<script src="orca9-page-control.js?v=20261015a"></script>
+<script src="orca9-scale.js?v=20261015a"></script>
+<script src="orca9-viz.js?v=20261015a"></script>
+<script src="orca9-agents.js?v=20261015a"></script>
+<script src="orca9-world.js?v=20261015a"></script>
+<script src="orca9-insight.js?v=20261015a"></script>
+<script src="orca9-phase.js?v=20261015a"></script>
+<script src="orca9-brief.js?v=20261015a"></script>
 <script>
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1838,6 +1840,11 @@ const TOUR = [
   { screen: 'hud', sel: '[data-tour=hud-flow]', h: 'Що таке пакет', p: 'Пакет — одна узгоджена зміна одного ресурсу: що було, що стане, докази й тести. Його погоджують канали, перевіряють O2 і O3, а записує Gateway. Смуга показує, де зараз усі пакети: погодження, людина, черга, тест, розгорнуто. Праворуч «Застрягло» — п’ять речей, що найдовше чекають.' },
   { screen: 'hud', sel: '#world-strip', h: 'Зараз у світі', p: 'Стрічка під шапкою на кожному екрані: апдейти Google, нові моделі в AI-системах, збої даних, дії конкурентів. Такі події зсувають результати тестів, тому тест-гейт застосовує до них правила. Натисніть подію — відкриється календар «Світ і події».' },
   { screen: 'hud', sel: '[data-tour=principles]', h: 'Вісім принципів і глосарій', p: 'Правила, на яких тримається система: агенти пропонують, одна сторінка — одна версія, будь-яка зміна через тест, цифри лише з реєстру, світ враховано, агент не оцінює сам себе. Кнопка «Глосарій» пояснює терміни: пакет, відбиток, ресурс, тест-гейт, R0–R3, rebase, дрейф.' },
+  { screen: 'brief', pre: () => BF.demo('feature'), sel: '[data-tour=bf-cat]', h: 'Новий бриф: 26 типів задач', p: 'Бриф починається з типу задачі. П’ять груп: ресерч і аналіз, технічне SEO, зміна наявних сторінок (будь-який блок, структура, E-E-A-T, помилки, schema), нові сторінки, контент і комунікації — блог, соцмережі, PR, розсилка, кейс. У кожного типу свій шлях у пайплайні й розмір від XS до XL. Можна просто написати текст — O1 Planner знайде найближчий тип.' },
+  { screen: 'brief', pre: () => BF.demo('block', { page: '/pricing-analytics', stage: 2 }), sel: '[data-tour=bf-ctx]', h: 'Перевірки контексту продукту', p: 'Перед планом Orca9 звіряє задачу з живим станом демо: чи сторінку вже утримує інший пакет, чи вона посадкова для реклами, чи її цитують AI-системи, чи входить у групу, які факти з реєстру зачеплено, які події у світі діють. Кожне «увага» додає крок або людину. У фазі 1 рекламну сторінку погоджує Channel manager, бо PPC-агенти ще не підключені; у повному плані — PPC-оркестратор.' },
+  { screen: 'brief', pre: () => BF.demo('block', { page: '/pricing-analytics', stage: 2 }), sel: '[data-tour=bf-q]', h: 'Агент питає лише невідоме', p: 'Питання — тільки про те, чого немає ні в брифі, ні в контексті, і що змінює план, вартість або ризик. До кожного є пояснення і рекомендований варіант ★; можна дописати свій. Решту агент бере за замовчуванням і записує як припущення.' },
+  { screen: 'brief', pre: () => BF.demo('feature', { stage: 3 }), sel: '[data-tour=bf-plan]', h: 'Велике розпадається на малі', p: 'O1 Planner розкладає задачу, доки кожна частина не стане XS або S: одна дія, один виконавець, одні ворота. Сторінка нової фічі — це L: перевірки контексту, ресерч, структура, контент, SEO, запуск і супровід (блог, PR, пости). Вкладки: дерево, хвилі в часі, хто що робить. План L і XL погоджує людина; під час виконання агент може зупинитися і спитати. Результат іде в Slack і журнал аудиту.' },
+  { screen: 'brief', pre: () => BF.demo('feature'), sel: '[data-tour=bf-matrix]', h: 'Карта розмірів і шляхи', p: 'Таблиця «тип задачі × обсяг»: той самий тип буває S або L залежно від обсягу. Клік по клітинці відкриває бриф із цим обсягом. Нижче — шість шляхів у пайплайні: ресерч, технічна перевірка, зміна сторінки, нова сторінка, група сторінок, контент. Стара форма мультиканальної кампанії — внизу екрана.' },
   { screen: 'cmps', sel: '[data-tour=cmp-dag]', h: 'Кампанія розкладається на пакети', p: 'Оркестратор кампаній ділить бриф на лендинг, статті, рекламу, листи, пости і зміну наявної сторінки. Кожен пакет блокує лише свій ресурс і йде своїм контуром; граф показує залежності.' },
   { screen: 'recs', sel: '[data-tour=page-control]', h: 'Один ресурс — один активний пакет', p: 'Сторінки, групи, рекламні кампанії й сегменти розсилок мають своє блокування і чергу. Блокування без рішення живе 48 годин — «Перемотати 48 год» покаже, як черга рушає.' },
   { screen: 'recs', sel: '#rec-REC-3', h: 'Конфлікт PPC, SEO та AI', p: 'PPC хоче коротший перший екран. SEO захищає тему H1, AI Visibility — визначення. Після туру натисніть «Узгодити єдиний пакет»: кожен канал пояснить свій вердикт.' },
@@ -1995,6 +2002,7 @@ addEventListener('resize', () => { if (TI >= 0) tour(TI); });
 scaleInit();
 worldInit();
 insightInit();
+briefInit();
 phaseInit();
 seedPipelinePackets();
 render(); renderFeed();

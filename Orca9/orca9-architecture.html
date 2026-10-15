@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orca9 — архітектура і пайплайн</title>
-<script src="orca9-pin.js?v=20261014a"></script>
+<script src="orca9-pin.js?v=20261015a"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
@@ -83,7 +83,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--mist);padding:1px
 .thesis div{border-left:3px solid var(--brass);background:var(--brass-soft);border-radius:6px;padding:10px 12px;font-size:14px}
 .thesis b{display:block;margin-bottom:2px}
 </style>
-<link rel="stylesheet" href="orca9-premium.css?v=20261014a">
+<link rel="stylesheet" href="orca9-premium.css?v=20261015a">
 <style>.build-a{display:inline-block;font-size:12px;color:#8A93A8;background:#EDF0F5;border:1px solid #D9DEE8;border-radius:12px;padding:3px 10px;margin:-6px 0 14px}</style>
 <style>
 .phm{display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:5px 7px;margin:0 0 18px;font-size:14px}
@@ -135,11 +135,12 @@ body.p1 .p1-only{display:block}
   <a href="#seq"><span class="n">23</span>Конфлікт: послідовність</a>
   <a href="#lineage"><span class="n">24</span>Походження даних</a>
   <a href="#viz"><span class="n">25</span>Що де видно в демо</a>
+  <a href="#brief"><span class="n">26</span>Новий бриф</a>
 </nav>
 <main>
   <h1>Orca9: як це працює</h1>
   <div class="phm" role="group" aria-label="Режим"><span>Режим:</span><button data-ph="p1">Фаза 1: SEO + Контент</button><button data-ph="full">Повний план</button></div>
-  <p class="build-a">v1.9 · збірка 20261014a · оновлено 14.10.2026, 12:15 (UTC+2)</p>
+  <p class="build-a">v1.10 · збірка 20261015a · оновлено 15.10.2026, 17:28 (Київ)</p>
   <p class="lead">Технічний опис для розробника й архітектора: хто ставить задачі, хто їх виконує, хто перевіряє, хто контролює і хто затверджує. Цільовий принцип: канал не змінює сторінку сам. Три канальні оркестратори й Координатор узгоджують єдиний пакет. Кожна дія проходить ворота, а кожна зміна сторінки — тест-гейт.</p>
   <div class="legend">
     <span class="chip h">Люди</span><span class="chip o">Оркестратори і ворота</span><span class="chip a">Агенти</span><span class="chip s">Інфраструктура</span><span class="chip">Сховища</span><span class="chip b">Вето, відкат</span>
@@ -636,6 +637,7 @@ Slack: /orchestra brief | status | approve | why | pause | resume | report</pre>
       <thead><tr><th>Екран</th><th>Візуалізація</th><th>На яке питання відповідає</th></tr></thead>
       <tbody>
         <tr><td>HUD</td><td>потік пакетів, «Застрягло», 8 принципів</td><td>де накопичується робота і що чекає людину</td></tr>
+        <tr><td>Новий бриф</td><td>стадії брифу, карта «тип × розмір», шляхи, дерево задач, хвилі в часі</td><td>що буде зроблено, ким, за скільки і з ким перетинається</td></tr>
         <tr><td>Апруви</td><td>SLA по кожному запиту, вік черги, пакетне погодження R2</td><td>чи не стали люди вузьким місцем</td></tr>
         <tr><td>Рекомендації</td><td>вплив × впевненість, завантаження сторінок, шкала тест-гейту з інтервалами, калькулятор тижнів, стани пакета</td><td>що робити першим, де черга, чому «немає висновку»</td></tr>
         <tr><td>Кампанії</td><td>календар пакетів і критичний шлях проти дедлайну</td><td>чи встигаємо і що блокує запуск</td></tr>
@@ -653,6 +655,34 @@ Slack: /orchestra brief | status | approve | why | pause | resume | report</pre>
         <tr><td>Якість агентів</td><td>релізи з метриками, дрейф по днях, перевірка по агентах</td><td>чи не погіршився агент після зміни</td></tr>
       </tbody>
     </table></div>
+  </section>
+
+  <section id="brief">
+    <h2><span class="n">26</span>Новий бриф: типи задач і перевірки контексту</h2>
+    <p>Екран «Новий бриф» веде задачу через сім стадій. O1 Planner визначає тип задачі (або знаходить його за текстом), шлях у пайплайні й розмір XS–XL. Потім звіряє задачу з живим станом продукту, питає лише невідоме, розкладає велике на малі й запускає агентів. Результат пишеться в журнал аудиту і Slack.</p>
+    <div class="dia"><svg viewBox="0 0 1100 250" role="img" aria-label="Стадії брифу і перевірки контексту" style="width:100%;max-width:1200px;height:auto"><rect x="10" y="10" width="140" height="54" rx="9" fill="#E2E5F7" stroke="#3442A8"/><text x="22" y="32" font-size="13" font-weight="700" fill="#182033">1. Бриф</text><text x="22" y="51" font-size="11.5" fill="#55607A">тип і текст</text><path d="M151 37 L164 37" stroke="#8A93A8" stroke-width="1.6" marker-end="url(#bfa)"/><rect x="165" y="10" width="140" height="54" rx="9" fill="#E2E5F7" stroke="#3442A8"/><text x="177" y="32" font-size="13" font-weight="700" fill="#182033">2. Розуміння</text><text x="177" y="51" font-size="11.5" fill="#55607A">тип, шлях, розмір</text><path d="M306 37 L319 37" stroke="#8A93A8" stroke-width="1.6" marker-end="url(#bfa)"/><rect x="320" y="10" width="140" height="54" rx="9" fill="#F4EAD1" stroke="#B8891A"/><text x="332" y="32" font-size="13" font-weight="700" fill="#182033">3. Контекст</text><text x="332" y="51" font-size="11.5" fill="#55607A">живий стан продукту</text><path d="M461 37 L474 37" stroke="#8A93A8" stroke-width="1.6" marker-end="url(#bfa)"/><rect x="475" y="10" width="140" height="54" rx="9" fill="#E2E5F7" stroke="#3442A8"/><text x="487" y="32" font-size="13" font-weight="700" fill="#182033">4. Уточнення</text><text x="487" y="51" font-size="11.5" fill="#55607A">лише невідоме</text><path d="M616 37 L629 37" stroke="#8A93A8" stroke-width="1.6" marker-end="url(#bfa)"/><rect x="630" y="10" width="140" height="54" rx="9" fill="#E2E5F7" stroke="#3442A8"/><text x="642" y="32" font-size="13" font-weight="700" fill="#182033">5. План</text><text x="642" y="51" font-size="11.5" fill="#55607A">велике → XS/S</text><path d="M771 37 L784 37" stroke="#8A93A8" stroke-width="1.6" marker-end="url(#bfa)"/><rect x="785" y="10" width="140" height="54" rx="9" fill="#E2E5F7" stroke="#3442A8"/><text x="797" y="32" font-size="13" font-weight="700" fill="#182033">6. Виконання</text><text x="797" y="51" font-size="11.5" fill="#55607A">агенти + ворота</text><path d="M926 37 L939 37" stroke="#8A93A8" stroke-width="1.6" marker-end="url(#bfa)"/><rect x="940" y="10" width="140" height="54" rx="9" fill="#E2E5F7" stroke="#3442A8"/><text x="952" y="32" font-size="13" font-weight="700" fill="#182033">7. Результат</text><text x="952" y="51" font-size="11.5" fill="#55607A">журнал і Slack</text><defs><marker id="bfa" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#8A93A8"/></marker></defs><rect x="10" y="110" width="262" height="56" rx="8" fill="#fff" stroke="#C3CAD8"/><text x="22" y="131" font-size="12.5" font-weight="700" fill="#182033">Блокування і черга</text><text x="22" y="149" font-size="11" fill="#55607A">Координатор</text><text x="260" y="131" font-size="11" text-anchor="end" fill="#B86E00">XQ: черга</text><rect x="282" y="110" width="262" height="56" rx="8" fill="#fff" stroke="#C3CAD8"/><text x="294" y="131" font-size="12.5" font-weight="700" fill="#182033">Реклама (PPC)</text><text x="294" y="149" font-size="11" fill="#55607A">фаза 1: людина · далі PPC-орк.</text><text x="532" y="131" font-size="11" text-anchor="end" fill="#B86E00">XP: погодження</text><rect x="554" y="110" width="262" height="56" rx="8" fill="#fff" stroke="#C3CAD8"/><text x="566" y="131" font-size="12.5" font-weight="700" fill="#182033">AI-цитування</text><text x="566" y="149" font-size="11" fill="#55607A">AI Search Optimizer / AIV-орк.</text><text x="804" y="131" font-size="11" text-anchor="end" fill="#B86E00">XA: захист фрагмента</text><rect x="826" y="110" width="262" height="56" rx="8" fill="#fff" stroke="#C3CAD8"/><text x="838" y="131" font-size="12.5" font-weight="700" fill="#182033">Група сторінок</text><text x="838" y="149" font-size="11" fill="#55607A">виняток або груповий пакет</text><rect x="10" y="178" width="262" height="56" rx="8" fill="#fff" stroke="#C3CAD8"/><text x="22" y="199" font-size="12.5" font-weight="700" fill="#182033">Реєстр фактів</text><text x="22" y="217" font-size="11" fill="#55607A">розбіжності — O2 не пропустить</text><rect x="282" y="178" width="262" height="56" rx="8" fill="#fff" stroke="#C3CAD8"/><text x="294" y="199" font-size="12.5" font-weight="700" fill="#182033">Кампанія</text><text x="294" y="217" font-size="11" fill="#55607A">дедлайн — Менеджер проєкту</text><text x="532" y="199" font-size="11" text-anchor="end" fill="#B86E00">XC: узгодження</text><rect x="554" y="178" width="262" height="56" rx="8" fill="#fff" stroke="#C3CAD8"/><text x="566" y="199" font-size="12.5" font-weight="700" fill="#182033">Події у світі</text><text x="566" y="217" font-size="11" fill="#55607A">wdEvents: зараз і скоро</text><text x="804" y="199" font-size="11" text-anchor="end" fill="#B86E00">XW: вікно +7 дн.</text><rect x="826" y="178" width="262" height="56" rx="8" fill="#fff" stroke="#C3CAD8"/><text x="838" y="199" font-size="12.5" font-weight="700" fill="#182033">Канал не підключено</text><text x="838" y="217" font-size="11" fill="#55607A">SMM, Email — фаза 3</text><text x="1076" y="199" font-size="11" text-anchor="end" fill="#B86E00">XH: людина</text><path d="M390 64 C390 85 140 85 140 108" fill="none" stroke="#B8891A" stroke-dasharray="4 3"/><path d="M390 64 C390 85 960 85 960 108" fill="none" stroke="#B8891A" stroke-dasharray="4 3"/><text x="10" y="246" font-size="11.5" fill="#55607A">Кожне «увага» стає вузлом плану (помаранчевий код) або людиною на воротах. Вузли XP, XQ, XC, XH тримають пакет; решта — передумови для роботи агентів.</text></svg></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Група</th><th>Типи задач</th><th>Шлях</th><th>Розмір</th></tr></thead>
+      <tbody>
+        <tr><td>Ресерч і аналіз</td><td>ключ або кластер; конкуренти; фіча; контент-геп і топікова мапа; аудит AI-видимості сторінки</td><td>ресерч → звіт → рекомендації стають новими брифами</td><td>S–L</td></tr>
+        <tr><td>Технічне SEO</td><td>помилки на лендингах; повний аудит; Core Web Vitals (LCP ≤ 2,5 с, INP ≤ 200 мс, CLS ≤ 0,1); індексація</td><td>краул → знахідки → критичне у швидку смугу, решта в Jira → повторна перевірка</td><td>XS–L</td></tr>
+        <tr><td>On-page: наявні сторінки</td><td>title і meta; будь-який із 12 блоків; структура; оптимізація під ключ; E-E-A-T; перелінковка; schema; оновлення; канібалізація</td><td>контекст → пакет → канали → Координатор + O2/O3 → людина → тест-гейт → Gateway</td><td>XS–M</td></tr>
+        <tr><td>Нові сторінки</td><td>сторінка фічі; порівняння / alternatives; фіча + use cases</td><td>ресерч → структура (людина) → контент → SEO → м’який запуск; use cases — пілот → шаблон → група</td><td>M–XL</td></tr>
+        <tr><td>Контент і комунікації</td><td>стаття в блог; пост у соцмережах; прес-реліз і PR; розсилка; кейс клієнта</td><td>бриф контенту → чернетка → O2/O3 → Editor, Legal, клієнт → публікація Gateway або людиною</td><td>S–M</td></tr>
+      </tbody>
+    </table></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Розмір</th><th>Задач</th><th>Хто погоджує план</th><th>Приклад</th></tr></thead>
+      <tbody>
+        <tr><td>XS</td><td>1</td><td>ніхто, лише ворота задачі</td><td>title і meta однієї сторінки; індексація однієї сторінки</td></tr>
+        <tr><td>S</td><td>2–4</td><td>ніхто, лише ворота</td><td>блок FAQ; пост; аналіз одного ключа</td></tr>
+        <tr><td>M</td><td>5–10</td><td>ніхто, лише ворота</td><td>стаття; порівняння; CWV для шаблону</td></tr>
+        <tr><td>L</td><td>15–25</td><td>людина</td><td>сторінка нової фічі з супроводом; повний технічний аудит</td></tr>
+        <tr><td>XL</td><td>25+</td><td>людина</td><td>фіча + сторінки use cases</td></tr>
+      </tbody>
+    </table></div>
+    <p class="p1-note"><b>Фаза 1.</b> Перевірки читають реєстр напрямів: рекламну сторінку погоджує Channel manager (людина), бо PPC-агенти не підключені; фрагмент, який цитують, захищає AI Search Optimizer; пости й листи публікує людина. Після підключення напряму ті самі вузли плану виконують PPC-оркестратор, AIV-оркестратор, SMM- і Email-агенти через Gateway — без змін у пайплайні.</p>
+    <p class="small muted">Правило питань: агент питає лише те, чого немає ні в брифі, ні в контексті (brand-context, реєстр фактів, сайт, минулі ресерчі, стан ресурсів), і що змінює план, вартість або ризик. Інакше бере варіант за замовчуванням і пише припущення в план.</p>
   </section>
 
 </main>
