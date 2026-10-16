@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Orca9 · схема роботи</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: light control-room screen — one wide live schematic in a framed white bay, a console (story or day) and an inspector under it, reference strips below. Deliberately light-only. */
+:root{
+  --bg:#f2f5fa; --bay:#ffffff; --panel:#ffffff; --line:#d8e0ec; --wire:#b4c2d8; --grid:#d3dcea; --soft:#f6f8fc;
+  --ink:#0e1a32; --mute:#4f5f7c; --dim:#8390a6;
+  --cyan:#0a8cc4; --violet:#6a52e6; --blue:#2c66f0; --amber:#c27400; --green:#0c9566; --red:#de3448; --pink:#cf2f96;
+  --display:"Unbounded","Segoe UI",system-ui,sans-serif;
+  --body:"Manrope","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);
+  background-image:linear-gradient(color-mix(in srgb,var(--cyan) 7%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--cyan) 7%,transparent) 1px,transparent 1px);
+  background-size:32px 32px}
+.back{display:inline-flex;align-items:center;gap:6px;font:500 12px var(--mono);color:var(--cyan);text-decoration:none;border:1px solid var(--line);background:var(--bay);border-radius:7px;padding:6px 10px;align-self:flex-start}
+.back:hover{border-color:var(--cyan)}
+.wrap{max-width:1480px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px;display:flex;flex-direction:column;gap:22px}
+.eyebrow{font:500 11px var(--mono);letter-spacing:.2em;color:var(--cyan);text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px var(--cyan);animation:blink 2.4s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+h1{font:600 clamp(24px,3.4vw,40px)/1.12 var(--display);margin:8px 0 10px;letter-spacing:-.01em;text-wrap:balance;max-width:22ch}
+h1 em{font-style:normal;color:var(--cyan)}
+.lead{color:var(--mute);max-width:72ch;margin:0}
+.head{display:flex;flex-wrap:wrap;gap:20px 40px;align-items:flex-end;justify-content:space-between}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{border:1px solid var(--line);background:var(--bay);border-radius:8px;padding:10px 14px;min-width:116px}
+.stat b{display:block;font:600 22px var(--display);color:var(--ink)}
+.stat span{font:400 11px var(--mono);color:var(--mute);letter-spacing:.04em}
+
+.bay{border:1px solid var(--line);background:linear-gradient(180deg,var(--bay),var(--bg));border-radius:14px;position:relative;overflow:hidden}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+button{font:500 12.5px var(--body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:7px 12px;cursor:pointer;transition:border-color .2s,background .2s,color .2s}
+button:hover{border-color:var(--wire)}
+button:focus-visible,.node:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.tab[aria-selected="true"]{border-color:var(--cyan);color:var(--cyan);background:rgba(10,140,196,.08)}
+.tab small{font:400 10.5px var(--mono);color:var(--mute);margin-left:6px}
+.tab.daytab{border-color:rgba(194,116,0,.45)}
+.tab.daytab[aria-selected="true"]{border-color:var(--amber);color:var(--amber);background:rgba(194,116,0,.08)}
+.sep{width:1px;height:22px;background:var(--line);margin:0 4px;align-self:center}
+.ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ctl .ico{width:36px;padding:7px 0;font-family:var(--mono)}
+.kill{display:flex;align-items:center;gap:8px;font:500 12px var(--mono);color:var(--mute)}
+.kill[aria-pressed="true"]{border-color:var(--red);color:var(--red);background:rgba(222,52,72,.08)}
+.kill i{width:26px;height:14px;border-radius:8px;background:var(--line);position:relative;transition:background .2s}
+.kill i::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--mute);transition:transform .2s,background .2s}
+.kill[aria-pressed="true"] i{background:rgba(222,52,72,.35)}
+.kill[aria-pressed="true"] i::after{transform:translateX(12px);background:var(--red)}
+
+.diagram{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.diagram svg{display:block;width:100%;min-width:1060px;height:auto}
+
+.console{display:grid;grid-template-columns:auto 1fr;gap:18px;padding:16px 18px 18px;border-top:1px solid var(--line);align-items:start}
+.counter{font:500 11px var(--mono);color:var(--cyan);letter-spacing:.12em;border:1px solid rgba(10,140,196,.35);border-radius:6px;padding:6px 9px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.cap{min-width:0}
+.cap h3{font:600 17px/1.3 var(--display);margin:0 0 4px;text-wrap:balance}
+.cap p{margin:0;color:var(--mute);max-width:90ch;min-height:3.1em}
+.dots{grid-column:1/-1;display:flex;gap:5px;flex-wrap:wrap}
+.dots button{width:22px;height:6px;padding:0;border-radius:3px;border:0;background:var(--line)}
+.dots button.done{background:rgba(10,140,196,.45)}
+.dots button.cur{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+
+/* day mode */
+.day{display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px 22px;padding:16px 18px 18px;border-top:1px solid var(--line)}
+.clock{font:600 44px/1 var(--display);color:var(--amber);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.cdate{font:400 11px var(--mono);color:var(--mute);margin:6px 0 12px;letter-spacing:.04em}
+.speed{display:flex;gap:4px}
+.speed button{font:500 11px var(--mono);padding:5px 9px}
+.speed button[aria-pressed="true"]{border-color:var(--amber);color:var(--amber)}
+.dnote{font:500 12px var(--mono);color:var(--red);margin-top:10px;min-height:1.4em}
+.dright{display:flex;flex-direction:column;gap:14px;min-width:0}
+.tl{position:relative;padding-top:30px}
+.marks{position:absolute;inset:0 0 auto 0;height:26px}
+.marks .h{position:absolute;top:0;font:400 10px var(--mono);color:var(--dim);transform:translateX(-50%)}
+.marks .w{position:absolute;top:13px;width:2px;height:13px;background:var(--amber);border-radius:1px}
+.marks .w::after{content:attr(data-l);position:absolute;top:-1px;left:5px;font:400 9.5px var(--mono);color:var(--amber);white-space:nowrap}
+.marks .e{position:absolute;top:19px;width:7px;height:7px;border-radius:50%;background:var(--c);transform:translateX(-50%)}
+#scrub{width:100%;accent-color:var(--amber);margin:0}
+.tiles{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.tile{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--panel)}
+.tile b{display:block;font:600 20px var(--display);color:var(--c,var(--ink));font-variant-numeric:tabular-nums}
+.tile span{font:400 10.5px var(--mono);color:var(--mute)}
+.log{grid-column:1/-1;list-style:none;margin:0;padding:0;max-height:236px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.log li{display:grid;grid-template-columns:46px 92px minmax(0,1fr);gap:10px;padding:7px 12px;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--mute);align-items:baseline}
+.log li:first-child{background:rgba(194,116,0,.05)}
+.log time{font:500 11px var(--mono);color:var(--dim);font-variant-numeric:tabular-nums}
+.log b{font:500 11px var(--mono);color:var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* inspector */
+.insp{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:16px 26px;padding:16px 18px;border-top:1px solid var(--line);background:rgba(14,22,38,.5)}
+.insp .ik{font:500 10px var(--mono);letter-spacing:.16em;color:var(--c);text-transform:uppercase}
+.insp h3{font:600 17px var(--display);margin:4px 0 6px}
+.insp .hint{font:400 11px var(--mono);color:var(--dim)}
+.igrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0}
+.igrid div{min-width:0}
+.igrid dt{font:500 10px var(--mono);letter-spacing:.12em;color:var(--dim);text-transform:uppercase;margin-bottom:4px}
+.igrid dd{margin:0;font-size:13.5px;color:var(--mute)}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:12px 18px 16px;font:400 11px var(--mono);color:var(--mute);border-top:1px solid var(--line)}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend i{width:10px;height:10px;border-radius:3px;border:1.5px solid var(--c);background:color-mix(in srgb,var(--c) 18%,transparent)}
+.legend i.ln{width:22px;height:0;border:0;border-top:2px dashed var(--c);border-radius:0;background:none}
+
+h2{font:600 19px var(--display);margin:0 0 12px}
+.layers{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.layer{border:1px solid var(--line);background:var(--bay);border-radius:10px;padding:14px;min-width:0}
+.layer .k{font:500 10px var(--mono);letter-spacing:.16em;color:var(--c);text-transform:uppercase}
+.layer h4{font:600 14px var(--display);margin:6px 0 8px}
+.layer ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13.5px;color:var(--mute)}
+.layer li b{color:var(--ink);font-weight:600}
+.rules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.rule{border-left:2px solid var(--cyan);padding:4px 0 4px 14px;font-size:14px;color:var(--mute)}
+.rule b{color:var(--ink);font-weight:600;display:block}
+.note{font:400 12px var(--mono);color:var(--dim)}
+@media (max-width:1100px){.layers{grid-template-columns:repeat(2,minmax(0,1fr))}.rules{grid-template-columns:repeat(2,minmax(0,1fr))}.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.igrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:700px){.layers,.rules,.igrid{grid-template-columns:1fr}.console,.day,.insp{grid-template-columns:1fr}.stat{min-width:0;flex:1}.log li{grid-template-columns:42px minmax(0,1fr)}.log li span{grid-column:1/-1}}
+
+/* SVG */
+.node{cursor:pointer}
+.node .box{fill:var(--panel);stroke:var(--line);stroke-width:1;transition:stroke .35s,fill .35s,filter .35s}
+.node:hover .box{stroke:color-mix(in srgb,var(--c) 70%,var(--line))}
+.node .brk{fill:none;stroke:var(--c);stroke-width:1.5;opacity:.45;transition:opacity .35s}
+.node .tag{font:500 9.5px var(--mono);letter-spacing:.16em;fill:var(--c)}
+.node .ttl{font:600 14px var(--display);fill:var(--ink)}
+.node .sub{font:400 10.5px var(--mono);fill:var(--mute)}
+.node.sat .ttl{font-size:12px}
+.node.sat .sub{font-size:9.5px}
+.node .dot{fill:var(--c)}
+.node.seen .box{stroke:color-mix(in srgb,var(--c) 40%,var(--line))}
+.node.cur .box{stroke:var(--c);stroke-width:1.6;fill:color-mix(in srgb,var(--c) 11%,var(--panel));filter:drop-shadow(0 0 12px color-mix(in srgb,var(--c) 35%,transparent))}
+.node.cur .brk,.node.sel .brk{opacity:1}
+.node.sel .box{stroke:var(--c);stroke-width:1.6}
+.node.warn .box{stroke:var(--amber);fill:color-mix(in srgb,var(--amber) 9%,var(--panel))}
+.node.bad .box{stroke:var(--red);fill:color-mix(in srgb,var(--red) 10%,var(--panel));filter:drop-shadow(0 0 12px color-mix(in srgb,var(--red) 35%,transparent))}
+.node.good .box{stroke:var(--green)}
+.node.armed .box{stroke:var(--red);fill:color-mix(in srgb,var(--red) 16%,var(--panel));animation:alarm 1s ease-in-out infinite}
+@keyframes alarm{50%{filter:drop-shadow(0 0 14px var(--red))}}
+.chip rect{fill:var(--bay);stroke:var(--line);transition:all .3s}
+.chip text{font:500 9.5px var(--mono);fill:var(--mute);transition:fill .3s}
+.chip.on rect{fill:color-mix(in srgb,var(--cyan) 22%,var(--bay));stroke:var(--cyan)}
+.chip.on text{fill:var(--ink)}
+.vote .vn{font:500 11px var(--mono);fill:var(--ink)}
+.vote rect{fill:var(--bay);stroke:var(--line);transition:all .3s}
+.vote .vs{font:500 10px var(--mono);fill:var(--dim)}
+.vote.wait rect{stroke:var(--cyan);animation:pulse .8s ease-in-out infinite}
+.vote.wait .vs{fill:var(--cyan)}
+.vote.ok rect{stroke:var(--green);fill:color-mix(in srgb,var(--green) 16%,var(--bay))}
+.vote.ok .vs{fill:var(--green)}
+.vote.no rect{stroke:var(--red);fill:color-mix(in srgb,var(--red) 16%,var(--bay))}
+.vote.no .vs{fill:var(--red)}
+@keyframes pulse{50%{opacity:.4}}
+.badge rect{fill:var(--bg);stroke:var(--c)}
+.badge text{font:500 10px var(--mono);fill:var(--c)}
+.badge{transition:opacity .3s;pointer-events:none}
+.edge{pointer-events:none}
+.edge .base{fill:none;stroke:var(--wire);stroke-width:1.4;transition:stroke .4s}
+.edge .flow{fill:none;stroke:var(--c);stroke-width:1.8;stroke-dasharray:2 12;stroke-linecap:round;opacity:.28;animation:flow 1.1s linear infinite}
+.edge.dash .base{stroke-dasharray:6 6}
+.edge.sat .base{stroke-dasharray:2 4;stroke:var(--line)}
+.edge.lit .base{stroke:color-mix(in srgb,var(--c) 70%,var(--wire))}
+.edge.lit .flow{opacity:.75}
+.edge.run .base{stroke:var(--c);stroke-width:2}
+.edge.run .flow{opacity:.9}
+.edge .elab{font:400 10px var(--mono);fill:var(--c);paint-order:stroke;stroke:var(--bg);stroke-width:5px;stroke-linejoin:round;opacity:.85}
+@keyframes flow{to{stroke-dashoffset:-14}}
+.lane{font:500 9px var(--mono);letter-spacing:.22em;fill:var(--dim)}
+.job{pointer-events:none;transition:opacity .3s}
+.job text{font:500 9px var(--mono);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
+@media (prefers-reduced-motion:reduce){.edge .flow,.eyebrow::before,.vote.wait rect,.node.armed .box{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <a class="back" href="orca9-demo.html">← До демо</a>
+  <header class="head">
+    <div>
+      <div class="eyebrow">Orca9 · повний план · жива схема</div>
+      <h1>Як Orca9 доводить зміну <em>від брифу до сайту</em></h1>
+      <p class="lead">Агенти пропонують. Канали погоджують одну версію пакета. Координатор, O2 і O3 перевіряють, людина вирішує важливе, тест-гейт міряє. На сайт пише лише Gateway. Натисніть на будь-який блок, щоб побачити, що він робить, або увімкніть «Стандартний день».</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>26</b><span>типів задач</span></div>
+      <div class="stat"><b>6</b><span>подів агентів</span></div>
+      <div class="stat"><b>3</b><span>канали погодження</span></div>
+      <div class="stat"><b>1</b><span>точка запису</span></div>
+    </div>
+  </header>
+
+  <section class="bay" aria-label="Анімована схема роботи Orca9">
+    <div class="bar">
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div class="ctl">
+        <button class="ico" id="prev" aria-label="Назад">‹</button>
+        <button class="ico" id="play" aria-label="Пауза">❚❚</button>
+        <button class="ico" id="next" aria-label="Вперед">›</button>
+        <button class="kill" id="kill" aria-pressed="false"><i></i>Аварійний вимикач</button>
+      </div>
+    </div>
+    <div class="diagram"><svg id="svg" viewBox="0 0 1560 990" role="img" aria-label="Схема: бриф, планувальник, агенти, пакет, погодження каналів, перевірки, людина, тест-гейт, Gateway, сайт, аналітика"></svg></div>
+
+    <div class="console" id="story" aria-live="polite">
+      <div class="counter" id="counter">01 / 16</div>
+      <div class="cap"><h3 id="capT"></h3><p id="capP"></p></div>
+      <div class="dots" id="dots"></div>
+    </div>
+
+    <div class="day" id="day" hidden>
+      <div>
+        <div class="clock" id="clock">06:00</div>
+        <div class="cdate">Типовий робочий день · 06:00–21:00</div>
+        <div class="speed" role="group" aria-label="Швидкість">
+          <button data-s="4" aria-pressed="false">1 с = 4 хв</button>
+          <button data-s="8" aria-pressed="true">8 хв</button>
+          <button data-s="16" aria-pressed="false">16 хв</button>
+        </div>
+        <div class="dnote" id="dnote"></div>
+      </div>
+      <div class="dright">
+        <div class="tl"><div class="marks" id="marks"></div><input type="range" id="scrub" min="360" max="1260" step="1" value="360" aria-label="Час дня"></div>
+        <div class="tiles">
+          <div class="tile" style="--c:var(--cyan)"><b id="cWork">0</b><span>у роботі</span></div>
+          <div class="tile" style="--c:var(--amber)"><b id="cHuman">0</b><span>чекають людину</span></div>
+          <div class="tile" style="--c:var(--amber)"><b id="cQueue">0</b><span>у черзі ресурсу</span></div>
+          <div class="tile" style="--c:var(--blue)"><b id="cTests">0</b><span>тестів іде</span></div>
+          <div class="tile" style="--c:var(--green)"><b id="cApplied">0</b><span>застосовано</span></div>
+          <div class="tile" style="--c:var(--red)"><b id="cRoll">0</b><span>відкатів</span></div>
+          <div class="tile" style="--c:var(--mute)"><b id="cNo">0</b><span>без розгортання</span></div>
+        </div>
+      </div>
+      <ol class="log" id="log" aria-label="Журнал дня"></ol>
+    </div>
+
+    <div class="insp" id="insp">
+      <div><div class="ik" id="iK"></div><h3 id="iT"></h3><div class="hint">Натисніть на будь-який блок схеми</div></div>
+      <dl class="igrid">
+        <div><dt>Роль</dt><dd id="iRole"></dd></div>
+        <div><dt>Отримує</dt><dd id="iIn"></dd></div>
+        <div><dt>Видає</dt><dd id="iOut"></dd></div>
+        <div><dt>Межі й правила</dt><dd id="iRule"></dd></div>
+      </dl>
+    </div>
+
+    <div class="legend">
+      <span style="--c:var(--cyan)"><i></i>план і виконання</span>
+      <span style="--c:var(--violet)"><i></i>погодження</span>
+      <span style="--c:var(--blue)"><i></i>перевірки й тест</span>
+      <span style="--c:var(--amber)"><i></i>людина</span>
+      <span style="--c:var(--green)"><i></i>запис і світ</span>
+      <span style="--c:var(--amber)"><i class="ln"></i>компроміс і швидка смуга</span>
+      <span style="--c:var(--violet)"><i class="ln"></i>зворотний зв’язок</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>П’ять шарів</h2>
+    <div class="layers">
+      <div class="layer" style="--c:var(--cyan)"><div class="k">План</div><h4>Що робимо</h4><ul>
+        <li><b>Бриф</b> від людини, крона, аномалії або сканера фактів</li>
+        <li><b>O1</b> визначає тип із 26, шлях із 6 і розмір XS–XL; питає лише невідоме</li>
+        <li><b>Оркестратор кампаній</b> розкладає бриф на пакети з залежностями</li></ul></div>
+      <div class="layer" style="--c:var(--cyan)"><div class="k">Виконання</div><h4>Хто робить</h4><ul>
+        <li><b>Поди</b> SEO, PPC, AI Visibility, Контент, SMM, Email</li>
+        <li>Агент готує пропозицію з джерелами й ризиками, без права запису</li>
+        <li><b>Пакет vN</b> від актуальної бази; один активний слот на ресурс, решта в черзі</li></ul></div>
+      <div class="layer" style="--c:var(--violet)"><div class="k">Погодження</div><h4>Хто згоден</h4><ul>
+        <li><b>SEO, PPC, AI Visibility</b> голосують за одну версію</li>
+        <li><b>Координатор сторінки</b> розбирає взаємний вплив і пропонує компроміс</li>
+        <li>Нова версія скидає всі погодження</li></ul></div>
+      <div class="layer" style="--c:var(--blue)"><div class="k">Перевірка і тест</div><h4>Чи це безпечно</h4><ul>
+        <li><b>O2</b> докази, <b>O3</b> політики, ризик і бюджет</li>
+        <li><b>Тріаж</b>: авто, людина або швидка смуга</li>
+        <li><b>Тест-гейт</b>: шкода → відкат, неповні дані → без розгортання</li></ul></div>
+      <div class="layer" style="--c:var(--green)"><div class="k">Запис і контроль</div><h4>Як виходить у світ</h4><ul>
+        <li><b>Gateway</b> пише один дозволений пакет, усе йде в журнал</li>
+        <li><b>Реєстр фактів</b>, <b>Світ і події</b>, <b>Якість агентів</b> стоять поруч із воротами</li>
+        <li><b>Аналітика</b> повертає висновки новими брифами</li></ul></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Правила, які не обходить жоден сценарій</h2>
+    <div class="rules">
+      <div class="rule"><b>Виконавець не схвалює себе</b>Агент пропонує, погоджує окрема роль.</div>
+      <div class="rule"><b>Одна версія на всіх</b>Канали погоджують той самий пакет; v2 скидає голоси.</div>
+      <div class="rule"><b>Один ресурс, один слот</b>Решта в черзі; 48 год без людини знімають блокування.</div>
+      <div class="rule"><b>Тест не чіпає основу</b>Змінюється лише тестова група; шкода повертає її назад.</div>
+      <div class="rule"><b>Конфлікт означає людину</b>Після конфлікту успішний тест чекає окремого дозволу.</div>
+      <div class="rule" style="border-color:var(--red)"><b>Пише лише Gateway</b>Аварійний вимикач зупиняє будь-який запис, навіть у задачах, що вже йдуть.</div>
+    </div>
+  </section>
+  <p class="note">Схема повного плану. У фазі 1 активний лише SEO-канал. Сторінки, задачі й цифри в сценаріях і в «Стандартному дні» демонстраційні, як і в демо.</p>
+</div>
+
+<script>
+(() => {
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('svg');
+const $ = id => document.getElementById(id);
+const el = (t, a, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const tx = (p, x, y, cls, s, extra) => { const t = el('text', Object.assign({ x, y, class: cls }, extra || {}), p); t.textContent = s; return t; };
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const KIND = { in:['ВХІД','--mute'], plan:['ПЛАН','--cyan'], exec:['ВИКОНАННЯ','--cyan'], agree:['ПОГОДЖЕННЯ','--violet'],
+  check:['ПЕРЕВІРКА','--blue'], human:['ЛЮДИНА','--amber'], test:['ТЕСТ','--blue'], write:['ЗАПИС','--green'],
+  out:['СВІТ','--green'], ctrl:['КОНТРОЛЬ','--cyan'], kill:['КОНТРОЛЬ','--red'] };
+
+const N = {
+  brief:{x:60,y:110,w:190,h:88,k:'in',t:'Бриф',s:'людина · крон · сигнал'},
+  o1:{x:320,y:110,w:210,h:88,k:'plan',t:'O1 · Планувальник',s:'тип · шлях · розмір XS–XL'},
+  camp:{x:600,y:110,w:210,h:88,k:'plan',t:'Оркестратор кампаній',s:'граф пакетів і залежностей'},
+  pods:{x:870,y:110,w:280,h:88,k:'exec',t:'Поди агентів',chips:['SEO','PPC','AIV','Контент','SMM','Email']},
+  packet:{x:1210,y:110,w:300,h:88,k:'exec',t:'Пакет',s:'ресурс · 1 активний слот'},
+  channels:{x:1210,y:400,w:300,h:150,k:'agree',t:'Канальні оркестратори',votes:['SEO','PPC','AI Visibility']},
+  coord:{x:900,y:431,w:230,h:88,k:'agree',t:'Координатор сторінки',s:'взаємний вплив · компроміс'},
+  o2:{x:620,y:431,w:210,h:88,k:'check',t:'O2 · Докази',s:'факти · джерела · рендер'},
+  o3:{x:340,y:431,w:210,h:88,k:'check',t:'O3 · Політики',s:'ризик · бюджет · маршрут'},
+  triage:{x:60,y:431,w:210,h:88,k:'check',t:'Тріаж',s:'вплив × впевненість'},
+  human:{x:60,y:700,w:210,h:88,k:'human',t:'Людина',s:'дозвіл на версію й фазу'},
+  test:{x:340,y:700,w:260,h:88,k:'test',t:'Тест-гейт',s:'A/B · SEO-тест · AIV-тест'},
+  rollout:{x:670,y:700,w:220,h:88,k:'human',t:'Розгортання',s:'окремий дозвіл після конфлікту'},
+  gateway:{x:960,y:700,w:240,h:88,k:'write',t:'Gateway',s:'єдиний зовнішній запис'},
+  site:{x:1270,y:700,w:240,h:88,k:'out',t:'Сайт і канали',s:'сторінки · реклама · листи · пости'},
+  analytics:{x:1270,y:860,w:240,h:70,k:'out',t:'Аналітика',s:'8 каналів · аномалії'},
+  cron:{x:60,y:14,w:190,h:44,k:'ctrl',sat:1,t:'Розклад і крони',s:'дані · моніторинг · звіти'},
+  quality:{x:880,y:14,w:260,h:44,k:'ctrl',sat:1,t:'Якість агентів',s:'регресії · тінь 48 год · канарка 10%'},
+  queue:{x:1250,y:14,w:220,h:44,k:'ctrl',sat:1,t:'Черга ресурсу',s:'наступні пакети · TTL 48 год'},
+  facts:{x:620,y:300,w:210,h:44,k:'ctrl',sat:1,t:'Реєстр фактів',s:'одне джерело · власник факту'},
+  events:{x:430,y:596,w:200,h:44,k:'ctrl',sat:1,t:'Світ і події',s:'апдейти · свята · збої'},
+  kill:{x:980,y:600,w:200,h:44,k:'kill',sat:1,t:'Аварійний вимикач',s:'блокує будь-який запис'},
+  audit:{x:1000,y:862,w:210,h:44,k:'ctrl',sat:1,t:'Журнал аудиту',s:'кожна версія і рішення · Slack'}
+};
+
+const INFO = {
+  brief:['Точка входу задачі.','Людина на екрані «Новий бриф», крон, аномалія аналітики, сканер реєстру фактів.','Бриф із метою і ресурсом: сторінка, група, кампанія, сегмент.','Зміну без явної сторінки чи групи відхиляють на вході: Координатор ресурс не вгадує.'],
+  o1:['Визначає тип задачі (26 типів у 5 групах), шлях (6 шляхів) і розмір XS–XL.','Бриф і живий стан: блокування сторінок, реклама, AI-цитування, аномалії, події, реєстр фактів, фаза.','План із перевірками контексту. Велике розкладено до частин XS або S: одна дія, один виконавець, одні ворота.','Питає лише те, що змінює план, вартість або ризик, і пропонує варіант ★. План L і XL погоджує людина.'],
+  camp:['Розкладає кампанію на пакети за типом ресурсу і будує граф залежностей.','План O1.','Пакети: лендинг, статті, реклама, листи, пости, зміна наявної сторінки.','Нічого не затверджує і не записує. Пакет стартує, щойно готові його залежності.'],
+  pods:['Агенти-виконавці по напрямах: SEO, PPC, AI Visibility, Контент, SMM, Email.','Задача XS/S і дані: GSC, Google Ads, CRM, аналітика, реєстр фактів.','Пропозиція: що змінити, джерела, очікуваний ефект і ризики.','Немає токенів CMS. Не схвалює власний результат. Кожен агент має паспорт: тригер, джерела, кроки, результат.'],
+  packet:['Одна версія зміни для одного ресурсу.','Пропозиція агента і актуальна базова версія сторінки.','Before, patch, after, безпечне прев’ю, fingerprint точного payload.','Один активний слот на ресурс. Нова версія пакета скидає всі погодження.'],
+  channels:['SEO, PPC і AI Visibility голосують за одну й ту саму версію пакета.','Пакет vN і прев’ю.','Вердикт кожного каналу на конкретну версію.','У фазі 1 погоджує лише SEO. CRO не погоджує, а судить A/B у тест-гейті.'],
+  coord:['Відповідає за спільний результат сторінки.','Вердикти каналів.','Узгоджений пакет або компроміс у вигляді нової версії.','Паралельних записів не буває. Конфлікт знімає компроміс; без нього ризик може свідомо прийняти лише Owner.'],
+  o2:['Перевіряє докази.','Пакет, джерела, реєстр фактів, рендер сторінки.','Пройдено або ні, з причинами.','Прострочений факт не пропускає в нові тексти. У групі рендерить і перевіряє кожну сторінку.'],
+  o3:['Перевіряє політики, ризик, бюджет і визначає допустимий маршрут.','Пакет, ролі, ліміти R3.','Авто або людина; вето бюджету.','Перевищення тижневого бюджету — вето, а не обрізання. У production policy engine повторно перевіряє дозвіл перед дією.'],
+  triage:['Обирає маршрут за впливом і впевненістю.','Вердикти каналів, O2 і O3.','Авто-дозвіл на тест, рішення людини або швидка смуга.','Конфлікт, високий вплив або низька впевненість ведуть до людини.'],
+  human:['Рішення там, де потрібне судження.','Компроміс, високий вплив, недостатні докази, плани L/XL, контент.','Дозвіл на конкретну версію і конкретну фазу.','Channel manager — SEO, PPC, AI Visibility. Editor — контент, SMM, Email, кампанії. Owner — ризик і швидка смуга. Без рішення 48 год блокування знімається.'],
+  test:['Обмежений тест на тестовій групі.','A/B, SEO-тест, AI Visibility тест; події зі «Світ і події».','Виграш, шкода з відкатом або «немає висновку».','Один evaluator для сторінок, груп і конвеєрів. Пороги демо: шкода нижче −2, виграш від +2. Основна сторінка не змінюється.'],
+  rollout:['Розгортання переможного пакета.','Результат тесту.','Дозвіл на rollout.','Після конфлікту чи високого впливу потрібне окреме рішення людини. Переможний тест можна і не розгортати.'],
+  gateway:['Єдиний зовнішній запис.','Точний пакет, актуальна база, межі дозволу.','Запис у CMS, рекламу, розсилки, соцмережі.','Звіряє fingerprint і базу. Аварійний вимикач блокує будь-який запис.'],
+  site:['Ресурси, які блокуються: сторінки, групи, кампанії, сегменти розсилок, соцакаунти.','Записи Gateway.','Живі зміни для користувачів.','Нова сторінка йде м’яким запуском: noindex 7 днів і моніторинг.'],
+  analytics:['Міряє 8 каналів: органіка Google і Bing, Google Ads, LinkedIn, Meta, Email, AI-реферали, пряме.','Події сайту, витрати, CRM.','Аномалії, денний звіт, нові брифи.','Атрибуція last-click проти data-driven; AI Visibility показується в пунктах, не у відсотках.'],
+  cron:['Розклад збору даних, моніторингу і звітів.','Розклад і залежності між задачами.','Нові брифи й дані для агентів.','Залежні задачі стартують «після успіху», а не «за часом», щоб не працювати на неповних даних. Пауза крона лише не ставить нові задачі.'],
+  quality:['Регресійний контролер і аудитор відповідей.','Нова версія агента, еталонні кейси, 5% реальних результатів.','Дозвіл або блок релізу агента.','Реліз із регресією блокується. Без регресій — тінь 48 год, канарка 10%, робота; стару версію повертає одна кнопка.'],
+  queue:['Черга пакетів до заблокованого ресурсу.','Пакети, що прийшли, поки ресурс зайнятий.','Наступний пакет, перебудований від нової версії.','Пакет, що чекає людину понад 48 год, втрачає блокування, і черга рушає.'],
+  facts:['Одне джерело для цін, дат, цифр і тверджень про продукт.','Значення від власників: Finance, Product, RevOps, Legal, Engineering.','Перевірені значення для агентів і O2.','Агенти лише читають. Розбіжність із джерелом ніколи не застосовується автоматично, лише після власника.'],
+  events:['News & Algorithm Watcher.','Апдейти пошуку, нові моделі AI-систем, свята по 8 країнах, збої даних, дії конкурентів.','Правила для тест-гейту, PPC і розсилок.','Апдейт пошуку — тиждень SEO-тесту не зараховано. Нова модель AI — нова базова лінія. Свято в країні з часткою ≥ 10% — день виключено з A/B.'],
+  kill:['Аварійний вимикач у Gateway.','Рішення Owner.','Блок будь-якого запису.','Зупиняє записи навіть у задачах, що вже йдуть. Після вимкнення відкладене продовжується.'],
+  audit:['Журнал аудиту і повідомлення в Slack.','Кожна версія пакета, голос, рішення і запис.','Хронологія одного пакета в одному місці.','Записи не редагуються; результат брифу теж пишеться в журнал.']
+};
+
+const R = id => [N[id].x + N[id].w, N[id].y + N[id].h / 2], L = id => [N[id].x, N[id].y + N[id].h / 2];
+const T = id => [N[id].x + N[id].w / 2, N[id].y], B = id => [N[id].x + N[id].w / 2, N[id].y + N[id].h];
+const line = (...pts) => 'M' + pts.map(p => p.join(',')).join(' L');
+
+const E = {
+  'brief>o1':{d:line(R('brief'),L('o1'))}, 'o1>camp':{d:line(R('o1'),L('camp'))}, 'camp>pods':{d:line(R('camp'),L('pods'))},
+  'pods>packet':{d:line(R('pods'),L('packet'))},
+  'packet>channels':{d:line(B('packet'),T('channels')),lab:['одна версія пакета',1372,300,'start']},
+  'channels>coord':{d:line(L('channels'),R('coord'))}, 'coord>o2':{d:line(L('coord'),R('o2'))},
+  'o2>o3':{d:line(L('o2'),R('o3'))}, 'o3>triage':{d:line(L('o3'),R('triage'))},
+  'triage>human':{d:line(B('triage'),T('human')),c:'amber',lab:['ескалація',176,612,'start']},
+  'triage>test':{d:'M270,500 C322,500 372,622 390,700',lab:['авто',300,602,'start']},
+  'human>test':{d:line(R('human'),L('test')),c:'amber'},
+  'test>rollout':{d:line(R('test'),L('rollout'))}, 'rollout>gateway':{d:line(R('rollout'),L('gateway'))},
+  'gateway>site':{d:line(R('gateway'),L('site')),c:'green'}, 'site>analytics':{d:line(B('site'),T('analytics')),c:'green'},
+  'analytics>brief':{d:'M1390,930 L1390,952 L30,952 L30,154 L60,154',c:'violet',dash:1,lab:['висновки аналітики → нові брифи',650,944,'middle']},
+  'coord>packet':{d:'M1015,431 C1015,330 1250,330 1250,198',c:'amber',dash:1,lab:['компроміс → v2 · погодження скинуто',1135,378,'middle']},
+  'human>gateway':{d:'M165,788 L165,832 L1080,832 L1080,788',c:'amber',dash:1,lab:['без тест-гейту: швидка смуга, м’який запуск нової сторінки',620,852,'middle']},
+  'cron>brief':{d:line(B('cron'),T('brief')),sat:1}, 'quality>pods':{d:line(B('quality'),T('pods')),sat:1},
+  'queue>packet':{d:line(B('queue'),T('packet')),sat:1}, 'facts>o2':{d:line(B('facts'),T('o2')),sat:1},
+  'events>test':{d:line(B('events'),[530,700]),sat:1}, 'kill>gateway':{d:line(B('kill'),[1080,700]),sat:1},
+  'gateway>audit':{d:line([1150,788],[1150,862]),sat:1}
+};
+
+/* defs */
+const defs = el('defs', {}, svg);
+const pat = el('pattern', { id:'dots', width:24, height:24, patternUnits:'userSpaceOnUse' }, defs);
+el('circle', { cx:1, cy:1, r:1, fill:'#d3dcea' }, pat);
+const rg = el('radialGradient', { id:'halo' }, defs);
+el('stop', { offset:'0', 'stop-color':'#0a8cc4', 'stop-opacity':'.7' }, rg);
+el('stop', { offset:'1', 'stop-color':'#0a8cc4', 'stop-opacity':'0' }, rg);
+const COL = { cyan:'#0a8cc4', amber:'#c27400', violet:'#6a52e6', green:'#0c9566', wire:'#b4c2d8', line:'#d8e0ec' };
+for (const c in COL) {
+  const m = el('marker', { id:'a-'+c, viewBox:'0 0 10 10', refX:9, refY:5, markerWidth:7, markerHeight:7, orient:'auto-start-reverse' }, defs);
+  el('path', { d:'M0,1 L9,5 L0,9 z', fill:COL[c] }, m);
+}
+el('rect', { x:0, y:0, width:1560, height:990, fill:'url(#dots)' }, svg);
+[['01 · ПЛАН І ВИКОНАННЯ',96],['02 · ПОГОДЖЕННЯ І ПЕРЕВІРКИ',386],['03 · РІШЕННЯ, ТЕСТ, ЗАПИС',686]].forEach(([s,y]) => tx(svg, y > 600 ? 670 : 300, y, 'lane', s));
+
+/* edges */
+const gE = el('g', {}, svg);
+for (const k in E) {
+  const e = E[k]; e.c = e.c || 'cyan';
+  const g = el('g', { class:'edge' + (e.dash ? ' dash' : '') + (e.sat ? ' sat' : ''), style:`--c:var(--${e.c})` }, gE);
+  e.base = el('path', { d:e.d, class:'base', 'marker-end':`url(#a-${e.sat ? 'line' : 'wire'})` }, g);
+  if (!e.sat) el('path', { d:e.d, class:'flow' }, g);
+  if (e.lab) tx(g, e.lab[1], e.lab[2], 'elab', e.lab[0], { 'text-anchor':e.lab[3] });
+  e.g = g; e.len = e.base.getTotalLength();
+}
+
+/* nodes */
+const gN = el('g', {}, svg);
+for (const id in N) {
+  const n = N[id], [tag, col] = KIND[n.k];
+  const g = el('g', { class:'node' + (n.sat ? ' sat' : ''), style:`--c:var(${col})`, tabindex:0, role:'button', 'aria-label':n.t + ': докладніше' }, gN);
+  n.g = g; n.cls = new Set();
+  g.addEventListener('click', () => inspect(id));
+  g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); inspect(id); } });
+  el('rect', { class:'box', x:n.x, y:n.y, width:n.w, height:n.h, rx:n.sat ? 22 : 10 }, g);
+  if (n.sat) {
+    el('circle', { class:'dot', cx:n.x + 18, cy:n.y + n.h / 2, r:3.5 }, g);
+    n.ttlEl = tx(g, n.x + 30, n.y + 19, 'ttl', n.t);
+    n.subEl = tx(g, n.x + 30, n.y + 34, 'sub', n.s);
+  } else {
+    const c = 9, X = n.x, Y = n.y, W = n.w, H = n.h;
+    el('path', { class:'brk', d:`M${X},${Y+c}V${Y}H${X+c} M${X+W-c},${Y}H${X+W}V${Y+c} M${X+W},${Y+H-c}V${Y+H}H${X+W-c} M${X+c},${Y+H}H${X}V${Y+H-c}` }, g);
+    tx(g, X + 14, Y + 21, 'tag', tag);
+    n.ttlEl = tx(g, X + 14, Y + 45, 'ttl', n.t);
+    if (n.s) n.subEl = tx(g, X + 14, Y + 67, 'sub', n.s);
+  }
+  if (n.chips) {
+    let cx = n.x + 14; n.chipEls = {};
+    n.chips.forEach(s => { const w = s.length * 6.2 + 14; const cg = el('g', { class:'chip' }, g);
+      el('rect', { x:cx, y:n.y + 56, width:w, height:18, rx:4 }, cg); tx(cg, cx + 7, n.y + 69, '', s); n.chipEls[s] = cg; cx += w + 5; });
+  }
+  if (n.votes) {
+    n.voteEls = n.votes.map((s, i) => { const vy = n.y + 62 + i * 28; const vg = el('g', { class:'vote' }, g);
+      tx(vg, n.x + 16, vy + 13, 'vn', s); el('rect', { x:n.x + n.w - 100, y:vy, width:84, height:19, rx:4 }, vg);
+      const st = tx(vg, n.x + n.w - 58, vy + 13.5, 'vs', '—', { 'text-anchor':'middle' }); return { g:vg, t:st }; });
+  }
+  const bg = el('g', { class:'badge', opacity:0 }, g);
+  n.bRect = el('rect', { x:0, y:n.y - 11, height:20, rx:10 }, bg);
+  n.bText = tx(bg, 0, n.y + 2.5, '', '', { 'text-anchor':'middle' });
+  n.badgeG = bg;
+}
+
+/* story packet */
+const pk = el('g', { opacity:0 }, svg);
+const trail = Array.from({ length:7 }, (_, i) => el('circle', { r:4 - i * 0.45, fill:'#0a8cc4', opacity:0.5 - i * 0.065 }, pk));
+const halo = el('circle', { r:18, fill:'url(#halo)' }, pk);
+const core = el('circle', { r:5.5, fill:'#ffffff', stroke:'#0a8cc4', 'stroke-width':2 }, pk);
+let hist = [];
+function placePk(x, y, keep) {
+  if (!keep) hist = [];
+  hist.unshift([x, y]); if (hist.length > 40) hist.pop();
+  for (const c of [core, halo]) { c.setAttribute('cx', x); c.setAttribute('cy', y); }
+  trail.forEach((c, i) => { const p = hist[Math.min(hist.length - 1, (i + 1) * 3)]; c.setAttribute('cx', p[0]); c.setAttribute('cy', p[1]); });
+  pk.setAttribute('opacity', 1);
+}
+const center = id => [N[id].x + N[id].w / 2, N[id].y + N[id].h / 2];
+const endOf = k => { const p = E[k].base.getPointAtLength(E[k].len); return [p.x, p.y]; };
+
+/* shared API */
+const VS = { idle:'—', wait:'перевіряє', ok:'так', no:'ні' };
+let run = 0;
+function setVote(i, s) { const v = N.channels.voteEls[i]; v.g.setAttribute('class', 'vote ' + s); v.t.textContent = VS[s]; }
+function badge(id, text, col) {
+  const n = N[id]; if (!text) { n.badgeG.setAttribute('opacity', 0); n.bText.textContent = ''; return; }
+  const w = text.length * 6.1 + 18, x = n.x + n.w - w - 10;
+  n.badgeG.setAttribute('style', `--c:var(--${col || 'cyan'})`);
+  n.bRect.setAttribute('x', x); n.bRect.setAttribute('width', w);
+  n.bText.setAttribute('x', x + w / 2); n.bText.textContent = text; n.badgeG.setAttribute('opacity', 1);
+}
+function mkApi(anim, my) {
+  return {
+    votes(arr) { if (!anim) return arr.forEach((s, i) => setVote(i, s));
+      arr.forEach((_, i) => setVote(i, 'wait'));
+      arr.forEach((s, i) => setTimeout(() => { if (my === run) setVote(i, s); }, reduce ? 0 : 450 + i * 380)); },
+    reset() { [0, 1, 2].forEach(i => setVote(i, 'idle')); },
+    chip(s) { for (const k in N.pods.chipEls) N.pods.chipEls[k].setAttribute('class', 'chip' + (k === s ? ' on' : '')); },
+    pkt(t, s) { N.packet.ttlEl.textContent = t; N.packet.subEl.textContent = s; },
+    badge, state(id, cls) { N[id].g.classList.add(cls); }, clear(id, cls) { N[id].g.classList.remove(cls); }
+  };
+}
+
+/* ───────── story scenarios ───────── */
+const SC = [
+ { name:'Звичайна зміна', tag:'REC-6', steps:[
+  { at:'brief', t:'Бриф: title і meta на /smart-reports', p:'Задачу подав крон SEO-моніторингу: сторінка втрачає CTR у видачі.' },
+  { go:'brief>o1', at:'o1', t:'O1 визначає тип, шлях і розмір', p:'Тип: title і meta, розмір XS. Шлях: зміна наявної сторінки. Перевірки контексту: сторінку ніхто не тримає, реклами й аномалій немає.' },
+  { go:'o1>camp', at:'camp', t:'Кампанії немає, пакет один', p:'Задача одна, тому оркестратор кампаній видає один пакет без залежностей і нічого не затверджує.' },
+  { go:'camp>pods', at:'pods', fx:a => a.chip('SEO'), t:'Працює SEO-под', p:'Агент готує пропозицію: що змінити, джерела, очікуваний ефект і ризики. Права запису в нього немає.' },
+  { go:'pods>packet', at:'packet', fx:a => a.pkt('Пакет v1', '/smart-reports заблоковано · черга 0'), t:'Пакет v1 від актуальної бази', p:'Ресурс отримує єдиний активний слот. Прев’ю показує поточний і запропонований вигляд.' },
+  { go:'packet>channels', at:'channels', fx:a => a.votes(['ok','ok','ok']), t:'Канали погоджують саме v1', p:'SEO, PPC і AI Visibility голосують за ту саму версію пакета. Усі три погоджують.' },
+  { go:'channels>coord', at:'coord', t:'Координатор збирає вердикти', p:'Взаємного впливу немає, пакет узгоджений, можна перевіряти.' },
+  { go:'coord>o2', at:'o2', fx:a => a.badge('o2', '✓ джерела', 'green'), t:'O2 перевіряє докази', p:'Кожне твердження має джерело, значення збігаються з реєстром фактів.' },
+  { go:'o2>o3', at:'o3', t:'O3 перевіряє політики', p:'Ризик низький, бюджет не зачіпається. Допустимий маршрут: автоматичний.' },
+  { go:'o3>triage', at:'triage', fx:a => a.badge('triage', 'авто', 'cyan'), t:'Тріаж: низький вплив', p:'Усі погодили, вплив низький, впевненість висока. Дозвіл на тест видається без людини.' },
+  { go:'triage>test', at:'test', fx:a => a.badge('test', 'SEO +2,4 · виграш', 'green'), t:'Тест-гейт міряє три тижні', p:'Змінюється лише тестова група, основна сторінка лишається v1. Результат: SEO-тест +2,4, шкоди немає.' },
+  { go:'test>rollout', at:'rollout', t:'Розгортання без окремого рішення', p:'Конфлікту не було і вплив низький, тому переможний тест іде далі сам.' },
+  { go:'rollout>gateway', at:'gateway', t:'Gateway робить єдиний запис', p:'Перевіряє точний пакет, актуальну базу й межі дозволу, потім застосовує одну версію. Подія йде в журнал аудиту.' },
+  { go:'gateway>site', at:'site', fx:a => a.pkt('Пакет v1 · застосовано', 'слот звільнено · черга рушає'), t:'Сторінка стає v2', p:'Черга ресурсу звільняється. Наступна пропозиція перебудовується від нової версії.' },
+  { go:'site>analytics', at:'analytics', t:'Аналітика міряє ефект', p:'Трафік і конверсії по 8 каналах. Аномалії стають новими сигналами.' },
+  { go:'analytics>brief', at:'brief', t:'Цикл замкнувся', p:'Висновки аналітики повертаються новими брифами, і все починається знову.' }
+ ]},
+ { name:'Конфлікт і компроміс', tag:'REC-3', steps:[
+  { at:'brief', t:'REC-3 на /pricing-analytics', p:'Пропозиція: скоротити H1 і прибрати визначення, щоб підняти конверсію рекламного трафіку.' },
+  { go:'brief>o1', at:'o1', t:'O1 читає живий контекст', p:'Розмір S. На сторінку ведуть кампанії Google Ads, а визначення цитують AI-системи. Обидва факти додають у план погодження.' },
+  { go:'o1>camp', at:'camp', t:'Один пакет', p:'Кампанії немає, пакет іде прямо до виконавця.' },
+  { go:'camp>pods', at:'pods', fx:a => a.chip('PPC'), t:'Пропозицію готує PPC-под', p:'Message match і CTA під рекламу. Лендинг PPC напряму не змінює.' },
+  { go:'pods>packet', at:'packet', fx:a => { a.pkt('Пакет v1', '/pricing-analytics заблоковано'); a.badge('queue', 'REC-5 чекає', 'amber'); }, t:'Пакет v1, REC-5 у черзі', p:'Сторінку тримає REC-3. Наступна SEO-пропозиція REC-5 стає в чергу, а не пише паралельно.' },
+  { go:'packet>channels', at:'channels', fx:a => a.votes(['no','ok','no']), t:'Конфлікт каналів', p:'SEO заперечує вилучення теми з H1, AI Visibility заперечує вилучення визначення. PPC погоджує.' },
+  { go:'channels>coord', at:'coord', fx:a => { a.state('coord', 'warn'); a.badge('coord', 'конфлікт', 'amber'); }, t:'Координатор розбирає наслідки', p:'Паралельних записів не буде. Компроміс: тема лишається в H1, визначення лишається, CTA береться від PPC.' },
+  { go:'coord>packet', at:'packet', fx:a => { a.pkt('Пакет v2', 'компроміс · усі погодження скинуто'); a.reset(); }, t:'Компроміс створює v2', p:'Нова версія скидає всі погодження. Перевірки починаються спочатку.' },
+  { go:'packet>channels', at:'channels', fx:a => a.votes(['ok','ok','ok']), t:'Свіжі погодження для v2', p:'Тепер усі три канали погоджують одну й ту саму нову версію.' },
+  { go:'channels>coord', at:'coord', fx:a => { a.clear('coord', 'warn'); a.badge('coord', 'узгоджено', 'green'); }, t:'Пакет узгоджено', p:'Координатор фіксує спільний результат для всієї сторінки.' },
+  { go:'coord>o2', at:'o2', t:'O2: докази', p:'Визначення і цифри перевірені за джерелами.' },
+  { go:'o2>o3', at:'o3', t:'O3: високий вплив', p:'Сторінка з рекламним трафіком і щойно знятим конфліктом. Маршрут лише через людину.' },
+  { go:'o3>triage', at:'triage', fx:a => a.badge('triage', 'до людини', 'amber'), t:'Тріаж ескалює', p:'Конфлікт, високий вплив. Автоматичного дозволу немає.' },
+  { go:'triage>human', at:'human', fx:a => a.badge('human', 'тест v2', 'amber'), t:'Людина дозволяє тест v2', p:'Дозвіл на конкретну версію і конкретну фазу: лише тест. Основна сторінка ще v1.' },
+  { go:'human>test', at:'test', fx:a => { a.state('events', 'warn'); a.badge('events', 'апдейт Google', 'amber'); a.badge('test', 'тиждень 2 не зараховано', 'amber'); }, t:'Світ втручається в тест', p:'На другому тижні виходить апдейт пошуку. Тест-гейт не зараховує цей тиждень і подовжує вікно.' },
+  { at:'test', fx:a => a.badge('test', 'PPC +3,1 · без шкоди', 'green'), t:'Тест виграв, але сам не розгортається', p:'PPC +3,1, SEO і AI Visibility без шкоди. Після конфлікту успіх чекає окремого рішення.' },
+  { go:'test>rollout', at:'rollout', fx:a => a.badge('rollout', 'дозволено людиною', 'amber'), t:'Окремий дозвіл на розгортання', p:'Людина дивиться результат і дозволяє rollout саме пакета v2.' },
+  { go:'rollout>gateway', at:'gateway', t:'Gateway застосовує v2', p:'Перевіряє, що база не змінилась і payload той самий, що погоджували.' },
+  { go:'gateway>site', at:'site', fx:a => { a.pkt('Пакет REC-5', 'перебудовано від v2 · H1 і CTA збережено'); a.badge('queue', ''); }, t:'Сторінка стає v2, черга рушає', p:'REC-5 перебудовується від нової версії і зберігає погоджені H1 та CTA. Далі йому потрібні свої погодження.' }
+ ]},
+ { name:'Швидка смуга', tag:'HF-1', steps:[
+  { at:'facts', fx:a => { a.state('facts', 'warn'); a.badge('facts', '14 → 21 день', 'amber'); }, t:'Розбіжність у реєстрі фактів', p:'Білінг каже 21 день пробного періоду, реєстр каже 14. Нове значення підтверджує лише власник факту.' },
+  { at:'brief', t:'Сканер подає виправлення', p:'Власник підтвердив 21 день. Сканер знаходить сторінки зі старим значенням і створює бриф швидкого виправлення.' },
+  { go:'brief>o1', at:'o1', t:'O1: швидке виправлення', p:'Значення лише з реєстру, мінімальний diff одного поля.' },
+  { go:'o1>camp', at:'camp', t:'Без кампанії', p:'Одне поле на кожній сторінці, залежностей немає.' },
+  { go:'camp>pods', at:'pods', fx:a => a.chip('Контент'), t:'Под готує правку', p:'Агент підставляє значення з реєстру і нічого не формулює сам.' },
+  { go:'pods>packet', at:'packet', fx:a => { a.pkt('Пакет HF-1', 'поза чергою · тести на сторінках на паузі'); a.badge('packet', 'поза чергою', 'amber'); }, t:'Обходить чергу, але не ворота', p:'Помилка в ціні чи даті шкодить зараз, тому пакет іде першим. Тести на цих сторінках стають на паузу.' },
+  { go:'packet>channels', at:'channels', fx:a => a.votes(['ok','ok','ok']), t:'Швидкі погодження каналів', p:'Канали перевіряють одне поле, а не всю сторінку.' },
+  { go:'channels>coord', at:'coord', t:'Координатор', p:'Інші пакети на цих сторінках чекають і після виправлення отримають rebase.' },
+  { go:'coord>o2', at:'o2', fx:a => a.badge('o2', '= реєстр', 'green'), t:'O2 звіряє з реєстром', p:'Значення в пакеті точно збігається з підтвердженим фактом.' },
+  { go:'o2>o3', at:'o3', t:'O3', p:'Маршрут: одне рішення Owner або Marketing lead.' },
+  { go:'o3>triage', at:'triage', t:'Тріаж: швидка смуга', p:'Тест-гейт не потрібен: це виправлення помилки, а не гіпотеза.' },
+  { go:'triage>human', at:'human', fx:a => a.badge('human', 'Owner', 'amber'), t:'Одне рішення Owner', p:'Owner дозволяє запис одним рішенням.' },
+  { go:'human>gateway', at:'gateway', t:'Прямо до Gateway', p:'Пакет обходить тест-гейт швидкою смугою. Gateway однаково перевіряє пакет, базу й дозвіл.' },
+  { go:'gateway>site', at:'site', fx:a => a.pkt('Черга', 'auto-rebase неперетинних пакетів · вікна тестів перезапущено'), t:'Сторінки виправлено', p:'Пакети з неперетинними полями отримують авто-rebase, з тим самим полем — нові погодження. Вікна тестів перезапускаються.' }
+ ]},
+ { name:'Шкода і відкат', tag:'REC-8', steps:[
+  { at:'brief', t:'Нова структура блоку на /smart-reports', p:'Гіпотеза: коротший блок переваг підніме реєстрації.' },
+  { go:'brief>o1', at:'o1', t:'O1: блок на сторінці', p:'Розмір S, зміна наявної сторінки.' },
+  { go:'o1>camp', at:'camp', t:'Один пакет', p:'Залежностей немає.' },
+  { go:'camp>pods', at:'pods', fx:a => a.chip('Контент'), t:'Контент-под', p:'Пропозиція з прев’ю і очікуваним ефектом.' },
+  { go:'pods>packet', at:'packet', fx:a => a.pkt('Пакет v1', '/smart-reports заблоковано'), t:'Пакет v1', p:'Від актуальної бази сторінки.' },
+  { go:'packet>channels', at:'channels', fx:a => a.votes(['ok','ok','ok']), t:'Канали погоджують', p:'Конфлікту немає.' },
+  { go:'channels>coord', at:'coord', t:'Координатор', p:'Пакет узгоджений.' },
+  { go:'coord>o2', at:'o2', t:'O2', p:'Докази в порядку.' },
+  { go:'o2>o3', at:'o3', t:'O3', p:'Низький ризик.' },
+  { go:'o3>triage', at:'triage', fx:a => a.badge('triage', 'авто', 'cyan'), t:'Тріаж: авто на тест', p:'Низький вплив, усі погодили.' },
+  { go:'triage>test', at:'test', t:'Тест на тестовій групі', p:'Основна сторінка лишається v1 весь час тесту.' },
+  { at:'test', fx:a => { a.state('test', 'bad'); a.badge('test', 'SEO −3,2 · відкат', 'red'); }, t:'Шкода каналу', p:'SEO-тест показує −3,2, нижче порогу −2. Тест-гейт відновлює тестову групу. Користувачі основної сторінки шкоди не бачили.' },
+  { at:'packet', fx:a => { a.pkt('Пакет v1 · закрито', 'без розгортання · слот звільнено'); a.badge('packet', 'відхилено', 'red'); }, t:'Черга рушає далі', p:'Пакет закрито без розгортання, блокування знято. Наступна задача стартує від незмінної сторінки. Відхилений пакет сам не перезапускається.' }
+ ]}
+];
+
+/* ───────── standard day ───────── */
+const HM = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+const fmt = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(Math.floor(m % 60)).padStart(2, '0');
+const DAY0 = HM('06:00'), DAY1 = HM('21:00');
+const WINDOWS = ['10:00','14:00','17:00','19:30'].map(HM);
+const BASE_TESTS = 6;
+const JC = { seo:'#0a8cc4', ppc:'#cf2f96', aiv:'#6a52e6', hf:'#de3448', cmp:'#0c9566', grp:'#2c66f0', cnt:'#0f7f8c' };
+
+const JOBS = [
+ { id:'REC-11', c:'seo', start:'07:05', from:'analytics', steps:[
+   { dur:5, log:'Аналітика: CTR /pdf-editor −18% за тиждень. Аномалія стає брифом.' }, 'analytics>brief', { dur:4 },
+   'brief>o1', { dur:12, log:'O1: оптимізація під ключ, розмір S. Контекст: реклами на сторінку немає, сторінка вільна.' },
+   'o1>camp', { dur:3 }, 'camp>pods', { dur:40, log:'SEO-под готує пропозицію: нові H2 і FAQ-блок із джерелами.', fx:a => a.chip('SEO') },
+   'pods>packet', { dur:5, log:'Пакет v1, /pdf-editor заблоковано.', fx:a => a.pkt('Пакет v1 · REC-11', '/pdf-editor заблоковано') },
+   'packet>channels', { dur:25, log:'SEO, PPC і AI Visibility погодили v1.', fx:a => a.votes(['ok','ok','ok']) },
+   'channels>coord', { dur:8 }, 'coord>o2', { dur:10, log:'O2: джерела FAQ перевірені.' }, 'o2>o3', { dur:5 }, 'o3>triage', { dur:3, log:'Тріаж: низький вплив, авто-дозвіл на тест.' },
+   'triage>test', { park:1, test:1, log:'Тест стартував: 3 тижні на тестовій групі, основна сторінка без змін.', cnt:{ tests:1 } } ] },
+ { id:'REC-12', c:'seo', start:'08:10', from:'brief', steps:[
+   { dur:5, log:'Крон SEO-моніторингу: title /e-sign-pdf втрачає CTR.' }, 'brief>o1', { dur:6, log:'O1: title і meta, розмір XS.' },
+   'o1>camp', { dur:2 }, 'camp>pods', { dur:18, fx:a => a.chip('SEO') }, 'pods>packet', { dur:4, fx:a => a.pkt('Пакет v1 · REC-12', '/e-sign-pdf заблоковано') },
+   'packet>channels', { dur:15, fx:a => a.votes(['ok','ok','ok']), log:'Канали погодили title і meta.' }, 'channels>coord', { dur:4 }, 'coord>o2', { dur:6 }, 'o2>o3', { dur:3 },
+   'o3>triage', { dur:2 }, 'triage>test', { park:1, test:1, log:'Авто-тест SEO стартував.', cnt:{ tests:1 } } ] },
+ { id:'REC-3', c:'ppc', start:'09:00', from:'test', steps:[
+   { dur:12, log:'Тест завершено: PPC +3,1, SEO і AI Visibility без шкоди. Після конфлікту чекає людину.', cnt:{ tests:-1 }, fx:a => a.badge('test', 'REC-3 · виграш', 'green') },
+   'test>rollout', { until:'window', human:1, log:'Чекає дозволу на розгортання.', logEnd:'Channel manager дозволив розгортання v2.' },
+   'rollout>gateway', { dur:4, log:'Gateway: база й payload збігаються, запис.' },
+   'gateway>site', { dur:6, log:'/pricing-analytics тепер v2. REC-5 перебудовується від неї.', cnt:{ applied:1 } }, 'site>analytics', { end:1 } ] },
+ { id:'REC-13', c:'ppc', start:'09:30', from:'brief', steps:[
+   { dur:5, log:'PPC: message match для кампанії Brand UA на /smart-reports.' }, 'brief>o1', { dur:12, log:'O1: зміна наявної сторінки, розмір S. На сторінку веде реклама, визначення цитують AI-системи.' },
+   'o1>camp', { dur:3 }, 'camp>pods', { dur:35, fx:a => a.chip('PPC') },
+   'pods>packet', { dur:5, fx:a => a.pkt('Пакет v1 · REC-13', '/smart-reports заблоковано') },
+   'packet>channels', { dur:20, log:'Конфлікт: SEO і AI Visibility проти вилучення теми H1 і визначення.', fx:a => a.votes(['no','ok','no']) },
+   'channels>coord', { dur:15, log:'Координатор: компроміс — тема і визначення лишаються, CTA від PPC.', fx:a => { a.state('coord', 'warn'); a.badge('coord', 'конфлікт · REC-13', 'amber'); } },
+   'coord>packet', { dur:5, log:'Пакет v2, усі погодження скинуто.', fx:a => { a.pkt('Пакет v2 · REC-13', 'компроміс · погодження скинуто'); a.reset(); } },
+   'packet>channels', { dur:20, log:'v2 погоджено всіма трьома каналами.', fx:a => { a.votes(['ok','ok','ok']); a.clear('coord', 'warn'); a.badge('coord', ''); } },
+   'channels>coord', { dur:6 }, 'coord>o2', { dur:10 }, 'o2>o3', { dur:5, log:'O3: високий вплив, рекламний трафік. Маршрут через людину.' },
+   'o3>triage', { dur:3 }, 'triage>human', { until:'window', human:1, log:'Чекає Channel manager.', logEnd:'Channel manager дозволив тест v2.' },
+   'human>test', { park:1, test:1, log:'Тест v2 стартував. Основна сторінка ще v1.', cnt:{ tests:1 } } ] },
+ { id:'REC-14', c:'seo', start:'11:20', from:'brief', steps:[
+   { dur:5, log:'SEO: перелінковка на /smart-reports.' }, 'brief>o1', { dur:8, log:'O1: сторінку тримає REC-13, задача піде в чергу.' },
+   'o1>camp', { dur:2 }, 'camp>pods', { dur:25, fx:a => a.chip('SEO') },
+   'pods>packet', { park:1, queue:1, log:'У черзі: /smart-reports тримає REC-13. Чекатиме кінця тесту.', fx:a => { a.state('queue', 'warn'); a.badge('queue', 'REC-14 чекає', 'amber'); } } ] },
+ { id:'HF-1', c:'hf', start:'11:00', from:'facts', move:3, steps:[
+   { dur:6, log:'Реєстр фактів: білінг каже 21 день пробного періоду, реєстр — 14. Finance підтверджує 21.', fx:a => { a.state('facts', 'warn'); a.badge('facts', '14 → 21 день', 'amber'); } },
+   { jump:'brief' }, { dur:3, log:'Сканер знайшов 4 сторінки зі старим значенням.' },
+   'brief>o1', { dur:3 }, 'o1>camp', { dur:1 }, 'camp>pods', { dur:5, fx:a => a.chip('Контент') },
+   'pods>packet', { dur:3, log:'HF-1 поза чергою. Тести на цих 4 сторінках на паузі.', fx:a => { a.pkt('Пакет HF-1', 'поза чергою · одне поле'); a.badge('packet', 'поза чергою', 'amber'); } },
+   'packet>channels', { dur:8, fx:a => a.votes(['ok','ok','ok']) }, 'channels>coord', { dur:3 }, 'coord>o2', { dur:4, log:'O2: значення збігається з реєстром.' },
+   'o2>o3', { dur:2 }, 'o3>triage', { dur:2 }, 'triage>human', { dur:8, human:1, log:'Owner дозволяє запис одним рішенням.' },
+   'human>gateway', { dur:3 }, 'gateway>site', { dur:5, log:'4 сторінки виправлено. Авто-rebase пакетів, вікна тестів перезапущено.', cnt:{ applied:1 }, fx:a => { a.clear('facts', 'warn'); a.badge('facts', '21 день ✓', 'green'); a.badge('packet', ''); } },
+   { end:1 } ] },
+ { id:'CMP-490', c:'cmp', start:'12:00', from:'brief', steps:[
+   { dur:5, log:'Кампанія: вебінар 24.10 — лендинг, лист і пости.' }, 'brief>o1', { dur:15, log:'O1: розмір L, план погоджує людина. Розкладено на XS і S.' },
+   'o1>camp', { dur:10, log:'Граф пакетів: лендинг → лист → пости.' }, { end:1 } ] },
+ { id:'CMP·лендинг', c:'cmp', start:'12:33', from:'camp', steps:[
+   'camp>pods', { dur:50, log:'Контент-под: лендинг /webinar-oct.', fx:a => a.chip('Контент') },
+   'pods>packet', { dur:5, fx:a => a.pkt('Пакет · лендинг', 'нова адреса /webinar-oct') },
+   'packet>channels', { dur:20, fx:a => a.votes(['ok','ok','ok']) }, 'channels>coord', { dur:5 },
+   'coord>o2', { dur:15, log:'O2: дата і спікери збігаються з реєстром.' }, 'o2>o3', { dur:5 }, 'o3>triage', { dur:3 },
+   'triage>human', { until:'window', human:1, log:'Чекає Editor.', logEnd:'Editor затвердив лендинг.' },
+   'human>gateway', { dur:4, log:'М’який запуск: noindex 7 днів і моніторинг.' }, 'gateway>site', { dur:5, log:'Лендинг живий. Стартують залежні пакети: лист і пости.', cnt:{ applied:1 } }, { end:1 } ] },
+ { id:'CMP·лист', c:'cmp', start:'17:25', from:'camp', move:5, steps:[
+   'camp>pods', { dur:30, fx:a => a.chip('Email'), log:'Email-под: запрошення на вебінар.' }, 'pods>packet', { dur:3 },
+   'packet>channels', { dur:10, fx:a => a.votes(['ok','ok','ok']) }, 'channels>coord', { dur:3 }, 'coord>o2', { dur:8, log:'O2: сегмент і посилання перевірено.' },
+   'o2>o3', { dur:5, log:'O3: частота контактів у межах.' }, 'o3>triage', { dur:2 },
+   'triage>human', { until:'window', human:1, log:'Чекає Editor.', logEnd:'Editor затвердив лист.' },
+   'human>gateway', { dur:4, log:'Тестова розсилка пройшла.' }, 'gateway>site', { dur:4, log:'Лист у розкладі на 09:00 завтра.', cnt:{ applied:1 } }, { end:1 } ] },
+ { id:'CMP·пости', c:'cmp', start:'17:30', from:'camp', move:5, steps:[
+   'camp>pods', { dur:20, fx:a => a.chip('SMM') }, 'pods>packet', { dur:3 }, 'packet>channels', { dur:8, fx:a => a.votes(['ok','ok','ok']) },
+   'channels>coord', { dur:3 }, 'coord>o2', { dur:6 }, 'o2>o3', { dur:4 }, 'o3>triage', { dur:2 },
+   'triage>human', { until:'window', human:1, log:'Чекає Editor.', logEnd:'Editor затвердив пости.' },
+   'human>gateway', { dur:3 }, 'gateway>site', { dur:4, log:'Пости в розкладі LinkedIn і X.', cnt:{ applied:1 } }, { end:1 } ] },
+ { id:'REC-15', c:'aiv', start:'15:00', from:'brief', steps:[
+   { dur:5, log:'AI Visibility: визначення і структура цитування на /what-is-e-signature.' }, 'brief>o1', { dur:10 },
+   'o1>camp', { dur:3 }, 'camp>pods', { dur:45, fx:a => a.chip('AIV') }, 'pods>packet', { dur:5, fx:a => a.pkt('Пакет v1 · REC-15', '/what-is-e-signature заблоковано') },
+   'packet>channels', { dur:20, fx:a => a.votes(['ok','ok','ok']) }, 'channels>coord', { dur:5 }, 'coord>o2', { dur:12, log:'O2: визначення має джерело.' },
+   'o2>o3', { dur:4 }, 'o3>triage', { dur:3 }, 'triage>test', { park:1, test:1, log:'AI Visibility тест стартував. Нова базова лінія після оновлення моделі.', cnt:{ tests:1 } } ] },
+ { id:'REC-9', c:'aiv', start:'16:00', from:'test', steps:[
+   { dur:15, log:'Тест REC-9: SEO −3,2, нижче порогу −2. Тестову групу відновлено.', cnt:{ tests:-1, rollback:1 }, fx:a => { a.state('test', 'bad'); a.badge('test', 'REC-9 · відкат', 'red'); } },
+   { end:1 } ] },
+ { id:'GP-2', c:'grp', start:'10:30', from:'test', steps:[
+   { dur:8, log:'Група GP-2 (40 сторінок шаблону /integrations/*): хвиля 10% пройшла guardrail.' },
+   'test>rollout', { dur:4 }, 'rollout>gateway', { dur:4, log:'Gateway: хвиля 50%, одне правило для всієї групи.' }, 'gateway>site', { dur:5 },
+   { jump:'test' }, { until:'15:20', log:'Guardrail хвилі 50% стежить за кожною сторінкою, а не за середнім.', logEnd:'Хвиля 50% без шкоди, найгірша сторінка −0,4.' },
+   'test>rollout', { dur:3 }, 'rollout>gateway', { dur:4, log:'Gateway: хвиля 100%.' },
+   'gateway>site', { dur:5, log:'GP-2 розгорнуто на всю групу.', cnt:{ applied:1 } }, { end:1 } ] },
+ { id:'PPC-21', c:'ppc', start:'11:40', from:'analytics', steps:[
+   { dur:5, log:'Аналітика: CPA Brand UA +22% за тиждень.' }, 'analytics>brief', { dur:3 },
+   'brief>o1', { dur:6, log:'O1: зміна реклами, ресурс ppc:brand-ua.' }, 'o1>camp', { dur:2 },
+   'camp>pods', { dur:20, log:'PPC-под пропонує +30% бюджету на exact-ключі.', fx:a => a.chip('PPC') },
+   'pods>packet', { dur:3, fx:a => a.pkt('Пакет · PPC-21', 'ppc:brand-ua заблоковано') },
+   'packet>channels', { dur:10, log:'Рекламу погоджують SEO та Аналітика.', fx:a => a.votes(['ok','ok','ok']) }, 'channels>coord', { dur:3 },
+   'coord>o2', { dur:5 }, 'o2>o3', { dur:20, log:'O3: вето. Сукупний тижневий ліміт R3 перевищено б на 12%. Вето, а не обрізання бюджету.', cnt:{ noroll:1 }, fx:a => { a.state('o3', 'bad'); a.badge('o3', 'вето R3', 'red'); } },
+   { end:1 } ] },
+ { id:'REC-10', c:'aiv', start:'12:30', from:'test', steps:[
+   { dur:12, log:'Тест REC-10: два дні даних втрачено через збій GA4. Немає висновку, без розгортання.', cnt:{ tests:-1, noroll:1 }, fx:a => a.badge('test', 'REC-10 · немає висновку', 'blue') },
+   { end:1 } ] },
+ { id:'BR-31', c:'cnt', start:'13:15', from:'brief', steps:[
+   { dur:5, log:'Контент: кейс клієнта Northwind для блогу.' },
+   'brief>o1', { dur:10, log:'O1 питає: «у чернетці −40% часу на договори, але цієї цифри немає в CRM. Звідки вона?» ★ запитати Customer Success.', fx:a => a.badge('o1', 'питання', 'amber') },
+   { until:'13:55', human:1, logEnd:'Customer Success надав звіт клієнта: −38%. Агент бере цифру з джерела.', fx:a => a.badge('o1', '') },
+   'o1>camp', { dur:2 }, 'camp>pods', { dur:40, fx:a => a.chip('Контент') },
+   'pods>packet', { dur:4, fx:a => a.pkt('Пакет · BR-31', 'нова сторінка /blog/northwind') },
+   'packet>channels', { dur:12, fx:a => a.votes(['ok','ok','ok']) }, 'channels>coord', { dur:3 },
+   'coord>o2', { dur:14, log:'O2: фраза «uptime 99,9%» спирається на факт, перевірений 100 днів тому. Прострочено, фразу прибрано.', fx:a => { a.state('o2', 'warn'); a.badge('o2', 'прострочений факт', 'amber'); } },
+   'o2>o3', { dur:4, fx:a => { a.clear('o2', 'warn'); a.badge('o2', ''); } }, 'o3>triage', { dur:2 },
+   'triage>human', { until:'window', human:1, log:'Чекає Editor і погодження клієнта.', logEnd:'Editor і клієнт погодили кейс.' },
+   'human>gateway', { dur:3 }, 'gateway>site', { dur:4, log:'Кейс опубліковано, подія в журналі аудиту.', cnt:{ applied:1 } }, { end:1 } ] }
+];
+
+const GEV = [
+ { t:'06:00', who:'Крони', c:'#4f5f7c', text:'Зібрано дані GSC, Google Ads і аналітики за ніч.', fx:a => a.badge('cron', 'дані зібрано', 'green') },
+ { t:'06:30', who:'Світ', c:'#c27400', text:'Оголошено апдейт пошуку Google. SEO-тести під спостереженням.', fx:a => { a.state('events', 'warn'); a.badge('events', 'апдейт Google', 'amber'); } },
+ { t:'07:30', who:'Світ', c:'#c27400', text:'Збій даних GA4 з 02:00 до 05:00. Ці години не рахуються в тестах.', fx:a => a.badge('events', 'збій GA4', 'amber') },
+ { t:'07:45', who:'Крони', c:'#4f5f7c', text:'Звіт PPC чекає: він стартує «після успіху» збору даних, а не за часом.', fx:a => a.badge('cron', 'чекає дані', 'amber') },
+ { t:'08:20', who:'Крони', c:'#4f5f7c', text:'Дані відновлено, звіт PPC зібрано.', fx:a => a.badge('cron', 'звіт PPC ✓', 'green') },
+ { t:'08:30', who:'Світ', c:'#c27400', text:'Свято в Польщі (12% трафіку): день виключено з A/B, PPC знижує pacing, листи в PL не йдуть.', fx:a => a.badge('events', 'свято PL', 'amber') },
+ { t:'09:15', who:'Ресурси', c:'#c27400', text:'REC-7 чекав людину 48 год: блокування /integrations знято, тестову групу відновлено, черга рушає.', cnt:{ noroll:1 }, fx:a => a.badge('queue', 'TTL 48 год', 'amber') },
+ { t:'10:00', who:'Люди', c:'#c27400', text:'Вікно погоджень: люди розбирають апруви.', fx:a => a.badge('human', 'вікно погоджень', 'amber') },
+ { t:'10:40', who:'Люди', c:'#c27400', text:'', fx:a => a.badge('human', '') },
+ { t:'11:30', who:'Якість', c:'#c27400', text:'Нова модель ChatGPT: Citation Analyst просів. Людина перевіряє 100% його висновків, доки не оновлено парсер.', fx:a => { a.state('quality', 'warn'); a.badge('quality', 'Citation Analyst · 100% людина', 'amber'); } },
+ { t:'12:45', who:'O3', c:'#2c66f0', text:'', fx:a => { a.clear('o3', 'bad'); a.badge('o3', ''); } },
+ { t:'13:00', who:'Тест-гейт', c:'#2c66f0', text:'Апдейт підтверджено: тиждень SEO-тестів не зараховано, вікна +7 днів.', fx:a => a.badge('test', 'тиждень не зараховано', 'amber') },
+ { t:'14:00', who:'Люди', c:'#c27400', text:'Вікно погоджень.', fx:a => a.badge('human', 'вікно погоджень', 'amber') },
+ { t:'14:40', who:'Люди', c:'#c27400', text:'', fx:a => a.badge('human', '') },
+ { t:'15:30', who:'Якість', c:'#de3448', text:'Реліз RL-7 (дешевша модель Narrative Strategist) заблоковано: факти з джерелом 98 → 91.', fx:a => { a.state('quality', 'bad'); a.badge('quality', 'RL-7 заблоковано', 'red'); } },
+ { t:'17:00', who:'Люди', c:'#c27400', text:'Вікно погоджень. Пакетне погодження R2.', fx:a => a.badge('human', 'вікно погоджень', 'amber') },
+ { t:'17:40', who:'Люди', c:'#c27400', text:'', fx:a => a.badge('human', '') },
+ { t:'18:00', who:'Якість', c:'#0c9566', text:'RL-8 пройшов регресію і тінь 48 год: канарка 10%.', fx:a => { a.clear('quality', 'bad'); a.badge('quality', 'RL-8 · канарка 10%', 'green'); } },
+ { t:'18:40', who:'Owner', c:'#de3448', text:'Планова перевірка аварійного вимикача: записи в Gateway зупинено на 5 хв.', fx:a => { a.state('kill', 'armed'); a.badge('kill', 'перевірка', 'red'); } },
+ { t:'18:45', who:'Owner', c:'#de3448', text:'Вимикач вимкнено, відкладені записи продовжено.', fx:a => { a.clear('kill', 'armed'); a.badge('kill', ''); } },
+ { t:'19:00', who:'Аналітика', c:'#0c9566', text:'Денний звіт по 8 каналах надіслано в Slack.', fx:a => { a.badge('analytics', 'звіт у Slack', 'green'); a.badge('audit', 'звіт дня', 'green'); } },
+ { t:'19:30', who:'Люди', c:'#c27400', text:'Останнє вікно погоджень.', fx:a => a.badge('human', 'вікно погоджень', 'amber') },
+ { t:'20:10', who:'Люди', c:'#c27400', text:'', fx:a => a.badge('human', '') },
+ { t:'20:30', who:'Аудитор', c:'#0a8cc4', text:'Перевірено 5% результатів дня, дрейфу немає.', fx:a => a.badge('audit', 'аудит 5% · ок', 'green') },
+ { t:'21:00', who:'Підсумок', c:'#0e1a32', text:() => `День закрито: застосовано ${cnt.applied}, тестів іде ${BASE_TESTS + cnt.tests}, відкатів ${cnt.rollback}, без розгортання ${cnt.noroll}, у черзі ${liveQueue}. Найдовше задачі чекали людей.` }
+];
+
+/* compile jobs into time segments */
+let EV = [];
+function compile() {
+  EV = [];
+  for (const j of JOBS) {
+    let t = HM(j.start), at = j.from; const segs = [], mv = j.move || 8;
+    const push = (tt, text, it) => { if (text || (it && (it.fx || it.cnt))) EV.push({ t:tt, who:j.id, c:JC[j.c], text, fx:it && it.fx, cnt:it && it.cnt }); };
+    for (const it of j.steps) {
+      if (typeof it === 'string') { segs.push({ t0:t, t1:t + mv, mv:it }); t += mv; at = it.split('>')[1]; continue; }
+      if (it.jump) { at = it.jump; continue; }
+      if (it.end) break;
+      if (it.park) { push(t, it.log, it); segs.push({ t0:t, t1:Infinity, at, park:1, test:it.test, queue:it.queue }); break; }
+      if (it.until) { const u = it.until === 'window' ? (WINDOWS.find(w => w > t) || t + 60) : HM(it.until);
+        push(t, it.log); segs.push({ t0:t, t1:u + 4, at, human:it.human }); push(u, it.logEnd, it); t = u + 4; continue; }
+      const d = it.dur == null ? 5 : it.dur; push(t, it.log, it); segs.push({ t0:t, t1:t + d, at, human:it.human }); t += d;
+    }
+    j.segs = segs;
+  }
+  GEV.forEach(g => EV.push({ t:HM(g.t), who:g.who, c:g.c, text:g.text, fx:g.fx, cnt:g.cnt }));
+  EV.sort((a, b) => a.t - b.t);
+}
+compile();
+
+/* job markers */
+const gJ = el('g', {}, svg);
+JOBS.forEach(j => {
+  const g = el('g', { class:'job', opacity:0 }, gJ);
+  j.halo = el('circle', { r:11, fill:JC[j.c], opacity:.22 }, g);
+  j.dot = el('circle', { r:5, fill:JC[j.c], stroke:'#ffffff', 'stroke-width':1.5 }, g);
+  j.lab = tx(g, 0, 0, '', j.id, { fill:JC[j.c] });
+  j.g = g;
+});
+
+let simT = DAY0, ei = 0, cnt = { tests:0, applied:0, rollback:0, noroll:0 }, liveQueue = 0, minPerSec = 8;
+const logEl = $('log');
+function fire(ev) {
+  if (ev.cnt) for (const k in ev.cnt) cnt[k] += ev.cnt[k];
+  if (ev.fx) ev.fx(mkApi(false, run));
+  const text = typeof ev.text === 'function' ? ev.text() : ev.text;
+  if (!text) return;
+  const li = document.createElement('li'); li.style.setProperty('--c', ev.c);
+  li.innerHTML = `<time>${fmt(ev.t)}</time><b></b><span></span>`;
+  li.children[1].textContent = ev.who; li.children[2].textContent = text;
+  logEl.prepend(li); while (logEl.children.length > 250) logEl.lastChild.remove();
+}
+function dayAdvance() { while (ei < EV.length && EV[ei].t <= simT) fire(EV[ei++]); }
+function dayRebuild(t) {
+  resetAll(); logEl.innerHTML = ''; cnt = { tests:0, applied:0, rollback:0, noroll:0 }; ei = 0;
+  simT = Math.max(DAY0, Math.min(DAY1, t)); dayAdvance(); renderDay(true);
+}
+let litNodes = new Set(), runEdges = new Set();
+function renderDay(force) {
+  const groups = {}, nowNodes = new Set(), nowEdges = new Set(); let work = 0, human = 0; liveQueue = 0;
+  for (const j of JOBS) {
+    const s = j.segs.find(s => simT >= s.t0 && simT < s.t1);
+    if (!s) { j.g.setAttribute('opacity', 0); continue; }
+    j.g.setAttribute('opacity', 1);
+    if (s.mv) { const e = E[s.mv], p = e.base.getPointAtLength(e.len * ease((simT - s.t0) / (s.t1 - s.t0)));
+      setJob(j, p.x, p.y, true); nowEdges.add(s.mv); work++; }
+    else { (groups[s.at] = groups[s.at] || []).push(j); nowNodes.add(s.at);
+      if (s.human) human++; else if (s.queue) liveQueue++; else if (!s.park) work++; }
+  }
+  for (const id in groups) { const n = N[id], list = groups[id], gap = 26, x0 = n.x + n.w / 2 - (list.length - 1) * gap / 2;
+    list.forEach((j, i) => setJob(j, x0 + i * gap, n.y + n.h, false, i)); }
+  for (const id of litNodes) if (!nowNodes.has(id)) N[id].g.classList.remove('cur');
+  for (const id of nowNodes) N[id].g.classList.add('cur');
+  for (const k of runEdges) if (!nowEdges.has(k)) E[k].g.classList.remove('run');
+  for (const k of nowEdges) E[k].g.classList.add('run');
+  litNodes = nowNodes; runEdges = nowEdges;
+  $('clock').textContent = fmt(simT);
+  if (!scrubbing) $('scrub').value = Math.round(simT);
+  $('cWork').textContent = work; $('cHuman').textContent = human; $('cQueue').textContent = liveQueue;
+  $('cTests').textContent = BASE_TESTS + cnt.tests; $('cApplied').textContent = cnt.applied; $('cRoll').textContent = cnt.rollback; $('cNo').textContent = cnt.noroll;
+}
+function setJob(j, x, y, moving, i) {
+  for (const c of [j.halo, j.dot]) { c.setAttribute('cx', x); c.setAttribute('cy', y); }
+  j.lab.setAttribute('x', x); j.lab.setAttribute('y', moving ? y - 12 : y + (i % 2 ? 30 : 19));
+  j.lab.setAttribute('text-anchor', 'middle');
+}
+const hideJobs = () => JOBS.forEach(j => j.g.setAttribute('opacity', 0));
+
+/* timeline marks */
+(() => { const m = $('marks'), pct = t => ((t - DAY0) / (DAY1 - DAY0) * 100) + '%';
+  for (let h = 6; h <= 21; h += 3) { const d = document.createElement('div'); d.className = 'h'; d.style.left = pct(h * 60); d.textContent = String(h).padStart(2, '0') + ':00'; m.appendChild(d); }
+  WINDOWS.forEach(w => { const d = document.createElement('div'); d.className = 'w'; d.style.left = pct(w); d.dataset.l = 'люди'; m.appendChild(d); });
+  GEV.filter(g => g.text && g.who !== 'Люди' && g.who !== 'Підсумок').forEach(g => { const d = document.createElement('div'); d.className = 'e'; d.style.left = pct(HM(g.t)); d.style.setProperty('--c', g.c); d.title = g.t + ' · ' + g.text; m.appendChild(d); });
+})();
+let scrubbing = false;
+$('scrub').addEventListener('pointerdown', () => scrubbing = true);
+addEventListener('pointerup', () => scrubbing = false);
+$('scrub').addEventListener('input', e => dayRebuild(+e.target.value));
+document.querySelectorAll('.speed button').forEach(b => b.onclick = () => {
+  minPerSec = +b.dataset.s; document.querySelectorAll('.speed button').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+
+/* ───────── UI & engines ───────── */
+const tabs = $('tabs'), dotsEl = $('dots');
+let mode = 'story', si = 0, cur = 0, playing = !reduce, kill = false, active = false;
+SC.forEach((s, i) => { const b = document.createElement('button'); b.className = 'tab'; b.setAttribute('role', 'tab');
+  b.innerHTML = `${s.name}<small>${s.tag}</small>`; b.onclick = () => select(i); tabs.appendChild(b); });
+const sep = document.createElement('span'); sep.className = 'sep'; tabs.appendChild(sep);
+const dayTab = document.createElement('button'); dayTab.className = 'tab daytab'; dayTab.setAttribute('role', 'tab');
+dayTab.innerHTML = 'Стандартний день<small>06:00–21:00</small>'; dayTab.onclick = () => startDay(); tabs.appendChild(dayTab);
+
+let vclock = 0, last = performance.now(); const waiters = [];
+function frame(t) {
+  const dt = Math.min(64, t - last); last = t;
+  if (mode === 'story') {
+    if (playing) vclock += dt;
+    for (let i = waiters.length - 1; i >= 0; i--) { const w = waiters[i]; const p = w.dur ? Math.min(1, (vclock - w.start) / w.dur) : 1;
+      if (w.upd) w.upd(p); if (p >= 1) { waiters.splice(i, 1); w.res(true); } }
+  } else if (playing && !kill && !scrubbing && simT < DAY1) {
+    simT = Math.min(DAY1, simT + dt / 1000 * minPerSec); dayAdvance(); renderDay();
+    if (simT >= DAY1) setPlaying(false);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+const wait = (dur, upd) => new Promise(res => waiters.push({ start:vclock, dur, upd, res }));
+const cancelAll = () => { while (waiters.length) waiters.pop().res(false); };
+const ease = p => p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+
+function resetAll() {
+  for (const id in N) { N[id].g.setAttribute('class', 'node' + (N[id].sat ? ' sat' : '') + (id === selId ? ' sel' : '')); badge(id, ''); }
+  for (const k in E) { E[k].g.classList.remove('lit', 'run'); E[k].base.setAttribute('marker-end', `url(#a-${E[k].sat ? 'line' : 'wire'})`); }
+  litNodes = new Set(); runEdges = new Set();
+  const a = mkApi(false, run); a.reset(); a.chip(null); a.pkt('Пакет', 'ресурс · 1 активний слот');
+  applyKill();
+}
+function light(k) { const e = E[k]; e.g.classList.add('lit'); e.base.setAttribute('marker-end', `url(#a-${e.c})`); }
+function focusNode(id) { for (const n in N) N[n].g.classList.remove('cur'); N[id].g.classList.add('cur', 'seen'); }
+function apply(i, anim) { const s = SC[si].steps[i]; if (s.go) light(s.go); focusNode(s.at); if (s.fx) s.fx(mkApi(anim, run)); }
+function caption(i) {
+  const s = SC[si].steps[i], n = SC[si].steps.length;
+  $('counter').textContent = String(i + 1).padStart(2, '0') + ' / ' + String(n).padStart(2, '0');
+  $('capT').textContent = s.t; $('capP').textContent = s.p;
+  [...dotsEl.children].forEach((d, j) => d.className = j < i ? 'done' : j === i ? 'cur' : '');
+}
+function applyKill() {
+  N.kill.g.classList.toggle('armed', kill);
+  N.gateway.g.classList.toggle('bad', kill);
+  if (kill) badge('gateway', 'запис заблоковано', 'red'); else if (N.gateway.bText.textContent === 'запис заблоковано') badge('gateway', '');
+  $('dnote').textContent = kill ? 'Аварійний вимикач: записи зупинено, день на паузі' : '';
+}
+const blocked = i => kill && SC[si].steps[i] && SC[si].steps[i].go && SC[si].steps[i].go.endsWith('>gateway');
+function killMsg() { $('capT').textContent = 'Аварійний вимикач увімкнено'; $('capP').textContent = 'Пакет зупинився перед Gateway: жоден запис не пройде, навіть у задачах, що вже йдуть. Вимкніть вимикач, і відкладене продовжиться.'; }
+
+async function move(k, my) {
+  const e = E[k]; e.g.classList.add('run');
+  const ok = await wait(reduce ? 0 : Math.max(650, Math.min(2100, e.len * 2.1)), p => {
+    if (my !== run) return; const pt = e.base.getPointAtLength(e.len * ease(p)); placePk(pt.x, pt.y, true); });
+  e.g.classList.remove('run'); return ok && my === run;
+}
+async function step(i, my) {
+  const s = SC[si].steps[i];
+  if (blocked(i)) { killMsg(); while (kill) { if (!(await wait(200)) || my !== run) return false; } caption(i - 1); }
+  if (s.go) { if (!(await move(s.go, my))) return false; }
+  else { pk.setAttribute('opacity', 0); if (!(await wait(reduce ? 0 : 260)) || my !== run) return false; placePk(...center(s.at)); }
+  apply(i, true); caption(i); cur = i; return true;
+}
+async function play(from) {
+  const my = ++run; cancelAll(); active = true;
+  const steps = SC[si].steps;
+  for (let i = from; i < steps.length; i++) {
+    if (!(await step(i, my))) { if (my === run) active = false; return; }
+    const hold = Math.max(2300, Math.min(4600, 1200 + steps[i].p.length * 24));
+    if (!(await wait(hold)) || my !== run) { if (my === run) active = false; return; }
+  }
+  if (!(await wait(1600)) || my !== run) return;
+  active = false; select((si + 1) % SC.length);
+}
+function jump(i) {
+  ++run; cancelAll(); active = false;
+  resetAll(); for (let j = 0; j <= i; j++) apply(j, false);
+  const s = SC[si].steps[i];
+  s.go ? placePk(...endOf(s.go)) : placePk(...center(s.at)); cur = i; caption(i);
+  if (playing) play(i + 1);
+}
+function setTabs(idx) { [...tabs.querySelectorAll('.tab')].forEach((b, j) => b.setAttribute('aria-selected', j === idx)); }
+function select(i) {
+  if (mode !== 'story') { mode = 'story'; hideJobs(); $('day').hidden = true; $('story').hidden = false; }
+  si = i; setTabs(i);
+  dotsEl.innerHTML = ''; SC[i].steps.forEach((s, j) => { const d = document.createElement('button'); d.setAttribute('aria-label', 'Крок ' + (j + 1) + ': ' + s.t); d.onclick = () => jump(j); dotsEl.appendChild(d); });
+  jump(0);
+}
+function startDay() {
+  ++run; cancelAll(); active = false; mode = 'day'; setTabs(SC.length);
+  pk.setAttribute('opacity', 0); $('story').hidden = true; $('day').hidden = false;
+  dayRebuild(DAY0); setPlaying(!reduce);
+}
+function setPlaying(v) {
+  playing = v; $('play').textContent = v ? '❚❚' : '▶'; $('play').setAttribute('aria-label', v ? 'Пауза' : 'Відтворити');
+  if (!v) return;
+  if (mode === 'day') { if (simT >= DAY1) dayRebuild(DAY0); return; }
+  if (!active) { if (cur < SC[si].steps.length - 1) play(cur + 1); else select((si + 1) % SC.length); }
+}
+$('play').onclick = () => setPlaying(!playing);
+$('next').onclick = () => {
+  if (mode === 'day') return dayRebuild(simT + 30);
+  if (blocked(cur + 1)) return killMsg();
+  if (cur < SC[si].steps.length - 1) jump(cur + 1); else select((si + 1) % SC.length); };
+$('prev').onclick = () => { if (mode === 'day') return dayRebuild(simT - 30); if (cur > 0) jump(cur - 1); };
+$('kill').onclick = () => { kill = !kill; $('kill').setAttribute('aria-pressed', kill); applyKill(); };
+document.addEventListener('keydown', e => {
+  if (e.target.closest && (e.target.closest('button') || e.target.closest('input') || e.target.closest('.node')) && (e.key === ' ' || e.key === 'Enter')) return;
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight') $('next').click(); else if (e.key === 'ArrowLeft') $('prev').click(); else if (e.key === ' ') { e.preventDefault(); $('play').click(); } });
+
+/* inspector */
+let selId = null;
+function inspect(id) {
+  if (selId) N[selId].g.classList.remove('sel');
+  selId = id; N[id].g.classList.add('sel');
+  const n = N[id], [tag, col] = KIND[n.k], f = INFO[id];
+  $('insp').style.setProperty('--c', `var(${col})`);
+  $('iK').textContent = tag; $('iT').textContent = n.t;
+  $('iRole').textContent = f[0]; $('iIn').textContent = f[1]; $('iOut').textContent = f[2]; $('iRule').textContent = f[3];
+}
+
+inspect('o1');
+select(0); $('play').textContent = playing ? '❚❚' : '▶'; $('play').setAttribute('aria-label', playing ? 'Пауза' : 'Відтворити');
+})();
+</script>
+</body>
+</html>
