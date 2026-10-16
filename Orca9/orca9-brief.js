@@ -412,6 +412,10 @@ function rOut() {
       ${stage >= 5 && tab === 'tree' ? '<p class="small muted" style="margin:0">Дерево зі статусами — у блоці виконання нижче.</p>' : tab === 'tree' ? `<div class="bf-tree">${rTree(plan)}</div>` : tab === 'tl' ? rTimeline(Ts, sch) : rWho(Ts)}
       ${stage === 3 ? `<div class="bf-row" style="margin-top:12px"><button class="btn primary" data-bfact="approve">${big ? 'Погодити план (людина) і запустити' : 'Запустити'}</button><span class="small muted">${big ? 'L і XL: план погоджує людина.' : sz + ': без погодження плану; людина — лише на воротах.'}</span></div>` : ''}</div>`);
   }
+  if (stage >= 3 && plan && typeof lpView === 'function' && ['block', 'feature', 'vs', 'feature_uc'].includes(cur)) {
+    const a = { ...defA(), ...A }, nw = cur !== 'block';
+    o.push(`<div class="panel"><h2>${nw ? 'Прев’ю нової сторінки' : 'Прев’ю зміни на сторінці'} <span class="chip ${nw ? 'ok' : 'warn'}">${nw ? 'нова адреса' : esc(a.page || '')}</span><span class="sp small muted">${stage === 6 ? 'так сторінка виглядатиме після тесту' : 'що зміниться, якщо план пройде всі ворота'}</span></h2>${lpView(nw ? lpBriefNew(curT(), a) : lpBriefBlock(a))}</div>`);
+  }
   if (stage >= 5 && run) {
     o.push(`<div class="panel" data-tour="bf-run"><h2>${stage === 6 ? '7. Результат' : '6. Виконання'} <span class="chip ${stage === 6 ? 'ok' : 'act'}">${stage === 6 ? 'готово' : 'триває'}</span></h2>
       ${run.ask ? `<div class="bf-ask-banner"><div class="small muted">агент зупинився і питає · ${run.ask.who}</div><b>${run.ask.q}</b><div class="small" style="margin:4px 0 8px">${run.ask.why}</div><div class="bf-opts">${run.ask.o.map(op => `<button class="bf-opt" data-bfask="${op[0]}">${op[1]}${op[2] ? '<span class="bf-rec">★</span>' : ''}</button>`).join('')}</div></div>` : ''}

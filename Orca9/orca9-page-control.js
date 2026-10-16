@@ -190,13 +190,122 @@ function packetReady(r) {
 function pagePreview(content, label) {
   return `<article class="page-preview"><div class="preview-label">${esc(label)} · умовний макет, не live-сайт</div><div class="preview-label">Заголовок вкладки: ${esc(content.title)}</div><h3>${esc(content.h1)}</h3>${content.price ? `<div class="preview-label">Блок ціни: ${esc(content.price)}</div>` : ''}${content.definition ? `<p>${esc(content.definition)}</p>` : '<p class="muted small">Визначення відсутнє</p>'}<span class="preview-cta">${esc(content.cta)}</span><p class="small muted">${esc(content.details)}</p></article>`;
 }
+/* ---------- Прев’ю лендингу: сторінка з блоків, режими «До / Після / Зміни», десктоп і мобільний ---------- */
+const LP_MODE = {};
+const LP_NAME = { hero: 'Hero і CTA', def: 'Визначення', how: 'Як працює', cmp: 'Порівняння', faq: 'FAQ + schema', rev: 'Відгуки', case: 'Кейс з цифрами', price: 'Ціна', int: 'Інтеграції', table: 'Таблиця даних', video: 'Відео + транскрипт', trust: 'Довіра і безпека', body: 'Основний текст', form: 'Форма запису' };
+const LP_DEF = {
+  hero: { h1: 'Smart Reports', sub: 'Acme', cta: 'Переглянути демо', lead: 'Фінансові звіти для SaaS без ручних таблиць.' },
+  def: { text: 'Smart Reports — інструмент, що автоматично збирає фінансові звіти на закриття місяця.' },
+  how: { items: ['Підключіть облікову систему', 'Оберіть шаблон звіту', 'Отримайте звіт на закриття місяця'] },
+  cmp: { cols: ['Acme', 'Fathom', 'Baremetrics'], rows: [['Звіти на закриття місяця', 1, 1, 0], ['Прогноз cash flow', 1, 0, 1], ['Інтеграція з QuickBooks', 1, 1, 1]] },
+  faq: { items: ['Що таке financial reporting automation?', 'Які звіти готує Smart Reports?', 'Як переглянути демо?'] },
+  rev: { items: [['«Звіт для борду тепер готовий за день»', 'CFO, Northwind'], ['«Менше ручних таблиць наприкінці місяця»', 'Finance lead, Lumen']] },
+  case: { num: '−38%', text: 'часу на закриття місяця · Northwind, звіт клієнта' },
+  price: { text: 'від $79/міс' },
+  int: { items: ['QuickBooks', 'Xero', 'Stripe', 'HubSpot', 'NetSuite'] },
+  table: { rows: [['Крок', 'Хто', 'Час'], ['Звірка рахунків', 'Smart Reports', '2 год'], ['Перевірка', 'Finance', '1 день']] },
+  video: { text: 'Демо за 3 хвилини · транскрипт під відео' },
+  trust: { items: ['SOC 2 Type II', 'GDPR', 'SSO'] },
+  body: { text: 'Поточний матеріал сторінки.' },
+  form: { cta: 'Записатися на демо', items: ['Робоча пошта', 'Компанія'] }
+};
+const lpB = (id, d) => ({ id, ...LP_DEF[id], ...(d || {}) });
+function lpBlocks(c) {
+  const b = [lpB('hero', { h1: c.h1, sub: c.title, cta: c.cta })];
+  if (c.definition) b.push(lpB('def', { text: c.definition }));
+  if (c.price) b.push(lpB('price', { text: c.price }));
+  b.push(lpB('how'));
+  const d = c.details || '', faq = /FAQ/.test(d);
+  if (/^FAQ:/.test(d)) b.push(lpB('faq', { items: d.replace(/^FAQ:\s*/, '').replace(/\.$/, '').split(/;\s*/).map(s => s.charAt(0).toUpperCase() + s.slice(1) + '?') }));
+  else {
+    if (/Порівняльна таблиця/.test(d)) b.push(lpB('cmp'));
+    else if (/Таблиця кроків/.test(d)) b.push(lpB('table'));
+    if (faq) b.push(lpB('faq'));
+    if (!faq && !/таблиц/i.test(d)) b.push(lpB('body', { text: d }));
+    else b.push(lpB('body', { text: d.replace(/^[^.]*\.\s*/, '') || 'Поточний матеріал сторінки.' }));
+  }
+  b.push(lpB('trust'));
+  return b;
+}
+function lpDiff(before, after) {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const res = after.map(a => { const o = before.find(x => x.id === a.id); return { ...a, st: !o ? 'added' : same(o, a) ? 'same' : 'changed', old: o }; });
+  before.forEach((b, i) => { if (!after.some(a => a.id === b.id)) res.splice(Math.min(i, res.length), 0, { ...b, st: 'removed' }); });
+  return res;
+}
+function lpBlockHTML(b) {
+  const e = esc, it = b.items || [];
+  const body = {
+    hero: () => `<div class="lp-hero"><div><div class="lp-eye">${e(b.sub)}</div><div class="lp-h1">${e(b.h1)}</div><p>${e(b.lead || LP_DEF.hero.lead)}</p><span class="lp-btn">${e(b.cta)}</span></div><div class="lp-art" aria-hidden="true"><i></i><i></i><i></i></div></div>`,
+    def: () => `<div class="lp-def"><b>Що це</b><p>${e(b.text)}</p></div>`,
+    how: () => `<div class="lp-h2">Як це працює</div><div class="lp-steps">${it.map((s, i) => `<div><b>${i + 1}</b>${e(s)}</div>`).join('')}</div>`,
+    cmp: () => `<div class="lp-h2">Порівняння</div><table class="lp-tbl"><tr><th></th>${b.cols.map(c => `<th>${e(c)}</th>`).join('')}</tr>${b.rows.map(r => `<tr><td>${e(r[0])}</td>${r.slice(1).map(v => `<td>${v ? '✓' : '—'}</td>`).join('')}</tr>`).join('')}</table>`,
+    faq: () => `<div class="lp-h2">Питання і відповіді</div><div class="lp-faq">${it.map(q => `<div>${e(q)}<span>+</span></div>`).join('')}</div>`,
+    rev: () => `<div class="lp-rev">${it.map(r => `<div><p>${e(r[0])}</p><span>${e(r[1])}</span></div>`).join('')}</div>`,
+    case: () => `<div class="lp-case"><b>${e(b.num)}</b><span>${e(b.text)}</span></div>`,
+    price: () => `<div class="lp-price"><span>Тариф Smart Reports</span><b>${e(b.text)}</b><span class="lp-btn ghost">Обрати тариф</span></div>`,
+    int: () => `<div class="lp-h2">Інтеграції</div><div class="lp-pills">${it.map(x => `<span>${e(x)}</span>`).join('')}</div>`,
+    table: () => `<table class="lp-tbl">${b.rows.map((r, i) => `<tr>${r.map(c => i ? `<td>${e(c)}</td>` : `<th>${e(c)}</th>`).join('')}</tr>`).join('')}</table>`,
+    video: () => `<div class="lp-video"><span>▶</span>${e(b.text)}</div>`,
+    trust: () => `<div class="lp-pills trust">${it.map(x => `<span>${e(x)}</span>`).join('')}</div>`,
+    body: () => `<p class="lp-body">${e(b.text)}</p>`,
+    form: () => `<div class="lp-form">${it.map(x => `<span>${e(x)}</span>`).join('')}<span class="lp-btn">${e(b.cta)}</span></div>`
+  }[b.id];
+  const was = b.st === 'changed' && b.old ? Object.keys(b).filter(k => !['st', 'old', 'id'].includes(k) && JSON.stringify(b[k]) !== JSON.stringify(b.old[k])).map(k => ({ h1: 'H1', cta: 'CTA', sub: 'заголовок вкладки', text: 'текст', items: 'пункти', lead: 'підзаголовок', rows: 'рядки', cols: 'колонки', num: 'цифра' }[k] || k)) : [];
+  const tag = { added: 'новий блок', changed: 'змінено' + (was.length ? ': ' + was.join(', ') : ''), removed: 'прибрано' }[b.st];
+  const old = b.st === 'changed' && b.old && b.old.h1 !== b.h1 && b.id === 'hero' ? `<div class="lp-was">було: «${e(b.old.h1)}»${b.old.cta !== b.cta ? ` · CTA «${e(b.old.cta)}»` : ''}</div>` : '';
+  return `<section class="lpb ${b.st || ''}" data-blk="${b.id}"><span class="lp-k">${e(LP_NAME[b.id] || b.id)}${tag ? ` · <em>${e(tag)}</em>` : ''}</span>${body ? body() : ''}${old}</section>`;
+}
+function lpView(o) {
+  const key = o.key, mode = LP_MODE[key] || (o.isNew ? 'after' : 'diff'), dev = LP_MODE[key + ':dev'] || 'desk';
+  const list = lpDiff(o.before || [], o.after || []);
+  const n = s => list.filter(b => b.st === s).length, add = n('added'), chg = n('changed'), del = n('removed');
+  const pane = (m, blocks) => `<div class="lp-pane" data-pane="${m}">${blocks.length ? blocks.map(lpBlockHTML).join('') : `<div class="lp-empty">${o.isNew ? 'Сторінки ще немає: адреса нова.' : 'Порожньо'}</div>`}</div>`;
+  const btn = (m, t) => `<button type="button" data-lpm="${m}">${t}</button>`;
+  return `<div class="lp" data-lpk="${esc(key)}" data-mode="${mode}" data-dev="${dev}"${o.tour ? ` data-tour="${o.tour}"` : ''}>
+    <div class="lp-bar"><div class="lp-seg">${btn('before', 'До')}${btn('after', 'Після')}${btn('diff', 'Зміни')}</div>
+      <div class="lp-sum">${add ? `<span class="chip ok">+${add} ${o.isNew ? 'блоків' : 'нових'}</span>` : ''}${chg ? `<span class="chip warn">${chg} змінено</span>` : ''}${del ? `<span class="chip bad">${del} прибрано</span>` : ''}${!add && !chg && !del ? '<span class="chip">без змін</span>' : ''}</div>
+      <div class="lp-seg">${`<button type="button" data-lpd="desk">Десктоп</button><button type="button" data-lpd="mob">Мобільний</button>`}</div></div>
+    <div class="lp-frame"><div class="lp-chrome"><i></i><i></i><i></i><span class="lp-url">acme.com${esc(o.url || '')}</span><span class="lp-lab">${esc(o.label || 'умовний макет, не live-сайт')}</span></div>
+      ${pane('before', (o.before || []).map(b => ({ ...b, st: '' })))}${pane('after', (o.after || []).map(b => ({ ...b, st: '' })))}${pane('diff', list)}</div>
+    ${o.note ? `<p class="lp-note">${esc(o.note)}</p>` : ''}</div>`;
+}
+if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('click', e => {
+  const b = e.target && e.target.closest && e.target.closest('[data-lpm],[data-lpd]'); if (!b) return;
+  const w = b.closest('.lp'); if (!w) return;
+  if (b.dataset.lpm) { w.dataset.mode = b.dataset.lpm; LP_MODE[w.dataset.lpk] = b.dataset.lpm; }
+  else { w.dataset.dev = b.dataset.lpd; LP_MODE[w.dataset.lpk + ':dev'] = b.dataset.lpd; }
+});
+/* Новий лендинг кампанії і сторінки з брифу */
+function lpLaunch(c) {
+  return [lpB('hero', { h1: c.title + ': звіти на закриття місяця за години', sub: 'Новинка · ' + c.title, cta: 'Переглянути демо' }), lpB('def'), lpB('how'), lpB('int'), lpB('faq'), lpB('form')];
+}
+function lpBriefBlock(a) {
+  const page = a.page || '/pricing-analytics', base = lpBlocks(pageState(page).content), id = a.blk || 'cmp', act = a.act || 'add';
+  const has = base.some(b => b.id === id), at = Math.min(base.length - 1, 2);
+  const before = act !== 'add' && !has ? [...base.slice(0, at), lpB(id), ...base.slice(at)] : base;
+  let after;
+  if (act === 'del') after = before.filter(b => b.id !== id);
+  else if (act === 'edit' || has) after = before.map(b => b.id !== id ? b : id === 'hero' ? { ...b, h1: b.h1 + ' для SaaS', cta: 'Переглянути демо' } : { ...b, ...(b.text ? { text: b.text + ' Оновлено за даними з джерелом.' } : { items: [...(b.items || []), ...(b.rows ? [] : ['Новий пункт із джерелом'])], ...(b.rows ? { rows: [...b.rows, ['Новий рядок з джерелом', 1, 0, 1].slice(0, b.rows[0].length)] } : {}) }) });
+  else after = [...before.slice(0, at), lpB(id), ...before.slice(at)];
+  return { key: 'bf:' + page + ':' + act + ':' + id, url: page, before, after, tour: 'bf-lp', label: 'умовний макет · v' + pageState(page).version + ' → пакет',
+    note: act === 'del' ? 'Прибраний блок теж перевіряють канали: він міг тримати ключ або цитування.' : 'Зміна піде пакетом через канали, Координатора і тест-гейт. Основна сторінка не зміниться до розгортання.' };
+}
+function lpBriefNew(t, a) {
+  const ids = a.blocks && a.blocks.length ? a.blocks : t.id === 'vs' ? ['hero', 'cmp', 'faq', 'form'] : ['hero', 'def', 'how', 'faq', 'int'];
+  const url = (t.page || '').replace(/^нов[аі]:\s*/, '').split(' ')[0] || '/new-page';
+  const h1 = t.id === 'vs' ? 'Acme vs Baremetrics: чесне порівняння' : 'Smart Forecast: прогноз cash flow для SaaS';
+  return { key: 'bf:new:' + t.id + ':' + ids.join(','), url, before: [], isNew: 1, tour: 'bf-lp', label: 'нова сторінка · шаблон feature-landing',
+    after: ids.filter(id => LP_DEF[id]).map(id => id === 'hero' ? lpB('hero', { h1, sub: 'Acme', cta: 'Спробувати безкоштовно' }) : lpB(id)),
+    note: 'Нова адреса: контролю для A/B немає, тому запуск м’який — noindex 7 днів і моніторинг. Блоки з цифрами чи відгуками проходять O2 і згоду клієнта.' };
+}
 function packetHTML(r) {
   const page = pageState(r.page), p = r.packet;
-  if (!p) return `<p class="small muted">До узгодження це лише пропозиція. Сторінка v${page.version} не змінена; жодних погоджень ще немає.</p><div class="preview-grid">${pagePreview(page.content, 'Поточна сторінка v' + page.version)}${pagePreview({ ...page.content, ...packetPatch(r, 'base') }, 'Чернетка автора')}</div>`;
+  if (!p) return `<p class="small muted">До узгодження це лише пропозиція. Сторінка v${page.version} не змінена; жодних погоджень ще немає.</p>${lpView({ key: r.id + ':draft', url: r.page, before: lpBlocks(page.content), after: lpBlocks({ ...page.content, ...packetPatch(r, 'base') }), label: 'поточна v' + page.version + ' → чернетка автора · умовний макет', tour: 'lp-preview' })}`;
   return `<div class="packet" data-tour="page-packet"><div class="packet-head"><b>Єдиний пакет ${esc(r.id)} · v${p.version}</b><span class="chip">база сторінки v${p.baseVersion}</span></div>
     <div class="channel-approvals">${CHANNEL_ALL.map(c => { if (!CHANNEL_OWNERS.includes(c)) return `<div class="ph-ghost-row"><b>${esc(c)}-оркестратор</b><span class="chip ph">не підключено · фаза ${DIRS[c].phase}</span><span class="small muted">канал з’явиться разом із напрямом; нові пакети тоді проходитимуть і його погодження</span></div>`; const a = p.approvals[c]; return `<div><b>${esc(c)}-оркестратор</b><span class="chip ${a?.verdict === 'ok' ? 'ok' : a?.verdict === 'no' ? 'bad' : ''}">${a ? (a.verdict === 'ok' ? 'погодив' : 'заперечив') + ' · v' + a.version : 'очікує'}</span><p>${esc(a?.reason || 'Оцінює вплив на свій канал.')}</p></div>`; }).join('')}</div>
     <div class="reason ${p.coordinated ? 'ok' : ''}"><b>Координатор сторінки:</b> ${esc(p.coordinated ? chAgreed() + ' одну версію. Далі — правила ризику та дозвіл на обмежений тест.' : 'Збирає спільне рішення; канальні погодження не дозволяють окремі правки.')}</div>
-    <div class="preview-grid">${pagePreview(p.before, 'Поточна сторінка')}${pagePreview(p.after, r.variant === 'comp' ? 'Узгоджений компроміс' : 'Пропозиція для тесту')}</div>
+    ${lpView({ key: r.id + ':v' + p.version, url: r.page, before: lpBlocks(p.before), after: lpBlocks(p.after), label: 'пакет v' + p.version + ' · ' + (r.variant === 'comp' ? 'узгоджений компроміс' : 'пропозиція для тесту') + ' · умовний макет', tour: 'lp-preview' })}
     <div class="small muted">Поля пакета: ${Object.keys(p.patch).map(esc).join(', ')}. Зміна варіанта створює нову версію й скидає всі погодження. Тест не є публікацією на весь сайт.</div></div>`;
 }
 function pageControlHTML() {

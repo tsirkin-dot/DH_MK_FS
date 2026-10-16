@@ -103,6 +103,19 @@ function cmpDecompose(c) {
   slack(`<b>${esc(c.id)} ${esc(c.title)}</b>: розкладено на ${c.packets.length} пакетів. Кожен іде своїм контуром: сторінки — через Координатора, листи — з тестовою розсилкою, реклама — R3.`, [{ label: 'Відкрити кампанію', action: 'nav-to', screen: 'cmps', primary: true }]);
   render();
 }
+function cmpLp(c, k) {
+  const url = k ? k.res : (c.slug || (c.id === 'CMP-482' ? '/smart-reports' : '/lp/' + c.id.slice(4))) + '/launch';
+  return { key: 'cmp:' + c.id, url, before: [], after: lpLaunch(c), isNew: 1, label: 'нова сторінка · ' + (k ? CK_ST[k.status]?.[0] || k.status : 'ще не розкладено'),
+    note: 'Сторінки ще немає, усі блоки нові. Нова адреса не має контролю для A/B, тому запуск м’який: noindex 7 днів і моніторинг. Лист, реклама і пости чекають, поки Editor затвердить лендинг.' };
+}
+function cmpLpHTML(c, i) {
+  const k = c.packets.find(x => x.kind === 'landing');
+  return `<details class="lp-dt"${i === 0 ? ' open data-tour="cmp-lp"' : ''}><summary>Прев’ю лендингу ${esc(k ? k.res : '')}</summary>${lpView(cmpLp(c, k))}</details>`;
+}
+function cmpLpFor(a) {
+  const [c, k] = cmpFind(a.ck);
+  return c && k && k.kind === 'landing' ? lpView({ ...cmpLp(c, k), key: 'ap:' + a.id, label: 'нова сторінка · на затвердженні' }) : '';
+}
 function cmpFind(pid) { for (const c of S.cmps) { const k = c.packets.find(x => x.id === pid); if (k) return [c, k]; } return [null, null]; }
 function cmpRun(c) {
   if (!c) return;
@@ -248,7 +261,7 @@ function cmpView() {
       <p class="small muted" style="margin:-4px 0 8px">${esc(c.brief)}${c.budget ? ` · бюджет $${c.budget.toLocaleString('uk')}` : ''}</p>
       ${c.packets.length ? cmpDag(c) + `<div class="tbl-wrap"><table><thead><tr><th>Пакет</th><th>Ресурс</th><th>Робить</th><th>Погоджують</th><th>Затверджує</th><th>Як виходить у світ</th><th>Статус</th></tr></thead><tbody>
         ${c.packets.map(k => { const K = CK[k.kind], st = CK_ST[k.status]; return `<tr><td><b>${esc(k.key)} · ${esc(k.title)}</b><br><span class="small muted">${k.deps.length ? 'після ' + esc(k.deps.map(d => d.split('/')[1]).join(', ')) : 'старт'}</span></td><td class="small">${esc(k.res)}</td><td class="small">${esc(K.who)}</td><td class="small">${esc(K.review.join(', '))} → O2, O3</td><td class="small">${esc(K.approver)}</td><td class="small">${esc(K.gate)}</td><td><span class="chip ${st[1]}">${st[0]}</span>${k.note ? `<br><span class="small muted">${esc(k.note)}</span>` : ''}${k.rec ? `<br><button class="btn small" data-action="open-rec" data-id="${k.rec}">${k.rec}</button>` : ''}</td></tr>`; }).join('')}
-      </tbody></table></div>` : '<p class="empty">Натисніть «Розкласти на пакети», щоб побачити граф.</p>'}</div>`).join('')}
+      </tbody></table></div>` : '<p class="empty">Натисніть «Розкласти на пакети», щоб побачити граф.</p>'}${cmpLpHTML(c, i)}</div>`).join('')}
     <div class="grid g2 sec-gap">
       ${rights('Чому пакети йдуть різними контурами', [
         ['R2', 'Наявна сторінка', 'Координатор сторінки → тест-гейт (A/B, SEO, AI Visibility)'],
