@@ -60,7 +60,28 @@ button:focus-visible,.node:focus-visible{outline:2px solid var(--cyan);outline-o
 .kill[aria-pressed="true"] i{background:rgba(222,52,72,.35)}
 .kill[aria-pressed="true"] i::after{transform:translateX(12px);background:var(--red)}
 
-.diagram{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.diagram{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative}
+.callout,.tip{position:absolute;z-index:6;width:min(330px,82vw);background:var(--bay);border:1px solid var(--c,var(--line));border-radius:10px;padding:10px 13px 11px;box-shadow:0 10px 30px color-mix(in srgb,var(--ink) 16%,transparent);pointer-events:none}
+.callout{border-left:4px solid var(--c)}
+.callout::after,.tip::after{content:"";position:absolute;left:calc(var(--ax,50%) - 7px);bottom:-7px;width:12px;height:12px;background:var(--bay);border-right:1px solid var(--c,var(--line));border-bottom:1px solid var(--c,var(--line));transform:rotate(45deg)}
+.callout.below::after,.tip.below::after{bottom:auto;top:-7px;transform:rotate(225deg)}
+.co-k,.tip .tk{font:500 10.5px var(--mono);letter-spacing:.06em;color:var(--c);text-transform:uppercase}
+.callout b,.tip b{display:block;font:600 14.5px/1.3 var(--display);margin:3px 0 4px;color:var(--ink)}
+.callout p,.tip p{margin:0;font-size:13.5px;line-height:1.45;color:var(--ink)}
+.co-bar{height:3px;border-radius:2px;background:var(--line);margin-top:9px;overflow:hidden;display:none}
+.co-bar i{display:block;height:100%;width:0;background:var(--c)}
+.callout.freeze .co-bar{display:block}
+.callout.freeze{box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 18%,transparent),0 10px 30px color-mix(in srgb,var(--ink) 16%,transparent)}
+.co-f{display:none;font:500 10px var(--mono);color:var(--c);margin-top:6px}
+.callout.freeze .co-f{display:block}
+.tip{--c:var(--line);z-index:8}
+.tip .tn{font:500 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:9px 0 3px}
+.tip ul{margin:0;padding:0 0 0 16px;font-size:13px}
+.tip li{margin:2px 0}
+.tip li b{display:inline;font:600 12px var(--mono)}
+.tip .tr{font-size:12.5px;color:var(--mute)}
+.tip .th{font:400 10.5px var(--mono);color:var(--dim);margin-top:8px}
+.frz{display:flex;align-items:center;gap:7px;font:400 11.5px var(--mono);color:var(--mute);margin-top:10px;cursor:pointer}
 .diagram svg{display:block;width:100%;min-width:1060px;height:auto}
 
 .console{display:grid;grid-template-columns:auto 1fr;gap:18px;padding:16px 18px 18px;border-top:1px solid var(--line);align-items:start}
@@ -136,12 +157,12 @@ h2{font:600 19px var(--display);margin:0 0 12px}
 .node .brk{fill:none;stroke:var(--c);stroke-width:1.5;opacity:.45;transition:opacity .35s}
 .node .tag{font:500 9.5px var(--mono);letter-spacing:.16em;fill:var(--c)}
 .node .ttl{font:600 14px var(--display);fill:var(--ink)}
-.node .sub{font:400 10.5px var(--mono);fill:var(--mute)}
+.node .sub{font:400 11.5px var(--mono);fill:var(--mute)}
 .node.sat .ttl{font-size:12px}
 .node.sat .sub{font-size:9.5px}
 .node .dot{fill:var(--c)}
-.node .act-a{font:600 10.5px var(--mono);fill:var(--c)}
-.node .act-b{font:400 10.5px var(--mono);fill:var(--ink)}
+.node .act-a{font:600 11.5px var(--mono);fill:var(--c)}
+.node .act-b{font:500 11.5px var(--mono);fill:var(--ink)}
 .node.seen .box{stroke:color-mix(in srgb,var(--c) 40%,var(--line))}
 .node.cur .box{stroke:var(--c);stroke-width:1.6;fill:color-mix(in srgb,var(--c) 11%,var(--panel));filter:drop-shadow(0 0 12px color-mix(in srgb,var(--c) 35%,transparent))}
 .node.cur .brk,.node.sel .brk{opacity:1}
@@ -156,7 +177,7 @@ h2{font:600 19px var(--display);margin:0 0 12px}
 .chip.on rect{fill:color-mix(in srgb,var(--cyan) 22%,var(--bay));stroke:var(--cyan)}
 .chip.on text{fill:var(--ink)}
 .vote .vn{font:500 11px var(--mono);fill:var(--ink)}
-.vote rect{fill:var(--bay);stroke:var(--line);transition:all .3s}
+.vote rect{fill:var(--bay);stroke:var(--line)}
 .vote .vs{font:500 10px var(--mono);fill:var(--dim)}
 .vote.wait rect{stroke:var(--cyan);animation:pulse .8s ease-in-out infinite}
 .vote.wait .vs{fill:var(--cyan)}
@@ -192,7 +213,7 @@ h2{font:600 19px var(--display);margin:0 0 12px}
   <header class="head">
     <div>
       <div class="eyebrow">Orca9 · повний план · жива схема</div>
-      <div class="buildf">v1.14 · збірка 20261016c · оновлено 16.10.2026, 14:45 (Київ)</div>
+      <div class="buildf">v1.15 · збірка 20261016d · оновлено 16.10.2026, 15:14 (Київ)</div>
       <h1>Як Orca9 доводить зміну <em>від брифу до сайту</em></h1>
       <p class="lead">Агенти пропонують. Канали погоджують одну версію пакета. Координатор, O2 і O3 перевіряють, людина вирішує важливе, тест-гейт міряє. На сайт пише лише Gateway. Сторінка відкривається симуляцією «Стандартний день». Сценарії поруч показують окремі шляхи пакета, а клік по блоку пояснює, що він робить.</p>
     </div>
@@ -223,6 +244,7 @@ h2{font:600 19px var(--display);margin:0 0 12px}
           <button data-s="8" aria-pressed="true">8 хв</button>
           <button data-s="16" aria-pressed="false">16 хв</button>
         </div>
+        <label class="frz"><input type="checkbox" id="frz" checked> Пауза на ключових подіях</label>
         <div class="dnote" id="dnote"></div>
       </div>
       <div class="dright">
@@ -239,7 +261,7 @@ h2{font:600 19px var(--display);margin:0 0 12px}
       </div>
     </div>
 
-    <div class="diagram"><svg id="svg" viewBox="0 0 1560 990" role="img" aria-label="Схема: бриф, планувальник, агенти, пакет, погодження каналів, перевірки, людина, тест-гейт, Gateway, сайт, аналітика"></svg></div>
+    <div class="diagram"><svg id="svg" viewBox="0 0 1560 990" role="img" aria-label="Схема: бриф, планувальник, агенти, пакет, погодження каналів, перевірки, людина, тест-гейт, Gateway, сайт, аналітика"></svg><div class="callout" id="callout" hidden aria-live="polite"><div class="co-k" id="coK"></div><b id="coT"></b><p id="coP"></p><div class="co-f">пауза, щоб прочитати · симуляція продовжиться сама</div><div class="co-bar"><i id="coBar"></i></div></div><div class="tip" id="tip" hidden></div></div>
 
     <div class="console" id="story" aria-live="polite">
       <div class="counter" id="counter">01 / 16</div>
@@ -434,7 +456,7 @@ const gN = el('g', {}, svg);
 for (const id in N) {
   const n = N[id], [tag, col] = KIND[n.k];
   const g = el('g', { class:'node' + (n.sat ? ' sat' : ''), style:`--c:var(${col})`, tabindex:0, role:'button', 'aria-label':n.t + ': докладніше' }, gN);
-  n.g = g; n.cls = new Set();
+  n.g = g; n.cls = new Set(); g.dataset.id = id;
   g.addEventListener('click', () => inspect(id));
   g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); inspect(id); } });
   el('rect', { class:'box', x:n.x, y:n.y, width:n.w, height:n.h, rx:n.sat ? 22 : 10 }, g);
@@ -452,7 +474,7 @@ for (const id in N) {
   if (n.chips) {
     n.actA = tx(g, n.x + 14, n.y + 93, 'act-a', ''); n.actB = tx(g, n.x + 14, n.y + 106, 'act-b', '');
     let cx = n.x + 14; n.chipEls = {};
-    n.chips.forEach(s => { const w = s.length * 6.2 + 14; const cg = el('g', { class:'chip' }, g); el('title', {}, cg).textContent = s + '-под: ' + POD_DO[s];
+    n.chips.forEach(s => { const w = s.length * 6.2 + 14; const cg = el('g', { class:'chip' }, g); cg.dataset.pod = s;
       el('rect', { x:cx, y:n.y + 56, width:w, height:18, rx:4 }, cg); tx(cg, cx + 7, n.y + 69, '', s); n.chipEls[s] = cg; cx += w + 5; });
   }
   if (n.votes) {
@@ -500,8 +522,8 @@ function mkApi(anim, my) {
       arr.forEach((s, i) => setTimeout(() => { if (my === run) setVote(i, s); }, reduce ? 0 : 450 + i * 380)); },
     reset() { [0, 1, 2].forEach(i => setVote(i, 'idle')); },
     chip(s, agent, task) { for (const k in N.pods.chipEls) N.pods.chipEls[k].setAttribute('class', 'chip' + (k === s ? ' on' : ''));
-      N.pods.actA.textContent = s ? fit((agent || s + '-под') + ' · ' + s, 44) : 'Агенти пропонують зміни, але не пишуть';
-      N.pods.actB.textContent = s ? fit('→ ' + (task || POD_DO[s]), 44) : 'наведіть на под, щоб побачити, що він вміє'; },
+      N.pods.actA.textContent = s ? fit((agent || s + '-под') + ' · ' + s, 38) : 'Агенти пропонують зміни, але не пишуть';
+      N.pods.actB.textContent = s ? fit('→ ' + (task || POD_DO[s]), 38) : 'наведіть на под, щоб побачити, що він вміє'; },
     pkt(t, s) { N.packet.ttlEl.textContent = t; N.packet.subEl.textContent = s; },
     badge, state(id, cls) { N[id].g.classList.add(cls); }, clear(id, cls) { N[id].g.classList.remove(cls); }
   };
@@ -725,7 +747,7 @@ function compile() {
   EV = [];
   for (const j of JOBS) {
     let t = HM(j.start), at = j.from; const segs = [], mv = j.move || 8;
-    const push = (tt, text, it) => { if (text || (it && (it.fx || it.cnt))) EV.push({ t:tt, who:j.id, c:JC[j.c], text, fx:it && it.fx, cnt:it && it.cnt }); };
+    const push = (tt, text, it) => { if (text || (it && (it.fx || it.cnt))) EV.push({ t:tt, who:j.id, c:JC[j.c], text, fx:it && it.fx, cnt:it && it.cnt, at }); };
     for (const it of j.steps) {
       if (typeof it === 'string') { segs.push({ t0:t, t1:t + mv, mv:it }); t += mv; at = it.split('>')[1]; continue; }
       if (it.jump) { at = it.jump; continue; }
@@ -754,17 +776,28 @@ JOBS.forEach(j => {
 
 let simT = DAY0, ei = 0, cnt = { tests:0, applied:0, rollback:0, noroll:0 }, liveQueue = 0, minPerSec = 8;
 const logEl = $('log');
-function fire(ev) {
+function fire(ev, live) {
   if (ev.cnt) for (const k in ev.cnt) cnt[k] += ev.cnt[k];
   if (ev.fx) ev.fx(mkApi(false, run));
   const text = typeof ev.text === 'function' ? ev.text() : ev.text;
-  if (!text) return;
+  if (!text) return false;
+  const job = JOBMAP[ev.who]; if (job) job.last = text;
+  const node = ev.at || GMAP[ev.who], key = isKey(ev, text);
+  if (node) callout(node, fmt(ev.t) + ' · ' + N[node].t, ev.c, ev.who + (job ? ' · ' + job.what : ''), text, live && key && $('frz').checked);
   const li = document.createElement('li'); li.style.setProperty('--c', ev.c);
   li.innerHTML = `<time>${fmt(ev.t)}</time><b></b><span></span>`;
   li.children[1].textContent = ev.who; li.children[2].textContent = text;
   logEl.prepend(li); while (logEl.children.length > 250) logEl.lastChild.remove();
+  return key;
 }
-function dayAdvance() { while (ei < EV.length && EV[ei].t <= simT) fire(EV[ei++]); }
+const FRZ = 3200; let frzUntil = 0;
+const KEYRX = /Конфлікт|вето|відкат|Немає висновку|48 год|питає|Прострочено|заблоковано|вимикач|поза чергою|дозволи|затверди|погодили кейс|Підсумок|компроміс|Owner|Guardrail/i;
+const isKey = (ev, text) => KEYRX.test(text) || KEYRX.test(ev.who);
+const GMAP = { 'Крони':'cron', 'Світ':'events', 'Люди':'human', 'Тест-гейт':'test', 'Якість':'quality', 'Аудитор':'audit', 'Аналітика':'analytics', 'Ресурси':'queue', 'Owner':'kill', 'O3':'o3', 'Підсумок':'site' };
+const JOBMAP = {}; JOBS.forEach(j => { JOBMAP[j.id] = j; j.what = { seo:'SEO', ppc:'PPC', aiv:'AI Visibility', hf:'швидке виправлення', cmp:'кампанія', grp:'група сторінок', cnt:'контент' }[j.c]; });
+function dayAdvance(live) {
+  while (ei < EV.length && EV[ei].t <= simT) { const ev = EV[ei++]; if (fire(ev, live) && live && $('frz').checked) { simT = ev.t; frzUntil = performance.now() + FRZ; break; } }
+}
 function dayRebuild(t) {
   resetAll(); logEl.innerHTML = ''; cnt = { tests:0, applied:0, rollback:0, noroll:0 }; ei = 0;
   simT = Math.max(DAY0, Math.min(DAY1, t)); dayAdvance(); renderDay(true);
@@ -830,8 +863,13 @@ function frame(t) {
     for (let i = waiters.length - 1; i >= 0; i--) { const w = waiters[i]; const p = w.dur ? Math.min(1, (vclock - w.start) / w.dur) : 1;
       if (w.upd) w.upd(p); if (p >= 1) { waiters.splice(i, 1); w.res(true); } }
   } else if (playing && !kill && !scrubbing && simT < DAY1) {
-    simT = Math.min(DAY1, simT + dt / 1000 * minPerSec); dayAdvance(); renderDay();
-    if (simT >= DAY1) setPlaying(false);
+    const now = performance.now();
+    if (frzUntil > now) $('coBar').style.width = (100 - (frzUntil - now) / FRZ * 100) + '%';
+    else {
+      if (frzUntil) { frzUntil = 0; co.classList.remove('freeze'); }
+      simT = Math.min(DAY1, simT + dt / 1000 * minPerSec); dayAdvance(true); renderDay();
+      if (simT >= DAY1) setPlaying(false);
+    }
   }
   requestAnimationFrame(frame);
 }
@@ -855,6 +893,7 @@ function caption(i) {
   $('counter').textContent = String(i + 1).padStart(2, '0') + ' / ' + String(n).padStart(2, '0');
   $('capT').textContent = s.t; $('capP').textContent = s.p;
   [...dotsEl.children].forEach((d, j) => d.className = j < i ? 'done' : j === i ? 'cur' : '');
+  callout(s.at, 'крок ' + (i + 1) + ' з ' + n + ' · ' + N[s.at].t, 'var(' + KIND[N[s.at].k][1] + ')', s.t, s.p, false);
 }
 function applyKill() {
   N.kill.g.classList.toggle('armed', kill);
@@ -863,7 +902,7 @@ function applyKill() {
   $('dnote').textContent = kill ? 'Аварійний вимикач: записи зупинено, день на паузі' : '';
 }
 const blocked = i => kill && SC[si].steps[i] && SC[si].steps[i].go && SC[si].steps[i].go.endsWith('>gateway');
-function killMsg() { $('capT').textContent = 'Аварійний вимикач увімкнено'; $('capP').textContent = 'Пакет зупинився перед Gateway: жоден запис не пройде, навіть у задачах, що вже йдуть. Вимкніть вимикач, і відкладене продовжиться.'; }
+function killMsg() { callout('gateway', 'Аварійний вимикач', 'var(--red)', 'Запис зупинено перед Gateway', 'Жоден запис не пройде, навіть у задачах, що вже йдуть. Вимкніть вимикач, і відкладене продовжиться.', false); $('capT').textContent = 'Аварійний вимикач увімкнено'; $('capP').textContent = 'Пакет зупинився перед Gateway: жоден запис не пройде, навіть у задачах, що вже йдуть. Вимкніть вимикач, і відкладене продовжиться.'; }
 
 async function move(k, my) {
   const e = E[k]; e.g.classList.add('run');
@@ -925,6 +964,48 @@ document.addEventListener('keydown', e => {
   if (e.target.closest && (e.target.closest('button') || e.target.closest('input') || e.target.closest('.node')) && (e.key === ' ' || e.key === 'Enter')) return;
   if (e.target.tagName === 'INPUT') return;
   if (e.key === 'ArrowRight') $('next').click(); else if (e.key === 'ArrowLeft') $('prev').click(); else if (e.key === ' ') { e.preventDefault(); $('play').click(); } });
+
+/* callout and hover tips */
+const co = $('callout'), tip = $('tip'), diag = document.querySelector('.diagram');
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+let coId = null;
+function placeBox(box, id, prefer) {
+  const n = N[id], r = svg.getBoundingClientRect(), d = diag.getBoundingClientRect(), k = r.width / 1560;
+  const px = x => x * k + r.left - d.left + diag.scrollLeft, py = y => y * k + r.top - d.top + diag.scrollTop;
+  box.hidden = false;
+  const w = box.offsetWidth, h = box.offsetHeight, cx = px(n.x + n.w / 2);
+  const left = Math.max(6, Math.min(diag.scrollWidth - w - 6, cx - w / 2));
+  let top = py(n.y) - h - 12, below = false;
+  if (prefer === 'below' || top < 4) { top = py(n.y + n.h) + 12; below = true; if (top + h > diag.scrollHeight - 4) { top = Math.max(4, py(n.y) - h - 12); below = false; } }
+  box.style.left = left + 'px'; box.style.top = top + 'px'; box.classList.toggle('below', below);
+  box.style.setProperty('--ax', Math.max(14, Math.min(w - 14, cx - left)) + 'px');
+}
+function callout(id, k, col, title, text, freeze) {
+  if (!id || !N[id]) { co.hidden = true; coId = null; return; }
+  coId = id; co.style.setProperty('--c', col);
+  $('coK').textContent = k; $('coT').textContent = title; $('coP').textContent = text;
+  co.classList.toggle('freeze', !!freeze); $('coBar').style.width = '0';
+  placeBox(co, id, 'above');
+}
+const POD_AG = { SEO:'Technical SEO Auditor, Keyword Researcher, Content Optimizer, Link Building Strategist', PPC:'PPC Strategist, Budget Optimizer, Attribution Analyst, Creative Strategist', AIV:'AI Visibility Tracker, Prompt Research Agent, Citation Analyst, Narrative Strategist', 'Контент':'Content Copywriter, Case Study Producer, Content Blog Strategist', SMM:'LinkedIn Organic Strategist, Twitter/X Strategist, Community Strategist', Email:'Email Lifecycle Architect, Email Copywriter, Deliverability Specialist' };
+function tipHTML(id, pod) {
+  const n = N[id], f = INFO[id], col = KIND[n.k][1];
+  if (pod) return { col:'var(--cyan)', html:'<div class="tk">под агентів</div><b>' + esc(pod) + '-под</b><p>' + esc(POD_DO[pod]) + '.</p><div class="tn">Агенти</div><p class="tr">' + esc(POD_AG[pod]) + '</p><div class="tn">Межі</div><p class="tr">Пропонує зміну з джерелами й ризиками. Не публікує сам і не схвалює власний результат.</p>' };
+  let now = [];
+  if (mode === 'day') now = JOBS.filter(j => { const s = j.segs.find(s => simT >= s.t0 && simT < s.t1); return s && !s.mv && s.at === id; })
+    .map(j => '<li><b style="color:' + JC[j.c] + '">' + esc(j.id) + '</b> ' + esc(j.last || '') + '</li>');
+  else { const s = SC[si].steps[cur]; if (s && s.at === id) now = ['<li>' + esc(s.t) + '</li>']; }
+  return { col:'var(' + col + ')', html:'<div class="tk">' + esc(KIND[n.k][0] || 'контроль') + '</div><b>' + esc(n.t) + '</b><p>' + esc(f[0]) + '</p>'
+    + (now.length ? '<div class="tn">Зараз тут</div><ul>' + now.join('') + '</ul>' : '')
+    + '<div class="tn">Межі</div><p class="tr">' + esc(f[3]) + '</p><div class="th">Клік — повний опис під схемою</div>' };
+}
+function showTip(id, pod) { const t = tipHTML(id, pod); tip.style.setProperty('--c', t.col); tip.innerHTML = t.html; placeBox(tip, id, 'below'); co.style.opacity = '.18'; }
+const hideTip = () => { tip.hidden = true; co.style.opacity = ''; };
+svg.addEventListener('mouseover', e => { const c = e.target.closest('.chip'); if (c) return showTip('pods', c.dataset.pod); const g = e.target.closest('.node'); g ? showTip(g.dataset.id) : hideTip(); });
+svg.addEventListener('mouseleave', hideTip);
+svg.addEventListener('focusin', e => { const g = e.target.closest && e.target.closest('.node'); if (g) showTip(g.dataset.id); });
+svg.addEventListener('focusout', hideTip);
+addEventListener('resize', () => { if (coId && !co.hidden) placeBox(co, coId, 'above'); hideTip(); });
 
 /* inspector */
 let selId = null;
