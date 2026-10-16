@@ -140,6 +140,8 @@ h2{font:600 19px var(--display);margin:0 0 12px}
 .node.sat .ttl{font-size:12px}
 .node.sat .sub{font-size:9.5px}
 .node .dot{fill:var(--c)}
+.node .act-a{font:600 10.5px var(--mono);fill:var(--c)}
+.node .act-b{font:400 10.5px var(--mono);fill:var(--ink)}
 .node.seen .box{stroke:color-mix(in srgb,var(--c) 40%,var(--line))}
 .node.cur .box{stroke:var(--c);stroke-width:1.6;fill:color-mix(in srgb,var(--c) 11%,var(--panel));filter:drop-shadow(0 0 12px color-mix(in srgb,var(--c) 35%,transparent))}
 .node.cur .brk,.node.sel .brk{opacity:1}
@@ -190,7 +192,7 @@ h2{font:600 19px var(--display);margin:0 0 12px}
   <header class="head">
     <div>
       <div class="eyebrow">Orca9 · повний план · жива схема</div>
-      <div class="buildf">v1.13 · збірка 20261016b · оновлено 16.10.2026, 14:35 (Київ)</div>
+      <div class="buildf">v1.14 · збірка 20261016c · оновлено 16.10.2026, 14:45 (Київ)</div>
       <h1>Як Orca9 доводить зміну <em>від брифу до сайту</em></h1>
       <p class="lead">Агенти пропонують. Канали погоджують одну версію пакета. Координатор, O2 і O3 перевіряють, людина вирішує важливе, тест-гейт міряє. На сайт пише лише Gateway. Сторінка відкривається симуляцією «Стандартний день». Сценарії поруч показують окремі шляхи пакета, а клік по блоку пояснює, що він робить.</p>
     </div>
@@ -319,16 +321,18 @@ const el = (t, a, p) => { const e = document.createElementNS(NS, t); for (const 
 const tx = (p, x, y, cls, s, extra) => { const t = el('text', Object.assign({ x, y, class: cls }, extra || {}), p); t.textContent = s; return t; };
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+const POD_DO = { SEO:'ключі, title, структура, FAQ, перелінковка', PPC:'оголошення, ставки, message match лендингу', AIV:'визначення і факти, які цитують AI-системи', 'Контент':'тексти, кейси, статті з джерелами', SMM:'пости і розклад у соцмережах', Email:'листи, сегменти, частота контактів' };
+const fit = (t, n) => t.length > n ? t.slice(0, n - 1) + '…' : t;
 const KIND = { in:['ВХІД','--mute'], plan:['ПЛАН','--cyan'], exec:['ВИКОНАННЯ','--cyan'], agree:['ПОГОДЖЕННЯ','--violet'],
   check:['ПЕРЕВІРКА','--blue'], human:['ЛЮДИНА','--amber'], test:['ТЕСТ','--blue'], write:['ЗАПИС','--green'],
   out:['СВІТ','--green'], ctrl:['КОНТРОЛЬ','--cyan'], kill:['КОНТРОЛЬ','--red'] };
 
 const N = {
-  brief:{x:60,y:110,w:190,h:88,k:'in',t:'Бриф',s:'людина · крон · сигнал'},
-  o1:{x:320,y:110,w:210,h:88,k:'plan',t:'O1 · Планувальник',s:'тип · шлях · розмір XS–XL'},
-  camp:{x:600,y:110,w:210,h:88,k:'plan',t:'Оркестратор кампаній',s:'граф пакетів і залежностей'},
-  pods:{x:870,y:110,w:280,h:88,k:'exec',t:'Поди агентів',chips:['SEO','PPC','AIV','Контент','SMM','Email']},
-  packet:{x:1210,y:110,w:300,h:88,k:'exec',t:'Пакет',s:'ресурс · 1 активний слот'},
+  brief:{x:60,y:98,w:190,h:112,k:'in',t:'Бриф',s:'людина · крон · сигнал'},
+  o1:{x:320,y:98,w:210,h:112,k:'plan',t:'O1 · Планувальник',s:'тип · шлях · розмір XS–XL'},
+  camp:{x:600,y:98,w:210,h:112,k:'plan',t:'Оркестратор кампаній',s:'граф пакетів і залежностей'},
+  pods:{x:870,y:98,w:280,h:112,k:'exec',t:'Поди агентів',chips:['SEO','PPC','AIV','Контент','SMM','Email']},
+  packet:{x:1210,y:98,w:300,h:112,k:'exec',t:'Пакет',s:'ресурс · 1 активний слот'},
   channels:{x:1210,y:400,w:300,h:150,k:'agree',t:'Канальні оркестратори',votes:['SEO','PPC','AI Visibility']},
   coord:{x:900,y:431,w:230,h:88,k:'agree',t:'Координатор сторінки',s:'взаємний вплив · компроміс'},
   o2:{x:620,y:431,w:210,h:88,k:'check',t:'O2 · Докази',s:'факти · джерела · рендер'},
@@ -391,7 +395,7 @@ const E = {
   'test>rollout':{d:line(R('test'),L('rollout'))}, 'rollout>gateway':{d:line(R('rollout'),L('gateway'))},
   'gateway>site':{d:line(R('gateway'),L('site')),c:'green'}, 'site>analytics':{d:line(B('site'),T('analytics')),c:'green'},
   'analytics>brief':{d:'M1390,930 L1390,952 L30,952 L30,154 L60,154',c:'violet',dash:1,lab:['висновки аналітики → нові брифи',650,944,'middle']},
-  'coord>packet':{d:'M1015,431 C1015,330 1250,330 1250,198',c:'amber',dash:1,lab:['компроміс → v2 · погодження скинуто',1135,378,'middle']},
+  'coord>packet':{d:'M1015,431 C1015,330 1250,330 1250,210',c:'amber',dash:1,lab:['компроміс → v2 · погодження скинуто',1135,378,'middle']},
   'human>gateway':{d:'M165,788 L165,832 L1080,832 L1080,788',c:'amber',dash:1,lab:['без тест-гейту: швидка смуга, м’який запуск нової сторінки',620,852,'middle']},
   'cron>brief':{d:line(B('cron'),T('brief')),sat:1}, 'quality>pods':{d:line(B('quality'),T('pods')),sat:1},
   'queue>packet':{d:line(B('queue'),T('packet')),sat:1}, 'facts>o2':{d:line(B('facts'),T('o2')),sat:1},
@@ -412,7 +416,7 @@ for (const c in COL) {
   el('path', { d:'M0,1 L9,5 L0,9 z', fill:COL[c] }, m);
 }
 el('rect', { x:0, y:0, width:1560, height:990, fill:'url(#dots)' }, svg);
-[['01 · ПЛАН І ВИКОНАННЯ',96],['02 · ПОГОДЖЕННЯ І ПЕРЕВІРКИ',386],['03 · РІШЕННЯ, ТЕСТ, ЗАПИС',686]].forEach(([s,y]) => tx(svg, y > 600 ? 670 : 300, y, 'lane', s));
+[['01 · ПЛАН І ВИКОНАННЯ',90],['02 · ПОГОДЖЕННЯ І ПЕРЕВІРКИ',386],['03 · РІШЕННЯ, ТЕСТ, ЗАПИС',686]].forEach(([s,y]) => tx(svg, y > 600 ? 670 : 300, y, 'lane', s));
 
 /* edges */
 const gE = el('g', {}, svg);
@@ -446,8 +450,9 @@ for (const id in N) {
     if (n.s) n.subEl = tx(g, X + 14, Y + 67, 'sub', n.s);
   }
   if (n.chips) {
+    n.actA = tx(g, n.x + 14, n.y + 93, 'act-a', ''); n.actB = tx(g, n.x + 14, n.y + 106, 'act-b', '');
     let cx = n.x + 14; n.chipEls = {};
-    n.chips.forEach(s => { const w = s.length * 6.2 + 14; const cg = el('g', { class:'chip' }, g);
+    n.chips.forEach(s => { const w = s.length * 6.2 + 14; const cg = el('g', { class:'chip' }, g); el('title', {}, cg).textContent = s + '-под: ' + POD_DO[s];
       el('rect', { x:cx, y:n.y + 56, width:w, height:18, rx:4 }, cg); tx(cg, cx + 7, n.y + 69, '', s); n.chipEls[s] = cg; cx += w + 5; });
   }
   if (n.votes) {
@@ -494,7 +499,9 @@ function mkApi(anim, my) {
       arr.forEach((_, i) => setVote(i, 'wait'));
       arr.forEach((s, i) => setTimeout(() => { if (my === run) setVote(i, s); }, reduce ? 0 : 450 + i * 380)); },
     reset() { [0, 1, 2].forEach(i => setVote(i, 'idle')); },
-    chip(s) { for (const k in N.pods.chipEls) N.pods.chipEls[k].setAttribute('class', 'chip' + (k === s ? ' on' : '')); },
+    chip(s, agent, task) { for (const k in N.pods.chipEls) N.pods.chipEls[k].setAttribute('class', 'chip' + (k === s ? ' on' : ''));
+      N.pods.actA.textContent = s ? fit((agent || s + '-под') + ' · ' + s, 44) : 'Агенти пропонують зміни, але не пишуть';
+      N.pods.actB.textContent = s ? fit('→ ' + (task || POD_DO[s]), 44) : 'наведіть на под, щоб побачити, що він вміє'; },
     pkt(t, s) { N.packet.ttlEl.textContent = t; N.packet.subEl.textContent = s; },
     badge, state(id, cls) { N[id].g.classList.add(cls); }, clear(id, cls) { N[id].g.classList.remove(cls); }
   };
@@ -506,7 +513,7 @@ const SC = [
   { at:'brief', t:'Бриф: title і meta на /smart-reports', p:'Задачу подав крон SEO-моніторингу: сторінка втрачає CTR у видачі.' },
   { go:'brief>o1', at:'o1', t:'O1 визначає тип, шлях і розмір', p:'Тип: title і meta, розмір XS. Шлях: зміна наявної сторінки. Перевірки контексту: сторінку ніхто не тримає, реклами й аномалій немає.' },
   { go:'o1>camp', at:'camp', t:'Кампанії немає, пакет один', p:'Задача одна, тому оркестратор кампаній видає один пакет без залежностей і нічого не затверджує.' },
-  { go:'camp>pods', at:'pods', fx:a => a.chip('SEO'), t:'Працює SEO-под', p:'Агент готує пропозицію: що змінити, джерела, очікуваний ефект і ризики. Права запису в нього немає.' },
+  { go:'camp>pods', at:'pods', fx:a => a.chip('SEO', 'Content Optimizer', 'title і meta під ключ із GSC'), t:'Працює SEO-под', p:'Агент готує пропозицію: що змінити, джерела, очікуваний ефект і ризики. Права запису в нього немає.' },
   { go:'pods>packet', at:'packet', fx:a => a.pkt('Пакет v1', '/smart-reports заблоковано · черга 0'), t:'Пакет v1 від актуальної бази', p:'Ресурс отримує єдиний активний слот. Прев’ю показує поточний і запропонований вигляд.' },
   { go:'packet>channels', at:'channels', fx:a => a.votes(['ok','ok','ok']), t:'Канали погоджують саме v1', p:'SEO, PPC і AI Visibility голосують за ту саму версію пакета. Усі три погоджують.' },
   { go:'channels>coord', at:'coord', t:'Координатор збирає вердикти', p:'Взаємного впливу немає, пакет узгоджений, можна перевіряти.' },
@@ -524,7 +531,7 @@ const SC = [
   { at:'brief', t:'REC-3 на /pricing-analytics', p:'Пропозиція: скоротити H1 і прибрати визначення, щоб підняти конверсію рекламного трафіку.' },
   { go:'brief>o1', at:'o1', t:'O1 читає живий контекст', p:'Розмір S. На сторінку ведуть кампанії Google Ads, а визначення цитують AI-системи. Обидва факти додають у план погодження.' },
   { go:'o1>camp', at:'camp', t:'Один пакет', p:'Кампанії немає, пакет іде прямо до виконавця.' },
-  { go:'camp>pods', at:'pods', fx:a => a.chip('PPC'), t:'Пропозицію готує PPC-под', p:'Message match і CTA під рекламу. Лендинг PPC напряму не змінює.' },
+  { go:'camp>pods', at:'pods', fx:a => a.chip('PPC', 'PPC Strategist', 'message match і CTA під Google Ads'), t:'Пропозицію готує PPC-под', p:'Message match і CTA під рекламу. Лендинг PPC напряму не змінює.' },
   { go:'pods>packet', at:'packet', fx:a => { a.pkt('Пакет v1', '/pricing-analytics заблоковано'); a.badge('queue', 'REC-5 чекає', 'amber'); }, t:'Пакет v1, REC-5 у черзі', p:'Сторінку тримає REC-3. Наступна SEO-пропозиція REC-5 стає в чергу, а не пише паралельно.' },
   { go:'packet>channels', at:'channels', fx:a => a.votes(['no','ok','no']), t:'Конфлікт каналів', p:'SEO заперечує вилучення теми з H1, AI Visibility заперечує вилучення визначення. PPC погоджує.' },
   { go:'channels>coord', at:'coord', fx:a => { a.state('coord', 'warn'); a.badge('coord', 'конфлікт', 'amber'); }, t:'Координатор розбирає наслідки', p:'Паралельних записів не буде. Компроміс: тема лишається в H1, визначення лишається, CTA береться від PPC.' },
@@ -546,7 +553,7 @@ const SC = [
   { at:'brief', t:'Сканер подає виправлення', p:'Власник підтвердив 21 день. Сканер знаходить сторінки зі старим значенням і створює бриф швидкого виправлення.' },
   { go:'brief>o1', at:'o1', t:'O1: швидке виправлення', p:'Значення лише з реєстру, мінімальний diff одного поля.' },
   { go:'o1>camp', at:'camp', t:'Без кампанії', p:'Одне поле на кожній сторінці, залежностей немає.' },
-  { go:'camp>pods', at:'pods', fx:a => a.chip('Контент'), t:'Под готує правку', p:'Агент підставляє значення з реєстру і нічого не формулює сам.' },
+  { go:'camp>pods', at:'pods', fx:a => a.chip('Контент', 'Content Copywriter', '21 день з реєстру на 4 сторінках'), t:'Под готує правку', p:'Агент підставляє значення з реєстру і нічого не формулює сам.' },
   { go:'pods>packet', at:'packet', fx:a => { a.pkt('Пакет HF-1', 'поза чергою · тести на сторінках на паузі'); a.badge('packet', 'поза чергою', 'amber'); }, t:'Обходить чергу, але не ворота', p:'Помилка в ціні чи даті шкодить зараз, тому пакет іде першим. Тести на цих сторінках стають на паузу.' },
   { go:'packet>channels', at:'channels', fx:a => a.votes(['ok','ok','ok']), t:'Швидкі погодження каналів', p:'Канали перевіряють одне поле, а не всю сторінку.' },
   { go:'channels>coord', at:'coord', t:'Координатор', p:'Інші пакети на цих сторінках чекають і після виправлення отримають rebase.' },
@@ -561,7 +568,7 @@ const SC = [
   { at:'brief', t:'Нова структура блоку на /smart-reports', p:'Гіпотеза: коротший блок переваг підніме реєстрації.' },
   { go:'brief>o1', at:'o1', t:'O1: блок на сторінці', p:'Розмір S, зміна наявної сторінки.' },
   { go:'o1>camp', at:'camp', t:'Один пакет', p:'Залежностей немає.' },
-  { go:'camp>pods', at:'pods', fx:a => a.chip('Контент'), t:'Контент-под', p:'Пропозиція з прев’ю і очікуваним ефектом.' },
+  { go:'camp>pods', at:'pods', fx:a => a.chip('Контент', 'Content Copywriter', 'коротший блок переваг /smart-reports'), t:'Контент-под', p:'Пропозиція з прев’ю і очікуваним ефектом.' },
   { go:'pods>packet', at:'packet', fx:a => a.pkt('Пакет v1', '/smart-reports заблоковано'), t:'Пакет v1', p:'Від актуальної бази сторінки.' },
   { go:'packet>channels', at:'channels', fx:a => a.votes(['ok','ok','ok']), t:'Канали погоджують', p:'Конфлікту немає.' },
   { go:'channels>coord', at:'coord', t:'Координатор', p:'Пакет узгоджений.' },
@@ -586,14 +593,14 @@ const JOBS = [
  { id:'REC-11', c:'seo', start:'07:05', from:'analytics', steps:[
    { dur:5, log:'Аналітика: CTR /pdf-editor −18% за тиждень. Аномалія стає брифом.' }, 'analytics>brief', { dur:4 },
    'brief>o1', { dur:12, log:'O1: оптимізація під ключ, розмір S. Контекст: реклами на сторінку немає, сторінка вільна.' },
-   'o1>camp', { dur:3 }, 'camp>pods', { dur:40, log:'SEO-под готує пропозицію: нові H2 і FAQ-блок із джерелами.', fx:a => a.chip('SEO') },
+   'o1>camp', { dur:3 }, 'camp>pods', { dur:40, log:'SEO-под готує пропозицію: нові H2 і FAQ-блок із джерелами.', fx:a => a.chip('SEO', 'Content Optimizer', 'H2 і FAQ для /pdf-editor з джерелами') },
    'pods>packet', { dur:5, log:'Пакет v1, /pdf-editor заблоковано.', fx:a => a.pkt('Пакет v1 · REC-11', '/pdf-editor заблоковано') },
    'packet>channels', { dur:25, log:'SEO, PPC і AI Visibility погодили v1.', fx:a => a.votes(['ok','ok','ok']) },
    'channels>coord', { dur:8 }, 'coord>o2', { dur:10, log:'O2: джерела FAQ перевірені.' }, 'o2>o3', { dur:5 }, 'o3>triage', { dur:3, log:'Тріаж: низький вплив, авто-дозвіл на тест.' },
    'triage>test', { park:1, test:1, log:'Тест стартував: 3 тижні на тестовій групі, основна сторінка без змін.', cnt:{ tests:1 } } ] },
  { id:'REC-12', c:'seo', start:'08:10', from:'brief', steps:[
    { dur:5, log:'Крон SEO-моніторингу: title /e-sign-pdf втрачає CTR.' }, 'brief>o1', { dur:6, log:'O1: title і meta, розмір XS.' },
-   'o1>camp', { dur:2 }, 'camp>pods', { dur:18, fx:a => a.chip('SEO') }, 'pods>packet', { dur:4, fx:a => a.pkt('Пакет v1 · REC-12', '/e-sign-pdf заблоковано') },
+   'o1>camp', { dur:2 }, 'camp>pods', { dur:18, fx:a => a.chip('SEO', 'Content Optimizer', 'title і meta для /e-sign-pdf') }, 'pods>packet', { dur:4, fx:a => a.pkt('Пакет v1 · REC-12', '/e-sign-pdf заблоковано') },
    'packet>channels', { dur:15, fx:a => a.votes(['ok','ok','ok']), log:'Канали погодили title і meta.' }, 'channels>coord', { dur:4 }, 'coord>o2', { dur:6 }, 'o2>o3', { dur:3 },
    'o3>triage', { dur:2 }, 'triage>test', { park:1, test:1, log:'Авто-тест SEO стартував.', cnt:{ tests:1 } } ] },
  { id:'REC-3', c:'ppc', start:'09:00', from:'test', steps:[
@@ -603,7 +610,7 @@ const JOBS = [
    'gateway>site', { dur:6, log:'/pricing-analytics тепер v2. REC-5 перебудовується від неї.', cnt:{ applied:1 } }, 'site>analytics', { end:1 } ] },
  { id:'REC-13', c:'ppc', start:'09:30', from:'brief', steps:[
    { dur:5, log:'PPC: message match для кампанії Brand UA на /smart-reports.' }, 'brief>o1', { dur:12, log:'O1: зміна наявної сторінки, розмір S. На сторінку веде реклама, визначення цитують AI-системи.' },
-   'o1>camp', { dur:3 }, 'camp>pods', { dur:35, fx:a => a.chip('PPC') },
+   'o1>camp', { dur:3 }, 'camp>pods', { dur:35, fx:a => a.chip('PPC', 'PPC Strategist', 'message match Brand UA → /smart-reports') },
    'pods>packet', { dur:5, fx:a => a.pkt('Пакет v1 · REC-13', '/smart-reports заблоковано') },
    'packet>channels', { dur:20, log:'Конфлікт: SEO і AI Visibility проти вилучення теми H1 і визначення.', fx:a => a.votes(['no','ok','no']) },
    'channels>coord', { dur:15, log:'Координатор: компроміс — тема і визначення лишаються, CTA від PPC.', fx:a => { a.state('coord', 'warn'); a.badge('coord', 'конфлікт · REC-13', 'amber'); } },
@@ -614,12 +621,12 @@ const JOBS = [
    'human>test', { park:1, test:1, log:'Тест v2 стартував. Основна сторінка ще v1.', cnt:{ tests:1 } } ] },
  { id:'REC-14', c:'seo', start:'11:20', from:'brief', steps:[
    { dur:5, log:'SEO: перелінковка на /smart-reports.' }, 'brief>o1', { dur:8, log:'O1: сторінку тримає REC-13, задача піде в чергу.' },
-   'o1>camp', { dur:2 }, 'camp>pods', { dur:25, fx:a => a.chip('SEO') },
+   'o1>camp', { dur:2 }, 'camp>pods', { dur:25, fx:a => a.chip('SEO', 'Link Building Strategist', 'перелінковка на /smart-reports') },
    'pods>packet', { park:1, queue:1, log:'У черзі: /smart-reports тримає REC-13. Чекатиме кінця тесту.', fx:a => { a.state('queue', 'warn'); a.badge('queue', 'REC-14 чекає', 'amber'); } } ] },
  { id:'HF-1', c:'hf', start:'11:00', from:'facts', move:3, steps:[
    { dur:6, log:'Реєстр фактів: білінг каже 21 день пробного періоду, реєстр — 14. Finance підтверджує 21.', fx:a => { a.state('facts', 'warn'); a.badge('facts', '14 → 21 день', 'amber'); } },
    { jump:'brief' }, { dur:3, log:'Сканер знайшов 4 сторінки зі старим значенням.' },
-   'brief>o1', { dur:3 }, 'o1>camp', { dur:1 }, 'camp>pods', { dur:5, fx:a => a.chip('Контент') },
+   'brief>o1', { dur:3 }, 'o1>camp', { dur:1 }, 'camp>pods', { dur:5, fx:a => a.chip('Контент', 'Content Copywriter', 'заміна 14 → 21 день, одне поле') },
    'pods>packet', { dur:3, log:'HF-1 поза чергою. Тести на цих 4 сторінках на паузі.', fx:a => { a.pkt('Пакет HF-1', 'поза чергою · одне поле'); a.badge('packet', 'поза чергою', 'amber'); } },
    'packet>channels', { dur:8, fx:a => a.votes(['ok','ok','ok']) }, 'channels>coord', { dur:3 }, 'coord>o2', { dur:4, log:'O2: значення збігається з реєстром.' },
    'o2>o3', { dur:2 }, 'o3>triage', { dur:2 }, 'triage>human', { dur:8, human:1, log:'Owner дозволяє запис одним рішенням.' },
@@ -629,26 +636,26 @@ const JOBS = [
    { dur:5, log:'Кампанія: вебінар 24.10 — лендинг, лист і пости.' }, 'brief>o1', { dur:15, log:'O1: розмір L, план погоджує людина. Розкладено на XS і S.' },
    'o1>camp', { dur:10, log:'Граф пакетів: лендинг → лист → пости.' }, { end:1 } ] },
  { id:'CMP·лендинг', c:'cmp', start:'12:33', from:'camp', steps:[
-   'camp>pods', { dur:50, log:'Контент-под: лендинг /webinar-oct.', fx:a => a.chip('Контент') },
+   'camp>pods', { dur:50, log:'Контент-под: лендинг /webinar-oct.', fx:a => a.chip('Контент', 'Content Copywriter', 'лендинг /webinar-oct з блоків') },
    'pods>packet', { dur:5, fx:a => a.pkt('Пакет · лендинг', 'нова адреса /webinar-oct') },
    'packet>channels', { dur:20, fx:a => a.votes(['ok','ok','ok']) }, 'channels>coord', { dur:5 },
    'coord>o2', { dur:15, log:'O2: дата і спікери збігаються з реєстром.' }, 'o2>o3', { dur:5 }, 'o3>triage', { dur:3 },
    'triage>human', { until:'window', human:1, log:'Чекає Editor.', logEnd:'Editor затвердив лендинг.' },
    'human>gateway', { dur:4, log:'М’який запуск: noindex 7 днів і моніторинг.' }, 'gateway>site', { dur:5, log:'Лендинг живий. Стартують залежні пакети: лист і пости.', cnt:{ applied:1 } }, { end:1 } ] },
  { id:'CMP·лист', c:'cmp', start:'17:25', from:'camp', move:5, steps:[
-   'camp>pods', { dur:30, fx:a => a.chip('Email'), log:'Email-под: запрошення на вебінар.' }, 'pods>packet', { dur:3 },
+   'camp>pods', { dur:30, fx:a => a.chip('Email', 'Email Copywriter', 'лист-запрошення на вебінар'), log:'Email-под: запрошення на вебінар.' }, 'pods>packet', { dur:3 },
    'packet>channels', { dur:10, fx:a => a.votes(['ok','ok','ok']) }, 'channels>coord', { dur:3 }, 'coord>o2', { dur:8, log:'O2: сегмент і посилання перевірено.' },
    'o2>o3', { dur:5, log:'O3: частота контактів у межах.' }, 'o3>triage', { dur:2 },
    'triage>human', { until:'window', human:1, log:'Чекає Editor.', logEnd:'Editor затвердив лист.' },
    'human>gateway', { dur:4, log:'Тестова розсилка пройшла.' }, 'gateway>site', { dur:4, log:'Лист у розкладі на 09:00 завтра.', cnt:{ applied:1 } }, { end:1 } ] },
  { id:'CMP·пости', c:'cmp', start:'17:30', from:'camp', move:5, steps:[
-   'camp>pods', { dur:20, fx:a => a.chip('SMM') }, 'pods>packet', { dur:3 }, 'packet>channels', { dur:8, fx:a => a.votes(['ok','ok','ok']) },
+   'camp>pods', { dur:20, fx:a => a.chip('SMM', 'LinkedIn Organic Strategist', 'пости LinkedIn і X про вебінар') }, 'pods>packet', { dur:3 }, 'packet>channels', { dur:8, fx:a => a.votes(['ok','ok','ok']) },
    'channels>coord', { dur:3 }, 'coord>o2', { dur:6 }, 'o2>o3', { dur:4 }, 'o3>triage', { dur:2 },
    'triage>human', { until:'window', human:1, log:'Чекає Editor.', logEnd:'Editor затвердив пости.' },
    'human>gateway', { dur:3 }, 'gateway>site', { dur:4, log:'Пости в розкладі LinkedIn і X.', cnt:{ applied:1 } }, { end:1 } ] },
  { id:'REC-15', c:'aiv', start:'15:00', from:'brief', steps:[
    { dur:5, log:'AI Visibility: визначення і структура цитування на /what-is-e-signature.' }, 'brief>o1', { dur:10 },
-   'o1>camp', { dur:3 }, 'camp>pods', { dur:45, fx:a => a.chip('AIV') }, 'pods>packet', { dur:5, fx:a => a.pkt('Пакет v1 · REC-15', '/what-is-e-signature заблоковано') },
+   'o1>camp', { dur:3 }, 'camp>pods', { dur:45, fx:a => a.chip('AIV', 'Narrative Strategist', 'визначення для цитування AI') }, 'pods>packet', { dur:5, fx:a => a.pkt('Пакет v1 · REC-15', '/what-is-e-signature заблоковано') },
    'packet>channels', { dur:20, fx:a => a.votes(['ok','ok','ok']) }, 'channels>coord', { dur:5 }, 'coord>o2', { dur:12, log:'O2: визначення має джерело.' },
    'o2>o3', { dur:4 }, 'o3>triage', { dur:3 }, 'triage>test', { park:1, test:1, log:'AI Visibility тест стартував. Нова базова лінія після оновлення моделі.', cnt:{ tests:1 } } ] },
  { id:'REC-9', c:'aiv', start:'16:00', from:'test', steps:[
@@ -663,7 +670,7 @@ const JOBS = [
  { id:'PPC-21', c:'ppc', start:'11:40', from:'analytics', steps:[
    { dur:5, log:'Аналітика: CPA Brand UA +22% за тиждень.' }, 'analytics>brief', { dur:3 },
    'brief>o1', { dur:6, log:'O1: зміна реклами, ресурс ppc:brand-ua.' }, 'o1>camp', { dur:2 },
-   'camp>pods', { dur:20, log:'PPC-под пропонує +30% бюджету на exact-ключі.', fx:a => a.chip('PPC') },
+   'camp>pods', { dur:20, log:'PPC-под пропонує +30% бюджету на exact-ключі.', fx:a => a.chip('PPC', 'Budget Optimizer', '+30% бюджету на exact-ключі') },
    'pods>packet', { dur:3, fx:a => a.pkt('Пакет · PPC-21', 'ppc:brand-ua заблоковано') },
    'packet>channels', { dur:10, log:'Рекламу погоджують SEO та Аналітика.', fx:a => a.votes(['ok','ok','ok']) }, 'channels>coord', { dur:3 },
    'coord>o2', { dur:5 }, 'o2>o3', { dur:20, log:'O3: вето. Сукупний тижневий ліміт R3 перевищено б на 12%. Вето, а не обрізання бюджету.', cnt:{ noroll:1 }, fx:a => { a.state('o3', 'bad'); a.badge('o3', 'вето R3', 'red'); } },
@@ -675,7 +682,7 @@ const JOBS = [
    { dur:5, log:'Контент: кейс клієнта Northwind для блогу.' },
    'brief>o1', { dur:10, log:'O1 питає: «у чернетці −40% часу на договори, але цієї цифри немає в CRM. Звідки вона?» ★ запитати Customer Success.', fx:a => a.badge('o1', 'питання', 'amber') },
    { until:'13:55', human:1, logEnd:'Customer Success надав звіт клієнта: −38%. Агент бере цифру з джерела.', fx:a => a.badge('o1', '') },
-   'o1>camp', { dur:2 }, 'camp>pods', { dur:40, fx:a => a.chip('Контент') },
+   'o1>camp', { dur:2 }, 'camp>pods', { dur:40, fx:a => a.chip('Контент', 'Case Study Producer', 'кейс Northwind з цифрою з джерела') },
    'pods>packet', { dur:4, fx:a => a.pkt('Пакет · BR-31', 'нова сторінка /blog/northwind') },
    'packet>channels', { dur:12, fx:a => a.votes(['ok','ok','ok']) }, 'channels>coord', { dur:3 },
    'coord>o2', { dur:14, log:'O2: фраза «uptime 99,9%» спирається на факт, перевірений 100 днів тому. Прострочено, фразу прибрано.', fx:a => { a.state('o2', 'warn'); a.badge('o2', 'прострочений факт', 'amber'); } },
