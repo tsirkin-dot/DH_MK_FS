@@ -268,3 +268,9 @@ nav.toc .back { margin: 12px 0 24px; padding: 11px; border-color: #414b60; }
 .lp-dt { margin-top: 12px; }
 .lp-dt > summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--act); }
 @media (max-width: 720px) { .lp-hero, .lp-steps, .lp-rev { grid-template-columns: minmax(0, 1fr); } .lp-lab { display: none; } }
+
+/* Кнопка «Схема роботи» в шапці: окремий бірюзовий акцент, як на сторінці схеми */
+.btn.flow { display: inline-flex; flex-direction: row; align-items: center; gap: 7px; white-space: nowrap; height: auto; align-self: center; background: linear-gradient(135deg, #0a8cc4, #0f9f96); border-color: transparent; color: #fff; font-weight: 600; text-decoration: none; box-shadow: 0 3px 10px #0a8cc433; }
+.btn.flow:hover { background: linear-gradient(135deg, #087aab, #0c8a82); box-shadow: 0 4px 14px #0a8cc455; }
+.btn.flow:focus-visible { outline: 2px solid #0a8cc4; outline-offset: 2px; }
+.btn.flow svg { flex: none; }
