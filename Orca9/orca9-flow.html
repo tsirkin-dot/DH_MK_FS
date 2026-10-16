@@ -26,6 +26,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);
   background-size:32px 32px}
 .back{display:inline-flex;align-items:center;gap:6px;font:500 12px var(--mono);color:var(--cyan);text-decoration:none;border:1px solid var(--line);background:var(--bay);border-radius:7px;padding:6px 10px;align-self:flex-start}
 .back:hover{border-color:var(--cyan)}
+.buildf{font:400 11px var(--mono);color:var(--dim);margin-top:6px}
 .wrap{max-width:1480px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px;display:flex;flex-direction:column;gap:22px}
 .eyebrow{font:500 11px var(--mono);letter-spacing:.2em;color:var(--cyan);text-transform:uppercase;display:flex;align-items:center;gap:10px}
 .eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px var(--cyan);animation:blink 2.4s ease-in-out infinite}
@@ -73,7 +74,8 @@ button:focus-visible,.node:focus-visible{outline:2px solid var(--cyan);outline-o
 .dots button.cur{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
 
 /* day mode */
-.day{display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px 22px;padding:16px 18px 18px;border-top:1px solid var(--line)}
+.day{display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px 22px;padding:14px 18px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--amber) 4%,var(--bay))}
+.daylog{padding:14px 18px 18px;border-top:1px solid var(--line)}
 .clock{font:600 44px/1 var(--display);color:var(--amber);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .cdate{font:400 11px var(--mono);color:var(--mute);margin:6px 0 12px;letter-spacing:.04em}
 .speed{display:flex;gap:4px}
@@ -92,7 +94,7 @@ button:focus-visible,.node:focus-visible{outline:2px solid var(--cyan);outline-o
 .tile{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--panel)}
 .tile b{display:block;font:600 20px var(--display);color:var(--c,var(--ink));font-variant-numeric:tabular-nums}
 .tile span{font:400 10.5px var(--mono);color:var(--mute)}
-.log{grid-column:1/-1;list-style:none;margin:0;padding:0;max-height:236px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.log{list-style:none;margin:0;padding:0;max-height:236px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
 .log li{display:grid;grid-template-columns:46px 92px minmax(0,1fr);gap:10px;padding:7px 12px;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--mute);align-items:baseline}
 .log li:first-child{background:rgba(194,116,0,.05)}
 .log time{font:500 11px var(--mono);color:var(--dim);font-variant-numeric:tabular-nums}
@@ -188,6 +190,7 @@ h2{font:600 19px var(--display);margin:0 0 12px}
   <header class="head">
     <div>
       <div class="eyebrow">Orca9 · повний план · жива схема</div>
+      <div class="buildf">v1.12 · збірка 20261016a · оновлено 16.10.2026, 14:19 (Київ)</div>
       <h1>Як Orca9 доводить зміну <em>від брифу до сайту</em></h1>
       <p class="lead">Агенти пропонують. Канали погоджують одну версію пакета. Координатор, O2 і O3 перевіряють, людина вирішує важливе, тест-гейт міряє. На сайт пише лише Gateway. Натисніть на будь-який блок, щоб побачити, що він робить, або увімкніть «Стандартний день».</p>
     </div>
@@ -209,15 +212,7 @@ h2{font:600 19px var(--display);margin:0 0 12px}
         <button class="kill" id="kill" aria-pressed="false"><i></i>Аварійний вимикач</button>
       </div>
     </div>
-    <div class="diagram"><svg id="svg" viewBox="0 0 1560 990" role="img" aria-label="Схема: бриф, планувальник, агенти, пакет, погодження каналів, перевірки, людина, тест-гейт, Gateway, сайт, аналітика"></svg></div>
-
-    <div class="console" id="story" aria-live="polite">
-      <div class="counter" id="counter">01 / 16</div>
-      <div class="cap"><h3 id="capT"></h3><p id="capP"></p></div>
-      <div class="dots" id="dots"></div>
-    </div>
-
-    <div class="day" id="day" hidden>
+    <div class="day daytop" id="dayTop" hidden>
       <div>
         <div class="clock" id="clock">06:00</div>
         <div class="cdate">Типовий робочий день · 06:00–21:00</div>
@@ -240,6 +235,17 @@ h2{font:600 19px var(--display);margin:0 0 12px}
           <div class="tile" style="--c:var(--mute)"><b id="cNo">0</b><span>без розгортання</span></div>
         </div>
       </div>
+    </div>
+
+    <div class="diagram"><svg id="svg" viewBox="0 0 1560 990" role="img" aria-label="Схема: бриф, планувальник, агенти, пакет, погодження каналів, перевірки, людина, тест-гейт, Gateway, сайт, аналітика"></svg></div>
+
+    <div class="console" id="story" aria-live="polite">
+      <div class="counter" id="counter">01 / 16</div>
+      <div class="cap"><h3 id="capT"></h3><p id="capP"></p></div>
+      <div class="dots" id="dots"></div>
+    </div>
+
+    <div class="daylog" id="day" hidden>
       <ol class="log" id="log" aria-label="Журнал дня"></ol>
     </div>
 
@@ -885,14 +891,14 @@ function jump(i) {
 }
 function setTabs(idx) { [...tabs.querySelectorAll('.tab')].forEach((b, j) => b.setAttribute('aria-selected', j === idx)); }
 function select(i) {
-  if (mode !== 'story') { mode = 'story'; hideJobs(); $('day').hidden = true; $('story').hidden = false; }
+  if (mode !== 'story') { mode = 'story'; hideJobs(); $('day').hidden = true; $('dayTop').hidden = true; $('story').hidden = false; }
   si = i; setTabs(i);
   dotsEl.innerHTML = ''; SC[i].steps.forEach((s, j) => { const d = document.createElement('button'); d.setAttribute('aria-label', 'Крок ' + (j + 1) + ': ' + s.t); d.onclick = () => jump(j); dotsEl.appendChild(d); });
   jump(0);
 }
 function startDay() {
   ++run; cancelAll(); active = false; mode = 'day'; setTabs(SC.length);
-  pk.setAttribute('opacity', 0); $('story').hidden = true; $('day').hidden = false;
+  pk.setAttribute('opacity', 0); $('story').hidden = true; $('day').hidden = false; $('dayTop').hidden = false;
   dayRebuild(DAY0); setPlaying(!reduce);
 }
 function setPlaying(v) {
